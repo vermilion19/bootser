@@ -1,0 +1,10 @@
+dependencies {
+    // 1. 웹 관련 기능 (RestControllerAdvice, ExceptionHandler 등 사용을 위해)
+    api 'org.springframework.boot:spring-boot-starter-web'
+
+    // 2. 유효성 검사 (@NotNull, @Valid 등)
+    api 'org.springframework.boot:spring-boot-starter-validation'
+
+    // 3. 우리가 방금 만든 common 모듈도 가져다 씀 (DateUtils 등 활용)
+    api project(':libs:common')
+}

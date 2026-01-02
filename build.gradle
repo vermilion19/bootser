@@ -1,0 +1,61 @@
+plugins {
+    // 1. 루트 프로젝트는 자바 프로젝트가 아니므로 'java' 플러그인 제거
+    // 2. 하위 모듈들이 버전을 상속받도록 'apply false' 추가 (매우 중요)
+    id 'org.springframework.boot' version '4.0.1' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+// 모든 프로젝트(루트 + 하위) 공통 설정
+allprojects {
+    group = 'com.booster'  // 패키지 그룹명 수정 (org.example -> com.booster)
+    version = '0.0.1-SNAPSHOT'
+}
+
+// 하위 모듈(subprojects)들에게만 적용되는 설정
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'java-library' // API/Implementation 분리를 위해 권장
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+
+    // Java 25 설정
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+        // Spring Boot 4.x (Snapshot/Milestone) 사용 시 필요할 수 있는 저장소
+        maven { url 'https://repo.spring.io/milestone' }
+        maven { url 'https://repo.spring.io/snapshot' }
+    }
+
+    // 모든 하위 모듈이 공통으로 가질 의존성
+    dependencies {
+        // 롬복은 어디서든 쓰니까 여기서 한 번에 주입
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+
+        // 테스트 라이브러리도 공통 주입
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    // 테스트 설정
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
+    // [핵심] Apps vs Libs 구분 로직 ⭐
+    // apps 폴더 아래에 있는 모듈만 '실행 가능한 Jar(BootJar)'로 만들고
+    // libs 폴더 아래에 있는 모듈은 '일반 라이브러리 Jar'로 만듭니다.
+    if (it.path.startsWith(':apps')) {
+        bootJar { enabled = true }
+        jar { enabled = false }
+    } else {
+        bootJar { enabled = false }
+        jar { enabled = true }
+    }
+}
