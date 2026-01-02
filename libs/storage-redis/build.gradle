@@ -1,4 +1,5 @@
 dependencies {
+    implementation project(':libs:common')
     // 1. Spring Data Redis (Redis 연동 필수)
     api 'org.springframework.boot:spring-boot-starter-data-redis'
     api 'org.springframework.boot:spring-boot-starter-json'
