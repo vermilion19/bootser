@@ -15,7 +15,7 @@ public class RedisConfig {
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
 
-        ObjectMapper objectMapper = JsonUtils.COMMON_MAPPER;
+        ObjectMapper objectMapper = JsonUtils.MAPPER_FOR_REDIS;
 
         GenericJacksonJsonRedisSerializer valueSerializer = new GenericJacksonJsonRedisSerializer(objectMapper);
 
