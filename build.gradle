@@ -54,6 +54,11 @@ subprojects {
     if (it.path.startsWith(':apps')) {
         bootJar { enabled = true }
         jar { enabled = false }
+
+        dependencies {
+            implementation 'org.springframework.boot:spring-boot-starter-actuator'
+            implementation 'io.micrometer:micrometer-registry-prometheus'
+        }
     } else {
         bootJar { enabled = false }
         jar { enabled = true }

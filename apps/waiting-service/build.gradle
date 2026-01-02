@@ -1,0 +1,18 @@
+plugins {
+    // 버전 정보는 루트에서 관리하므로 버전 숫자를 지웁니다.
+    // 루트의 'apply false' 플러그인을 여기서 활성화하는 역할입니다.
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+dependencies {
+    // 1. [핵심] 우리가 만든 공통 모듈 어벤져스 조립
+    // (이 안에 Redis, JPA, Jackson 설정 등이 다 포함되어 있습니다)
+    implementation project(':libs:core-web')
+    implementation project(':libs:storage-db')
+    implementation project(':libs:storage-redis')
+    runtimeOnly 'com.h2database:h2'
+
+    // 2. 웹 서버 구동을 위한 필수 라이브러리
+//    implementation 'org.springframework.boot:spring-boot-starter-web'
+}

@@ -1,37 +1,51 @@
 package com.booster.core.web.response;
 
-import lombok.Getter;
+import com.booster.core.web.exception.ErrorCode;
 
-@Getter
-public class ApiResponse<T> {
-
-    private final ResultType result; // Enum으로 관리하면 더 깔끔함 (성공/실패)
-    private final T data;
-    private final String errorMessage;
-
-    private ApiResponse(ResultType result, T data, String errorMessage) {
-        this.result = result;
-        this.data = data;
-        this.errorMessage = errorMessage;
-    }
-
-    // 성공한 경우 (데이터 있음)
+public record ApiResponse<T>(
+        ResultType result,
+        T data,
+        String message,
+        String errorCode
+) {
+    // 1. 성공 응답 (데이터 포함)
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(ResultType.SUCCESS, data, null);
+        return new ApiResponse<>(
+                ResultType.SUCCESS,
+                data,
+                null,
+                null
+        );
     }
 
-    // 성공한 경우 (데이터 없음)
-    public static ApiResponse<Void> success() {
-        return new ApiResponse<>(ResultType.SUCCESS, null, null);
+    // 2. 성공 응답 (데이터 없음)
+    public static <T> ApiResponse<T> success() {
+        return new ApiResponse<>(
+                ResultType.SUCCESS,
+                null,
+                null,
+                null
+        );
     }
 
-    // 실패한 경우
-    public static ApiResponse<Void> error(String errorMessage) {
-        return new ApiResponse<>(ResultType.ERROR, null, errorMessage);
+    // 3. 실패 응답 (데이터 없음, 에러 메시지 포함)
+    // ErrorCode 객체를 받거나, 직접 메시지를 받을 수 있습니다.
+    public static <T> ApiResponse<T> error(ErrorCode errorCode) {
+        return new ApiResponse<>(
+                ResultType.ERROR,
+                null,
+                errorCode.getMessage(),
+                errorCode.getCode()
+        );
     }
 
-    // 내부에서 쓰는 Enum (밖으로 빼도 됩니다)
-    public enum ResultType {
-        SUCCESS, ERROR
+    // 단순 메시지로 에러 처리 시
+    public static <T> ApiResponse<T> error(String message) {
+        return new ApiResponse<>(
+                ResultType.ERROR,
+                null,
+                message,
+                null
+        );
     }
 }

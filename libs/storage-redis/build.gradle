@@ -1,5 +1,6 @@
 dependencies {
     // 1. Spring Data Redis (Redis 연동 필수)
     api 'org.springframework.boot:spring-boot-starter-data-redis'
-    api 'tools.jackson.datatype:jackson-datatype-jsr310'
+    api 'org.springframework.boot:spring-boot-starter-json'
+    api 'tools.jackson.datatype:jackson-datatype-jsr310:3.0.0-rc1'
 }

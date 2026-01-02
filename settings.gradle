@@ -1,7 +1,7 @@
 rootProject.name = 'booster'
 
 // 1. Apps (실행 가능한 서비스 모듈)
-//include 'apps:waiting-service'
+include 'apps:waiting-service'
 //include 'apps:restaurant-service'
 
 // 2. Libs (공통 라이브러리 모듈)

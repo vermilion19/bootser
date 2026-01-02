@@ -8,5 +8,6 @@ dependencies {
 
     // 3. (선택) H2 Database (테스트용)
     // 로컬에 PostgreSQL 깔기 귀찮을 때, 메모리 DB로 테스트하려면 넣어두면 좋습니다.
+    runtimeOnly 'com.h2database:h2'
     testImplementation 'com.h2database:h2'
 }
