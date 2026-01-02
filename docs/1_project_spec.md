@@ -37,8 +37,13 @@
 | **storage-redis**| 캐시/스토리지 | Redis 설정(Serializer), RedisUtils |
 
 ---
+## 3. 기타 스펙
+### 3.1 redis 분산 락 키 설계 명명 규칙
+* 형식: {서비스명}:{도메인}:{행위}:{식별자}
+* 예시: waiting-service:queue:lock:user-123
+---
 
-## 3. 데이터베이스 설계 (ERD) - PostgreSQL
+## 4. 데이터베이스 설계 (ERD) - PostgreSQL
 
 ```mermaid
 erDiagram
