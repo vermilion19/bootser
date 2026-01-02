@@ -33,10 +33,12 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
+        // Key 직렬화: String
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(valueSerializer);
-
         template.setHashKeySerializer(new StringRedisSerializer());
+
+        // Value 직렬화: JSON
+        template.setValueSerializer(valueSerializer);
         template.setHashValueSerializer(valueSerializer);
 
         return template;

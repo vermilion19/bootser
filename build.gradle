@@ -49,7 +49,6 @@ subprojects {
         useJUnitPlatform()
     }
 
-    // [핵심] Apps vs Libs 구분 로직 ⭐
     // apps 폴더 아래에 있는 모듈만 '실행 가능한 Jar(BootJar)'로 만들고
     // libs 폴더 아래에 있는 모듈은 '일반 라이브러리 Jar'로 만듭니다.
     if (it.path.startsWith(':apps')) {
