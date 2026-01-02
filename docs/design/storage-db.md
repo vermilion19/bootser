@@ -3,9 +3,9 @@
 이 문서는 시스템의 영속성 계층(RDB)을 담당하며, JPA 및 QueryDSL 설정을 관리하는 `storage-db` 모듈의 설계 내용을 기록합니다.
 
 ## 📅 Update History
-| 날짜 | 수정자 | 내용 | 상태 |
-|:---:|:---:|:---|:---:|
-| 2026-01-02 | Juhong Kim | JPA/QueryDSL 설정 및 도메인 공통 엔티티 설계 | `COMPLETED` ✅ |
+| 날짜 | 수정자 | 내용 |      상태    |
+|:---:|:---:|:---|:----------:|
+| 2026-01-02 | Juhong Kim | JPA/QueryDSL 설정 및 도메인 공통 엔티티 설계 | `COMPLETED`|
 
 ---
 
