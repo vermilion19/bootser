@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    # [옵션 1] H2 (인메모리) - 테스트용으로 가장 추천 (설치 필요 없음)
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+    # [옵션 2] 로컬 PostgreSQL을 쓰고 싶다면 주석 풀고 위 내용을 지우세요
+    # url: jdbc:postgresql://localhost:5432/test_db
+    # driver-class-name: org.postgresql.Driver
+    # username: postgres
+    # password: your_password
+
+  jpa:
+    # 하이버네이트가 실행될 때 테이블을 자동으로 생성하고(create), 끝나면 지움(drop)
+    hibernate:
+      ddl-auto: create-drop
+
+    # 실행되는 SQL을 눈으로 확인
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        # Dialect 에러가 계속 나면 명시적으로 지정 (보통은 자동 감지됨)
+        # dialect: org.hibernate.dialect.H2Dialect
+        # dialect: org.hibernate.dialect.PostgreSQLDialect
+
+logging:
+  level:
+    org.hibernate.SQL: debug

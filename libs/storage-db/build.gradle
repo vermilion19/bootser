@@ -10,4 +10,30 @@ dependencies {
     // 로컬에 PostgreSQL 깔기 귀찮을 때, 메모리 DB로 테스트하려면 넣어두면 좋습니다.
     runtimeOnly 'com.h2database:h2'
     testImplementation 'com.h2database:h2'
+
+    // [QueryDSL]
+    // Spring Boot 3.x, 4.x 모두 'jakarta' 버전 사용 필수
+    api "com.querydsl:querydsl-jpa:5.0.0:jakarta"
+
+    // QClass 생성용 (Annotation Processor)
+    annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
+    // 아래 두 개는 QueryDSL 컴파일 시 충돌 방지를 위해 명시적으로 넣어주는 게 안전함 (javax -> jakarta 이슈 해결)
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+}
+
+// QueryDSL QClass 생성 경로 설정
+// 보통 build/generated/querydsl 쪽에 생기도록 함
+def querydslDir = "$buildDir/generated/querydsl"
+
+tasks.withType(JavaCompile) {
+    options.getGeneratedSourceOutputDirectory().set(file(querydslDir))
+}
+
+sourceSets {
+    main.java.srcDirs += [ querydslDir ]
+}
+
+clean {
+    delete file(querydslDir)
 }
