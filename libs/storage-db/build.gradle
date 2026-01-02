@@ -1,0 +1,12 @@
+dependencies {
+    // 1. JPA (자바 표준 ORM) - 필수
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // 2. PostgreSQL 드라이버 (런타임에만 필요)
+    // 나중에 실제 DB 붙일 때 사용됩니다. 지금 당장 DB가 없어도 코드는 문제없습니다.
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // 3. (선택) H2 Database (테스트용)
+    // 로컬에 PostgreSQL 깔기 귀찮을 때, 메모리 DB로 테스트하려면 넣어두면 좋습니다.
+    testImplementation 'com.h2database:h2'
+}
