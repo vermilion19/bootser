@@ -10,6 +10,14 @@ dependencies {
     implementation project(':libs:core-web')
     implementation project(':libs:storage-db')
     implementation project(':libs:storage-redis')
+    implementation project(':libs:storage-kafka')
     runtimeOnly 'com.h2database:h2'
+
+    // [외부용] Embedded Redis (자바 17+ 호환 버전 사용 권장)
+    implementation 'com.github.codemonstur:embedded-redis:1.4.3'
+
+    // [외부용] Embedded Kafka (원래는 테스트용이지만, Work 환경 구동을 위해 가져옴)
+    implementation 'org.springframework.kafka:spring-kafka-test'
+
 
 }

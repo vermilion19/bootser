@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop # 인메모리니까 켤 때마다 새로 생성
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # 2. Redis (Embedded)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  # 3. Kafka (Embedded)
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: waiting-service-group-out
+      auto-offset-reset: latest
