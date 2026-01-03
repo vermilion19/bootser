@@ -31,7 +31,7 @@ public class JsonUtils {
     }
 
     // 2. 기본 빌더에 Redis 전용 설정만 추가해서 생성
-    public static final ObjectMapper MAPPER_FOR_REDIS = baseBuilder()
+    public static final JsonMapper MAPPER_FOR_REDIS = baseBuilder()
             .activateDefaultTyping(
                     BasicPolymorphicTypeValidator.builder()
                             .allowIfBaseType(Object.class)
@@ -41,7 +41,7 @@ public class JsonUtils {
             .build();
 
     // 3. 기본 빌더 그대로 생성
-    public static final ObjectMapper MAPPER = baseBuilder().build();
+    public static final JsonMapper MAPPER = baseBuilder().build();
 
 
     private JsonUtils() {

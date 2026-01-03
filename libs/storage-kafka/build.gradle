@@ -1,0 +1,11 @@
+dependencies {
+    implementation project(':libs:common')
+
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
+    testImplementation 'org.springframework.boot:spring-boot-starter-kafka-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
