@@ -5,27 +5,40 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.Set;
-
 @Repository
 @RequiredArgsConstructor
 public class RedisRankingRepository {
 
     private final RedisTemplate<String, Object> redisTemplate;
-
-    // 1. 대기열 진입 (객체 전체 활용)
-    public Boolean addWaitQueue(WaitingUser user) {
-        return redisTemplate.opsForZSet().add(user.getQueueKey(), user.getUserId(), user.getTimestamp());
+    private String getKey(Long restaurantId) {
+        return "waiting:ranking:" + restaurantId;
     }
 
-    // 2. 순번 조회 (객체의 멤버 활용)
+    // 1. 대기열 등록 (ZADD)
+    // 기존: timestamp -> 수정: waitingNumber (중복 방지 및 정확한 순서 보장)
+    public Boolean add(WaitingUser user) {
+        return redisTemplate.opsForZSet().add(
+                user.getQueueKey(),
+                user.waitingId().toString(), // Member: waitingId
+                user.waitingNumber()         // Score: waitingNumber
+        );
+    }
+
+    // 2. 내 순서 조회 (ZRANK)
     public Long getRank(WaitingUser user) {
-        return redisTemplate.opsForZSet().rank(user.getQueueKey(), user.getUserId());
+        Long rank = redisTemplate.opsForZSet().rank(
+                user.getQueueKey(),
+                user.waitingId().toString()
+        );
+        return (rank == null) ? null : rank + 1; // 0등 -> 1등으로 변환
     }
 
-    // 3. 대기열 이탈/삭제 (객체의 멤버 활용)
+    // 3. 대기열 삭제 (ZREM)
     public Long remove(WaitingUser user) {
-        return redisTemplate.opsForZSet().remove(user.getQueueKey(), user.getUserId());
+        return redisTemplate.opsForZSet().remove(
+                user.getQueueKey(),
+                user.waitingId().toString()
+        );
     }
 
     // 4. (참고) 특정 유저 객체가 없을 때를 대비한 오버로딩 (필요 시)

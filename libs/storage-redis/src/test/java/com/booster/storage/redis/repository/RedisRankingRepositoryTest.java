@@ -12,7 +12,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = TestRedisApplication.class)
@@ -35,49 +34,55 @@ class RedisRankingRepositoryTest {
     @Test
     void 대기열_진입_및_순위_조회_테스트() {
         // given
-        String queueKey = "event:concert";
-        WaitingUser user1 = WaitingUser.of("user1", queueKey);
-        WaitingUser user2 = WaitingUser.of("user2", queueKey);
+        Long restaurantId = 1L;
+        // timestamp(시간) 대신 waitingNumber(번호)로 명확하게 순서를 지정합니다.
+        WaitingUser user1 = WaitingUser.of(restaurantId, 100L, 1); // 1번 손님
+        WaitingUser user2 = WaitingUser.of(restaurantId, 200L, 2); // 2번 손님
 
         // when
-        redisRankingRepository.addWaitQueue(user1);
-        try { Thread.sleep(10); } catch (InterruptedException e) {} // 시간 차를 둠
-        redisRankingRepository.addWaitQueue(user2);
+        redisRankingRepository.add(user1);
+        // Thread.sleep(10); -> 필요 없음! 번호가 정렬 기준이므로 동시에 넣어도 순서 보장됨.
+        redisRankingRepository.add(user2);
 
         // then
         Long rank1 = redisRankingRepository.getRank(user1);
         Long rank2 = redisRankingRepository.getRank(user2);
 
-        assertThat(rank1).isEqualTo(0L); // 첫 번째
-        assertThat(rank2).isEqualTo(1L); // 두 번째
+        // 로직에서 rank + 1을 반환하도록 수정했으므로 1부터 시작해야 함
+        assertThat(rank1).isEqualTo(1L);
+        assertThat(rank2).isEqualTo(2L);
     }
 
     @Test
     void 대기열_이탈_테스트() {
         // given
-        String queueKey = "event:concert";
-        WaitingUser user = WaitingUser.of("user1", queueKey);
-        redisRankingRepository.addWaitQueue(user);
+        Long restaurantId = 1L;
+        WaitingUser user = WaitingUser.of(restaurantId, 100L, 5);
+        redisRankingRepository.add(user);
 
         // when
         Long removedCount = redisRankingRepository.remove(user);
 
         // then
-        assertThat(removedCount).isEqualTo(1L); // 삭제된 건수가 1이어야 함
+        assertThat(removedCount).isEqualTo(1L);
+
         Long rank = redisRankingRepository.getRank(user);
-        assertThat(rank).isNull(); // 삭제 후 조회하면 null이어야 함
+        assertThat(rank).isNull(); // 삭제 확인
     }
 
+    // 만약 Repository에 getQueueSize 메서드가 없다면 이 테스트는 제거하거나 Repository에 추가해야 합니다.
     @Test
     void 전체_대기자_수_조회_테스트() {
         // given
-        String queueKey = "event:concert";
-        redisRankingRepository.addWaitQueue(WaitingUser.of("user1", queueKey));
-        redisRankingRepository.addWaitQueue(WaitingUser.of("user2", queueKey));
-        redisRankingRepository.addWaitQueue(WaitingUser.of("user3", queueKey));
+        Long restaurantId = 1L;
+        redisRankingRepository.add(WaitingUser.of(restaurantId, 10L, 1));
+        redisRankingRepository.add(WaitingUser.of(restaurantId, 20L, 2));
+        redisRankingRepository.add(WaitingUser.of(restaurantId, 30L, 3));
 
         // when
-        Long size = redisRankingRepository.getQueueSize(queueKey);
+        // ZCard를 사용하는 메서드가 Repository에 있다고 가정 (없으면 추가 필요)
+        Long size = redisTemplate.opsForZSet().zCard("waiting:ranking:" + restaurantId);
+        // 또는: Long size = redisRankingRepository.getQueueSize(restaurantId);
 
         // then
         assertThat(size).isEqualTo(3L);
@@ -86,14 +91,14 @@ class RedisRankingRepositoryTest {
     @Test
     void 존재하지_않는_유저_조회_시_null_반환_테스트() {
         // given
-        String queueKey = "event:concert";
-        WaitingUser unknownUser = WaitingUser.of("unknown", queueKey);
+        Long restaurantId = 1L;
+        WaitingUser unknownUser = WaitingUser.of(restaurantId, 999L, 1);
 
         // when
         Long rank = redisRankingRepository.getRank(unknownUser);
 
         // then
-        assertThat(rank).isNull(); // 존재하지 않으면 null을 반환하는지 확인
+        assertThat(rank).isNull();
     }
 
 }

@@ -1,25 +1,16 @@
 package com.booster.storage.redis.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+public record WaitingUser(
+        Long restaurantId,  // Key 생성용 (waiting:ranking:{id})
+        Long waitingId,     // Value (Member) - 실제 저장될 값
+        int waitingNumber   // Score - 정렬 기준 (Time 대신 Number 사용!)
+) {
+    public static WaitingUser of(Long restaurantId, Long waitingId, int waitingNumber) {
+        return new WaitingUser(restaurantId, waitingId, waitingNumber);
+    }
 
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class WaitingUser {
-
-    private String userId;
-    private String queueKey; // 어떤 이벤트/상품의 대기열인지 구분
-    private Long timestamp;  // 진입 시간 (Score로 활용)
-
-    public static WaitingUser of(String userId, String queueKey) {
-        return WaitingUser.builder()
-                .userId(userId)
-                .queueKey(queueKey)
-                .timestamp(System.currentTimeMillis())
-                .build();
+    // Redis Key 생성 메서드를 DTO 내부에 두면 관리가 편합니다.
+    public String getQueueKey() {
+        return "waiting:ranking:" + restaurantId;
     }
 }

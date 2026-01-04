@@ -6,6 +6,7 @@ dependencies {
     api 'tools.jackson.datatype:jackson-datatype-jsr310:3.0.0-rc1'
 
     api 'org.redisson:redisson-spring-boot-starter:4.0.0'
+    api 'org.springframework.boot:spring-boot-starter-aop:4.0.0-M2'
 
     testImplementation('it.ozimov:embedded-redis:0.7.3') {
         // 충돌을 일으키는 로깅 라이브러리를 제외합니다.

@@ -1,5 +1,6 @@
 package com.booster.waitingservice.waiting.domain;
 
+import com.booster.storage.db.core.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "waiting") // 테이블명 명시
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Waiting {
+public class Waiting extends BaseEntity {
 
     @Id
     private Long id;
@@ -51,7 +52,7 @@ public class Waiting {
     // 입장 처리
     public void enter() {
         if (this.status != WaitingStatus.WAITING) {
-            throw new IllegalStateException("대기 중인 손님만 입장할 수 있습니다.");
+            throw new IllegalStateException("대기 상태인 손님만 입장 처리가 가능합니다.");
         }
         this.status = WaitingStatus.ENTERED;
     }

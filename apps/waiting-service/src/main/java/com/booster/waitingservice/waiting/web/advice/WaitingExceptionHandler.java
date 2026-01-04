@@ -15,13 +15,4 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class WaitingExceptionHandler {
 
-    // 💡 여기서 Exception.class를 잡으면 안 됩니다! (중복 발생)
-    // 오직 대기열 관련 커스텀 예외만 잡습니다.
-
-//    @ExceptionHandler(NoResourceFoundException.class)
-//    public ResponseEntity<Object> handleNoResourceFound(NoResourceFoundException e, HttpServletRequest request) {
-//        // 👇 범인의 정체를 로그로 남깁니다.
-//        log.warn("누가 루트 경로를 찔렀나? User-Agent: {}", request.getHeader("User-Agent"));
-//        return ResponseEntity.notFound().build();
-//    }
 }
