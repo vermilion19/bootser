@@ -1,3 +1,8 @@
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures' // 👈 추가
+}
+
 dependencies {
     implementation project(':libs:common')
     // 1. Spring Data Redis (Redis 연동 필수)
@@ -12,4 +17,8 @@ dependencies {
         // 충돌을 일으키는 로깅 라이브러리를 제외합니다.
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
+
+    testFixturesApi 'org.springframework.boot:spring-boot-testcontainers:4.0.1'
+    testFixturesApi 'org.testcontainers:junit-jupiter:1.21.4'
+    testFixturesApi 'com.redis:testcontainers-redis:2.2.4'
 }

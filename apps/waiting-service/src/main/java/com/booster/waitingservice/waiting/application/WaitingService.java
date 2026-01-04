@@ -1,11 +1,13 @@
 package com.booster.waitingservice.waiting.application;
 
 import com.booster.common.SnowflakeGenerator;
+import com.booster.core.web.event.WaitingEvent;
 import com.booster.storage.redis.domain.WaitingUser;
 import com.booster.storage.redis.repository.RedissonRankingRepository;
 import com.booster.waitingservice.waiting.domain.Waiting;
 import com.booster.waitingservice.waiting.domain.WaitingRepository;
 import com.booster.waitingservice.waiting.domain.WaitingStatus;
+import com.booster.waitingservice.waiting.exception.DuplicateWaitingException;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
 import com.booster.waitingservice.waiting.web.dto.response.RegisterWaitingResponse;
 import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse;
@@ -22,6 +24,7 @@ public class WaitingService {
 
     private final WaitingRepository waitingRepository;
     private final RedissonRankingRepository rankingRepository;
+    private final WaitingEventProducer eventProducer;
 
     public RegisterWaitingResponse registerInternal(RegisterWaitingRequest request) {
         validateDuplicate(request.restaurantId(), request.guestPhone());
@@ -44,6 +47,9 @@ public class WaitingService {
         );
         rankingRepository.add(waitingUser);
         Long rank = rankingRepository.getRank(waitingUser);
+
+        publishEvent(waiting, rank, WaitingEvent.EventType.REGISTER);
+
         return RegisterWaitingResponse.of(waiting, rank);
     }
 
@@ -86,6 +92,7 @@ public class WaitingService {
 
         WaitingUser waitingUser = WaitingUser.of(waiting.getRestaurantId(), waiting.getId(), waiting.getWaitingNumber());
         rankingRepository.remove(waitingUser);
+        publishEvent(waiting, null, WaitingEvent.EventType.ENTER);
     }
 
     /**
@@ -97,6 +104,7 @@ public class WaitingService {
 
         WaitingUser waitingUser = WaitingUser.of(waiting.getRestaurantId(), waiting.getId(), waiting.getWaitingNumber());
         rankingRepository.remove(waitingUser);
+        publishEvent(waiting, null, WaitingEvent.EventType.CANCEL);
     }
 
     /**
@@ -116,6 +124,7 @@ public class WaitingService {
                 originalWaiting.getWaitingNumber()
         );
         rankingRepository.remove(oldUser);
+        publishEvent(originalWaiting, null, WaitingEvent.EventType.CANCEL);
 
         // 3. 새로운 번호 채번 (맨 뒤)
         int nextNumber = getNextWaitingNumber(originalWaiting.getRestaurantId());
@@ -131,7 +140,7 @@ public class WaitingService {
 
         waitingRepository.save(newWaiting);
 
-        // 5. ✅ 신규 대기 Redis 등록
+        // 5. 신규 대기 Redis 등록
         WaitingUser newUser = WaitingUser.of(
                 newWaiting.getRestaurantId(),
                 newWaiting.getId(),
@@ -139,7 +148,7 @@ public class WaitingService {
         );
         rankingRepository.add(newUser);
         Long rank = rankingRepository.getRank(newUser);
-
+        publishEvent(newWaiting, rank, WaitingEvent.EventType.REGISTER);
         return RegisterWaitingResponse.of(newWaiting, rank);
     }
 
@@ -152,8 +161,7 @@ public class WaitingService {
     private void validateDuplicate(Long restaurantId, String guestPhone) {
         if (waitingRepository.existsByRestaurantIdAndGuestPhoneAndStatus(
                 restaurantId, guestPhone, WaitingStatus.WAITING)) {
-            // 추후 GlobalExceptionHandler에서 처리할 커스텀 예외로 변경 권장
-            throw new IllegalArgumentException("이미 대기 중인 식당입니다.");
+            throw new DuplicateWaitingException();
         }
     }
 
@@ -163,6 +171,19 @@ public class WaitingService {
                 LocalDate.now().atStartOfDay() // 오늘 00:00:00 이후
         );
         return (maxNumber == null) ? 1 : maxNumber + 1;
+    }
+
+    private void publishEvent(Waiting waiting, Long rank, WaitingEvent.EventType type) {
+        eventProducer.send(
+                WaitingEvent.of(
+                        waiting.getRestaurantId(),
+                        waiting.getId(),
+                        waiting.getGuestPhone(),
+                        waiting.getWaitingNumber(),
+                        rank,
+                        type
+                )
+        );
     }
 
 }

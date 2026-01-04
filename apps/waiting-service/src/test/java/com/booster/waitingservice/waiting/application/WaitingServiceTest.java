@@ -1,5 +1,6 @@
 package com.booster.waitingservice.waiting.application;
 
+import com.booster.core.web.event.WaitingEvent;
 import com.booster.storage.redis.domain.WaitingUser;
 import com.booster.storage.redis.repository.RedissonRankingRepository;
 import com.booster.waitingservice.waiting.application.dto.PostponeCommand;
@@ -12,28 +13,32 @@ import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class WaitingServiceTest {
 
     @Mock
     private WaitingRepository waitingRepository;
     @Mock
-
     private RedissonRankingRepository rankingRepository;
+    @Mock
+    private WaitingEventProducer eventProducer;
 
     @InjectMocks
     private WaitingService waitingService;
@@ -61,10 +66,9 @@ class WaitingServiceTest {
         assertThat(response.waitingNumber()).isEqualTo(1);
         assertThat(response.rank()).isEqualTo(1L);
 
-        // 검증: DB 저장 호출됨?
         verify(waitingRepository).save(any(Waiting.class));
-        // 검증: Redis 등록 호출됨?
         verify(rankingRepository).add(any(WaitingUser.class));
+        verify(eventProducer).send(any());
     }
 
     @Test
@@ -166,6 +170,7 @@ class WaitingServiceTest {
         // then
         assertThat(waiting.getStatus()).isEqualTo(WaitingStatus.ENTERED);
         verify(rankingRepository).remove(any(WaitingUser.class)); // Redis 삭제 검증
+        verify(eventProducer).send(any());
     }
 
     @Test
@@ -183,12 +188,13 @@ class WaitingServiceTest {
         // then
         assertThat(waiting.getStatus()).isEqualTo(WaitingStatus.CANCELED);
         verify(rankingRepository).remove(any(WaitingUser.class)); // Redis 삭제 검증
+        verify(eventProducer).send(any());
     }
 
     @Test
-    @DisplayName("순서 미루기: 기존 대기 취소/삭제 후 새로운 대기를 생성/등록한다.")
+    @DisplayName("순서 미루기: 기존 대기 취소(CANCEL) 및 신규 대기 등록(REGISTER) 이벤트가 발행된다.")
     void postpone() {
-        // given
+        // given (기존 설정 유지)
         Long oldWaitingId = 100L;
         Long restaurantId = 1L;
         PostponeCommand command = new PostponeCommand(oldWaitingId, restaurantId);
@@ -196,25 +202,36 @@ class WaitingServiceTest {
         Waiting oldWaiting = Waiting.create(oldWaitingId, restaurantId, "010-1234-5678", 2, 5);
 
         given(waitingRepository.findById(oldWaitingId)).willReturn(Optional.of(oldWaiting));
-        // 새 번호 채번 (현재 10번까지 있다고 가정 -> 11번)
         given(waitingRepository.findMaxWaitingNumber(eq(restaurantId), any(LocalDateTime.class)))
                 .willReturn(10);
-        // 새 순서 조회 (맨 뒤로 갔으니 10등)
         given(rankingRepository.getRank(any())).willReturn(10L);
 
         // when
         RegisterWaitingResponse response = waitingService.postponeInternal(command.waitingId());
 
         // then
-        // 1. 기존 대기는 취소되었는가?
+        // 1. 기존 검증 (상태, 번호 등)
         assertThat(oldWaiting.getStatus()).isEqualTo(WaitingStatus.CANCELED);
-
-        // 2. 새로운 번호를 받았는가?
         assertThat(response.waitingNumber()).isEqualTo(11);
 
-        // 3. Redis 작업 검증
-        verify(rankingRepository).remove(any(WaitingUser.class)); // 삭제 1회 (기존)
-        verify(rankingRepository).add(any(WaitingUser.class));    // 등록 1회 (신규)
-    }
+        // [핵심 수정] 이벤트 검증
+        // "어떤 인자가 넘어갔는지 캡처하는 도구"를 만듭니다.
+        ArgumentCaptor<WaitingEvent> eventCaptor = ArgumentCaptor.forClass(WaitingEvent.class);
 
+        // "send 메서드가 총 2번 호출되었는지 검증하고, 그때 넘어간 파라미터를 다 캡처해라"
+        verify(eventProducer, times(2)).send(eventCaptor.capture());
+
+        // 캡처된 값들을 순서대로 리스트로 꺼냅니다.
+        List<WaitingEvent> events = eventCaptor.getAllValues();
+
+        // [첫 번째 이벤트] -> 취소(CANCEL)여야 함
+        WaitingEvent cancelEvent = events.get(0);
+        assertThat(cancelEvent.type()).isEqualTo(WaitingEvent.EventType.CANCEL);
+        assertThat(cancelEvent.waitingId()).isEqualTo(oldWaitingId);
+
+        // [두 번째 이벤트] -> 등록(REGISTER)이어야 함
+        WaitingEvent registerEvent = events.get(1);
+        assertThat(registerEvent.type()).isEqualTo(WaitingEvent.EventType.REGISTER);
+        assertThat(registerEvent.waitingNumber()).isEqualTo(11); // 새로 발급된 번호 확인
+    }
 }

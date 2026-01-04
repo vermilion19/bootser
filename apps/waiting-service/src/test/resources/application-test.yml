@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    hikari:
+      max-lifetime: 20000        # 30초
+      idle-timeout: 10000        # 10초
+      validation-timeout: 3000
+      minimum-idle: 0
+      pool-name: TestHikariPool

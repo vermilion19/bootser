@@ -19,6 +19,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: 6379
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:} # 없으면 빈 문자열(비밀번호 없음)
 
   # 3. Kafka (storage-kafka 모듈용)

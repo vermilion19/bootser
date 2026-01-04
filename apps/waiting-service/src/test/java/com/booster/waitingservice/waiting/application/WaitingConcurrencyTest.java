@@ -1,12 +1,12 @@
 package com.booster.waitingservice.waiting.application;
 
 
+import com.booster.waitingservice.support.IntegrationTestSupport;
 import com.booster.waitingservice.waiting.domain.WaitingRepository;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -21,13 +21,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = {
-        "spring.kafka.bootstrap-servers=localhost:9092",
-        "spring.kafka.consumer.group-id=test-group",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
 @Testcontainers
-public class WaitingConcurrencyTest {
+public class WaitingConcurrencyTest extends IntegrationTestSupport {
 
     @Autowired
     private WaitingRegisterFacade waitingRegisterFacade;

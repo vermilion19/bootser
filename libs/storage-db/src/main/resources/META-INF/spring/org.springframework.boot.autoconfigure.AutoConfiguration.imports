@@ -1,2 +1,1 @@
-com.booster.storage.db.config.JpaConfig
-com.booster.storage.db.config.QueryDslConfig
+com.booster.storage.db.config.StorageDbConfig
