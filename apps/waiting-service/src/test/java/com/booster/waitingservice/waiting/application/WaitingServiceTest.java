@@ -7,6 +7,7 @@ import com.booster.waitingservice.waiting.application.dto.PostponeCommand;
 import com.booster.waitingservice.waiting.domain.Waiting;
 import com.booster.waitingservice.waiting.domain.WaitingRepository;
 import com.booster.waitingservice.waiting.domain.WaitingStatus;
+import com.booster.waitingservice.waiting.exception.DuplicateWaitingException;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
 import com.booster.waitingservice.waiting.web.dto.response.RegisterWaitingResponse;
 import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse;
@@ -107,8 +108,7 @@ class WaitingServiceTest {
 
         // when & then
         assertThatThrownBy(() -> waitingService.registerInternal(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("이미 대기 중인 식당입니다.");
+                .isInstanceOf(DuplicateWaitingException.class);
     }
 
     @Test

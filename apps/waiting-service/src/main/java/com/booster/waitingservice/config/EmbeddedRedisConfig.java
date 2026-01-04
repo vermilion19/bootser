@@ -10,8 +10,8 @@ import redis.embedded.RedisServer;
 import java.io.IOException;
 
 @Slf4j
-@Profile("out") // 프로파일 변경 (work -> out)
-@Configuration
+//@Profile("out") // 프로파일 변경 (work -> out)
+//@Configuration
 public class EmbeddedRedisConfig {
 
     private RedisServer redisServer;
