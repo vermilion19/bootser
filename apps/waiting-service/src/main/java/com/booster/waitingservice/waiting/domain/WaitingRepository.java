@@ -1,6 +1,7 @@
 package com.booster.waitingservice.waiting.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -29,5 +30,13 @@ public interface WaitingRepository extends JpaRepository<Waiting,Long> {
             "AND w.waitingNumber < :myWaitingNumber")
     Long countAhead(@Param("restaurantId") Long restaurantId,
                     @Param("myWaitingNumber") int myWaitingNumber);
+
+    /**
+     * [스케줄러용] 현재 WAITING 상태인 모든 대기를 CANCELED로 변경
+     * clearAutomatically = true : 영속성 컨텍스트를 비워줘서 데이터 불일치 방지
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Waiting w SET w.status = 'CANCELED' WHERE w.status = 'WAITING'")
+    int bulkUpdateStatusToCanceled();
 
 }
