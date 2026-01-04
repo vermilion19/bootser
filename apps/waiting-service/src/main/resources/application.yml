@@ -11,10 +11,19 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    show-sql: true
+    show-sql: false
 
 management:
   endpoints:
     web:
       exposure:
         include: health, info, metrics, prometheus
+
+logging:
+  level:
+    # 👇 Kafka 설정값(AbstractConfig) 로그만 쏙 골라서 WARN 이상일 때만 출력하게 변경
+    org.apache.kafka.common.config: WARN
+
+    # (선택) Kafka 클라이언트 전체 로그를 좀 조용히 시키고 싶다면
+    org.apache.kafka.clients.producer: WARN
+    org.apache.kafka.clients.consumer: WARN
