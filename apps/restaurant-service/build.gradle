@@ -1,0 +1,23 @@
+plugins {
+    // 버전 정보는 루트에서 관리하므로 버전 숫자를 지웁니다.
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+
+dependencies {
+    implementation project(':libs:core-web')
+    implementation project(':libs:storage-db')
+    runtimeOnly 'com.h2database:h2'
+
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
+
+    testImplementation testFixtures(project(':libs:storage-db'))
+    testImplementation testFixtures(project(':libs:storage-redis'))
+
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
