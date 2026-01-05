@@ -8,6 +8,7 @@ import com.booster.waitingservice.waiting.domain.Waiting;
 import com.booster.waitingservice.waiting.domain.WaitingRepository;
 import com.booster.waitingservice.waiting.domain.WaitingStatus;
 import com.booster.waitingservice.waiting.exception.DuplicateWaitingException;
+import com.booster.waitingservice.waiting.exception.InvalidWaitingStatusException;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
 import com.booster.waitingservice.waiting.web.dto.response.RegisterWaitingResponse;
 import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse;
@@ -166,7 +167,7 @@ class WaitingServiceTest {
         // given
         Long waitingId = 100L;
         Waiting waiting = Waiting.create(waitingId, 1L, "010-1234-5678", 2, 5);
-
+        waiting.call();
         given(waitingRepository.findById(waitingId)).willReturn(Optional.of(waiting));
 
         // when
@@ -222,7 +223,6 @@ class WaitingServiceTest {
         assertThat(response.waitingNumber()).isEqualTo(11);
 
         // [핵심 수정] 이벤트 검증
-        // "어떤 인자가 넘어갔는지 캡처하는 도구"를 만듭니다.
         ArgumentCaptor<WaitingEvent> eventCaptor = ArgumentCaptor.forClass(WaitingEvent.class);
 
         // "send 메서드가 총 2번 호출되었는지 검증하고, 그때 넘어간 파라미터를 다 캡처해라"
@@ -242,4 +242,72 @@ class WaitingServiceTest {
         assertThat(registerEvent.type()).isEqualTo(WaitingEvent.EventType.REGISTER);
         assertThat(registerEvent.waitingNumber()).isEqualTo(11); // 새로 발급된 번호 확인
     }
+
+    @Test
+    @DisplayName("입장 실패: 호출되지 않은(WAITING) 상태에서 입장을 시도하면 예외가 발생한다.")
+    void enter_fail_invalid_status() {
+        // given
+        Long waitingId = 100L;
+        // 상태를 CALLED로 바꾸지 않음 (그냥 WAITING 상태)
+        Waiting waiting = Waiting.create(waitingId, 1L, "010-1234-5678", 2, 5);
+
+        given(waitingRepository.findById(waitingId)).willReturn(Optional.of(waiting));
+
+        // when & then
+        // 예외가 터지는지 검증
+        assertThatThrownBy(() -> waitingService.enter(waitingId))
+                .isInstanceOf(InvalidWaitingStatusException.class);
+
+        // (중요) 예외가 터졌으므로 Redis 삭제나 이벤트 발행은 절대 일어나면 안 됨
+        verify(rankingRepository, never()).remove(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    @DisplayName("대기 호출: 대기 중(WAITING)인 손님을 호출하면 상태가 CALLED로 변경되고 알림 이벤트가 발행된다.")
+    void call() {
+        // given
+        Long waitingId = 100L;
+        // 초기 상태는 WAITING이어야 함
+        Waiting waiting = Waiting.create(waitingId, 1L, "010-1234-5678", 2, 5);
+
+        given(waitingRepository.findById(waitingId)).willReturn(Optional.of(waiting));
+
+        // when
+        waitingService.call(waitingId);
+
+        // then
+        // 1. 상태 변경 검증 (WAITING -> CALLED)
+        assertThat(waiting.getStatus()).isEqualTo(WaitingStatus.CALLED);
+
+        // 2. 이벤트 발행 검증 (EventType.CALLED)
+        ArgumentCaptor<WaitingEvent> eventCaptor = ArgumentCaptor.forClass(WaitingEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        WaitingEvent publishedEvent = eventCaptor.getValue();
+        assertThat(publishedEvent.type()).isEqualTo(WaitingEvent.EventType.CALLED);
+        assertThat(publishedEvent.waitingId()).isEqualTo(waitingId);
+    }
+
+    @Test
+    @DisplayName("대기 호출 실패: 대기 중(WAITING)이 아닌 상태에서 호출하면 예외가 발생한다.")
+    void call_fail_invalid_status() {
+        // given
+        Long waitingId = 100L;
+        Waiting waiting = Waiting.create(waitingId, 1L, "010-1234-5678", 2, 5);
+
+        waiting.call(); // 상태: WAITING -> CALLED
+
+        given(waitingRepository.findById(waitingId)).willReturn(Optional.of(waiting));
+
+        // when & then
+        // CALLED 상태에서 또 call()을 하면 InvalidWaitingStatusException이 터져야 함
+        assertThatThrownBy(() -> waitingService.call(waitingId))
+                .isInstanceOf(InvalidWaitingStatusException.class);
+
+        // 이벤트는 절대 발행되면 안 됨
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+
 }
