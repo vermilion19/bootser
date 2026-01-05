@@ -8,8 +8,10 @@ plugins {
 dependencies {
     implementation project(':libs:core-web')
     implementation project(':libs:storage-db')
+    implementation project(':libs:storage-kafka')
     runtimeOnly 'com.h2database:h2'
 
+    implementation 'org.springframework.kafka:spring-kafka-test'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
 

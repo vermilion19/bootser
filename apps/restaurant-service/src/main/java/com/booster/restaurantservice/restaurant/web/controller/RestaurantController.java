@@ -55,15 +55,15 @@ public class RestaurantController {
 
     // 6. 입장 처리
     @PostMapping("/{restaurantId}/entry")
-    public ApiResponse<Void> entry(@PathVariable Long restaurantId) {
-        restaurantService.enter(restaurantId);
+    public ApiResponse<Void> entry(@PathVariable Long restaurantId, @RequestParam int partySize) {
+        restaurantService.enter(restaurantId,partySize);
         return ApiResponse.success();
     }
 
     // 7. 퇴장 처리
     @PostMapping("/{restaurantId}/exit")
-    public ApiResponse<Void> exit(@PathVariable Long restaurantId) {
-        restaurantService.exit(restaurantId);
+    public ApiResponse<Void> exit(@PathVariable Long restaurantId, @RequestParam int partySize) {
+        restaurantService.exit(restaurantId,partySize);
         return ApiResponse.success();
     }
 

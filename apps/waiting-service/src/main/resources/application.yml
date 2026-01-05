@@ -27,3 +27,8 @@ logging:
     # (선택) Kafka 클라이언트 전체 로그를 좀 조용히 시키고 싶다면
     org.apache.kafka.clients.producer: WARN
     org.apache.kafka.clients.consumer: WARN
+
+app:
+  kafka:
+    topics:
+      waiting-events: waiting-events

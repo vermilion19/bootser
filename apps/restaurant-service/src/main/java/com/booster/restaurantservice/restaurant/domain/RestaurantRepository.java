@@ -15,22 +15,19 @@ public interface RestaurantRepository extends JpaRepository<Restaurant,Long> {
     @Modifying(clearAutomatically = true) // 벌크 연산 후 영속성 컨텍스트 초기화
     @Query("""
         UPDATE Restaurant r 
-        SET r.currentOccupancy = r.currentOccupancy + 1 
+        SET r.currentOccupancy = r.currentOccupancy + :partySize 
         WHERE r.id = :id 
           AND r.currentOccupancy < r.capacity
     """)
-    int increaseOccupancy(@Param("id") Long id);
+    int increaseOccupancy(@Param("id") Long id, @Param("partySize") int partySize);
 
-    /**
-     * 퇴장 처리 (Atomic Update)
-     * 조건: 현재 인원이 0보다 클 때만 -1 감소
-     */
+
     @Modifying(clearAutomatically = true)
     @Query("""
         UPDATE Restaurant r 
-        SET r.currentOccupancy = r.currentOccupancy - 1 
+        SET r.currentOccupancy = r.currentOccupancy - :partySize 
         WHERE r.id = :id 
-          AND r.currentOccupancy > 0
+          AND (r.currentOccupancy + :partySize) <= r.capacity 
     """)
-    int decreaseOccupancy(@Param("id") Long id);
+    int decreaseOccupancy(@Param("id") Long id, @Param("partySize") int partySize);
 }

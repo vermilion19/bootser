@@ -59,13 +59,9 @@ public class RestaurantService {
     }
 
     // 5. 손님 입장 (Atomic)
-    public void enter(Long restaurantId) {
-        // (선택) 식당 존재 여부나 영업 상태 확인이 필요하다면 여기서 가볍게 조회
-        // Restaurant restaurant = findByIdOrThrow(restaurantId);
-        // if (restaurant.getStatus() != RestaurantStatus.OPEN) throw ...
-
+    public void enter(Long restaurantId,int partySize) {
         // Atomic Update 실행
-        int updatedRows = restaurantRepository.increaseOccupancy(restaurantId);
+        int updatedRows = restaurantRepository.increaseOccupancy(restaurantId,partySize);
 
         if (updatedRows == 0) {
             throw new IllegalStateException("만석이라 입장할 수 없습니다.");
@@ -73,8 +69,8 @@ public class RestaurantService {
     }
 
     // 6. 손님 퇴장 (Atomic)
-    public void exit(Long restaurantId) {
-        int updatedRows = restaurantRepository.decreaseOccupancy(restaurantId);
+    public void exit(Long restaurantId, int partySize) {
+        int updatedRows = restaurantRepository.decreaseOccupancy(restaurantId, partySize);
 
         if (updatedRows == 0) {
             // 이미 0명인데 퇴장 처리를 시도한 경우 등

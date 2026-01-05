@@ -189,6 +189,7 @@ public class WaitingService {
                         waiting.getGuestPhone(),
                         waiting.getWaitingNumber(),
                         rank,
+                        waiting.getPartySize(),
                         type
                 )
         );
