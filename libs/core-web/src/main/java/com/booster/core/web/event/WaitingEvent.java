@@ -9,7 +9,7 @@ public record WaitingEvent(
         EventType type
 ) {
     public enum EventType {
-        REGISTER, ENTER, CANCEL
+        REGISTER, ENTER, CANCEL,CALLED
     }
 
     public static WaitingEvent of(Long restaurantId, Long waitingId, String guestPhone, int waitingNumber, Long rank, EventType type) {

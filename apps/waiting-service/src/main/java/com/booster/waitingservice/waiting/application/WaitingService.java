@@ -154,6 +154,12 @@ public class WaitingService {
         return RegisterWaitingResponse.of(newWaiting, rank);
     }
 
+    public void call(Long waitingId) {
+        Waiting waiting = findById(waitingId);
+        waiting.call();
+        publishEvent(waiting, null, WaitingEvent.EventType.CALLED);
+    }
+
     // 공통: 엔티티 조회 (없으면 예외)
     private Waiting findById(Long id) {
         return waitingRepository.findById(id)

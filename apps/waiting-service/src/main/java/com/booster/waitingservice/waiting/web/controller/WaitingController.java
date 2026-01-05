@@ -78,5 +78,17 @@ public class WaitingController {
         return ApiResponse.success();
     }
 
+    /**
+     * 6. 대기 호출 (사장님용)
+     * 상태를 WAITING -> CALLED로 변경하고 알림을 발송합니다.
+     */
+    @PatchMapping("/{waitingId}/call")
+    public ApiResponse<Void> callWaiting(
+            @PathVariable Long waitingId
+    ) {
+        waitingService.call(waitingId);
+        return ApiResponse.success();
+    }
+
 
 }

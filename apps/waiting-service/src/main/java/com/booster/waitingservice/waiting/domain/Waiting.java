@@ -1,6 +1,7 @@
 package com.booster.waitingservice.waiting.domain;
 
 import com.booster.storage.db.core.BaseEntity;
+import com.booster.waitingservice.waiting.exception.InvalidWaitingStatusException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -48,11 +49,17 @@ public class Waiting extends BaseEntity {
         return new Waiting(id,restaurantId, guestPhone, partySize, waitingNumber);
     }
 
+    public void call() {
+        if (this.status != WaitingStatus.WAITING) {
+            throw new InvalidWaitingStatusException(); // 대기 중인 사람만 호출 가능
+        }
+        this.status = WaitingStatus.CALLED; // 상태 변경 -> updatedAt 갱신됨
+    }
 
     // 입장 처리
     public void enter() {
-        if (this.status != WaitingStatus.WAITING) {
-            throw new IllegalStateException("대기 상태인 손님만 입장 처리가 가능합니다.");
+        if (this.status != WaitingStatus.CALLED) {
+            throw new InvalidWaitingStatusException();
         }
         this.status = WaitingStatus.ENTERED;
     }
