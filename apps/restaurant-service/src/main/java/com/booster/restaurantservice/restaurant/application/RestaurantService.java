@@ -7,8 +7,11 @@ import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -56,7 +59,6 @@ public class RestaurantService {
     }
 
     // 5. 손님 입장 (Atomic)
-    @Transactional
     public void enter(Long restaurantId) {
         // (선택) 식당 존재 여부나 영업 상태 확인이 필요하다면 여기서 가볍게 조회
         // Restaurant restaurant = findByIdOrThrow(restaurantId);
@@ -71,7 +73,6 @@ public class RestaurantService {
     }
 
     // 6. 손님 퇴장 (Atomic)
-    @Transactional
     public void exit(Long restaurantId) {
         int updatedRows = restaurantRepository.decreaseOccupancy(restaurantId);
 
@@ -79,6 +80,13 @@ public class RestaurantService {
             // 이미 0명인데 퇴장 처리를 시도한 경우 등
             throw new IllegalStateException("현재 입장 중인 손님이 없습니다.");
         }
+    }
+
+    public List<RestaurantResponse> getAllRestaurants() {
+        return restaurantRepository.findAll(Sort.by(Sort.Direction.DESC, "id"))
+                .stream()
+                .map(RestaurantResponse::from)
+                .toList();
     }
 
     private Restaurant findByIdOrThrow(Long id) {

@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/restaurants")
@@ -63,6 +65,11 @@ public class RestaurantController {
     public ApiResponse<Void> exit(@PathVariable Long restaurantId) {
         restaurantService.exit(restaurantId);
         return ApiResponse.success();
+    }
+
+    @GetMapping
+    public ApiResponse<List<RestaurantResponse>> getAllRestaurants() {
+        return ApiResponse.success(restaurantService.getAllRestaurants());
     }
 
 }
