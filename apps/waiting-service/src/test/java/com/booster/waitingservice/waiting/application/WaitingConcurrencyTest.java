@@ -1,12 +1,14 @@
 package com.booster.waitingservice.waiting.application;
 
 
+import com.booster.storage.db.PostgresTestConfig;
 import com.booster.waitingservice.support.IntegrationTestSupport;
 import com.booster.waitingservice.waiting.domain.WaitingRepository;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -21,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Testcontainers(disabledWithoutDocker = true)
+@Import(PostgresTestConfig.class)
 public class WaitingConcurrencyTest extends IntegrationTestSupport {
 
     @Autowired
@@ -38,8 +40,8 @@ public class WaitingConcurrencyTest extends IntegrationTestSupport {
 
     // 🐳 2. PostgreSQL 컨테이너 설정 (데이터 저장용)
     // H2를 써도 되지만, 실제 환경과 똑같이 맞추기 위해 Postgres 권장
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
+//    @Container
+//    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
 
     // 🔗 3. 스프링 설정에 컨테이너 정보 주입 (IP, Port가 랜덤으로 뜨기 때문)
     @DynamicPropertySource
@@ -47,9 +49,9 @@ public class WaitingConcurrencyTest extends IntegrationTestSupport {
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", redis::getFirstMappedPort);
 
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+//        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+//        registry.add("spring.datasource.username", postgres::getUsername);
+//        registry.add("spring.datasource.password", postgres::getPassword);
     }
 
     @Test
