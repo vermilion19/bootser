@@ -12,3 +12,4 @@ include 'libs:storage-redis'
 include 'libs:storage-kafka'
 
 include 'infrastructure:discovery-service'
+include 'infrastructure:gateway-service'
