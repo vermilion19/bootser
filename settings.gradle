@@ -13,3 +13,5 @@ include 'libs:storage-kafka'
 
 include 'infrastructure:discovery-service'
 include 'infrastructure:gateway-service'
+
+include 'playground:java-coding-test'

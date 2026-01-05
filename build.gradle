@@ -43,7 +43,7 @@ subprojects {
     // 모든 하위 모듈이 공통으로 가질 의존성
     dependencies {
         // 롬복은 어디서든 쓰니까 여기서 한 번에 주입
-        compileOnly 'org.projectlombok:lombok'
+        compileOnly 'org.projectlombok:lombok:1.18.42'
         annotationProcessor 'org.projectlombok:lombok'
 
         // 테스트 라이브러리도 공통 주입
@@ -70,5 +70,9 @@ subprojects {
     } else {
         bootJar { enabled = false }
         jar { enabled = true }
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
     }
 }
