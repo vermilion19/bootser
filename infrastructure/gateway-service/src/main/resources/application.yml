@@ -1,33 +1,46 @@
 server:
-  port: 6000 # ???? ??? ??? ?? ??
+  port: 6000
 
 spring:
   application:
     name: gateway-service
   threads:
     virtual:
-      enabled: true # Java 25 ?? ???? ????? ?? ???
-
+      enabled: true
   cloud:
     gateway:
-      routes:
-        # ?? ??? ???
-        - id: waiting-service-route
-          uri: lb://waiting-service
-          predicates:
-            - Path=/waiting/**
-          filters:
-            # ? ?? ??(/waiting)? ?????.
-            # ?, /waiting/api/v1 -> /api/v1 ? ???.
-            - StripPrefix=1
+      server:
+        webflux:
+          routes:
+            - id: waiting-service-route
+              uri: lb://waiting-service
+              predicates:
+                - Path=/waiting/**
+              filters:
+                - StripPrefix=1
 
-        # ???? ??? ???
-        - id: restaurant-service-route
-          uri: lb://restaurant-service
-          predicates:
-            - Path=/restaurants/**
-          filters:
-            - StripPrefix=1
+            - id: restaurant-service-route
+              uri: lb://restaurant-service
+              predicates:
+                - Path=/restaurants/**
+              filters:
+                - StripPrefix=1
+#  cloud:
+#    gateway:
+#      routes:
+#        - id: waiting-service-route
+#          uri: lb://waiting-service
+#          predicates:
+#            - Path=/waiting/**
+#          filters:
+#            - StripPrefix=1
+#
+#        - id: restaurant-service-route
+#          uri: lb://restaurant-service
+#          predicates:
+#            - Path=/restaurants/**
+#          filters:
+#            - StripPrefix=1
 
 eureka:
   client:
@@ -35,9 +48,9 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
 
 
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
+#logging:
+#  level:
+#    org.springframework.cloud.gateway: DEBUG
 
 management:
   endpoints:
