@@ -32,6 +32,14 @@ subprojects {
         maven { url 'https://repo.spring.io/snapshot' }
     }
 
+    dependencyManagement {
+        imports {
+            // Spring Boot 4.0.1과 호환되는 Spring Cloud 버전을 지정합니다.
+            // 2026년 기준 최신 안정화 버전을 사용한다고 가정합니다.
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:2025.1.0"
+        }
+    }
+
     // 모든 하위 모듈이 공통으로 가질 의존성
     dependencies {
         // 롬복은 어디서든 쓰니까 여기서 한 번에 주입
@@ -51,7 +59,7 @@ subprojects {
 
     // apps 폴더 아래에 있는 모듈만 '실행 가능한 Jar(BootJar)'로 만들고
     // libs 폴더 아래에 있는 모듈은 '일반 라이브러리 Jar'로 만듭니다.
-    if (it.path.startsWith(':apps')) {
+    if (it.path.startsWith(':apps') || it.path.startsWith(':infrastructure')) {
         bootJar { enabled = true }
         jar { enabled = false }
 

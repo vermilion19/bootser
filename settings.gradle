@@ -10,3 +10,5 @@ include 'libs:core-web'
 include 'libs:storage-db'
 include 'libs:storage-redis'
 include 'libs:storage-kafka'
+
+include 'infrastructure:discovery-service'
