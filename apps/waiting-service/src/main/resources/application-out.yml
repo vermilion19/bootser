@@ -22,8 +22,8 @@ spring:
       port: 6379
 
   # 3. Kafka (Embedded)
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: waiting-service-group-out
-      auto-offset-reset: latest
+#  kafka:
+#    bootstrap-servers: localhost:9092
+#    consumer:
+#      group-id: waiting-service-group-out
+#      auto-offset-reset: latest

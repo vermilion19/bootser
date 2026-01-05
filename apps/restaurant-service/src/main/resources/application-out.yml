@@ -15,8 +15,8 @@ spring:
       enabled: true
       path: /h2-console
 
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: waiting-service-group-out
-      auto-offset-reset: latest
+#  kafka:
+#    bootstrap-servers: localhost:9092
+#    consumer:
+#      group-id: waiting-service-group-out
+#      auto-offset-reset: latest

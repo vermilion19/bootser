@@ -13,6 +13,11 @@ spring:
         format_sql: true
     show-sql: false
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: waiting-service-group-out
+      auto-offset-reset: latest
 management:
   endpoints:
     web:
