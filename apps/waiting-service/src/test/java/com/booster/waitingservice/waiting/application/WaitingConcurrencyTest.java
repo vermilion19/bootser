@@ -2,6 +2,7 @@ package com.booster.waitingservice.waiting.application;
 
 
 import com.booster.storage.db.PostgresTestConfig;
+import com.booster.storage.redis.RedisTestConfig;
 import com.booster.waitingservice.support.IntegrationTestSupport;
 import com.booster.waitingservice.waiting.domain.WaitingRepository;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Import(PostgresTestConfig.class)
+@Import({PostgresTestConfig.class, RedisTestConfig.class})
 public class WaitingConcurrencyTest extends IntegrationTestSupport {
 
     @Autowired
@@ -34,25 +35,25 @@ public class WaitingConcurrencyTest extends IntegrationTestSupport {
 
     // 🐳 1. Redis 컨테이너 설정 (분산 락 테스트용)
     // Redisson이 실제 Redis와 통신해야 하므로 필수입니다.
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>("redis:alpine")
-            .withExposedPorts(6379);
-
-    // 🐳 2. PostgreSQL 컨테이너 설정 (데이터 저장용)
-    // H2를 써도 되지만, 실제 환경과 똑같이 맞추기 위해 Postgres 권장
 //    @Container
-//    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
-
-    // 🔗 3. 스프링 설정에 컨테이너 정보 주입 (IP, Port가 랜덤으로 뜨기 때문)
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-
-//        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-//        registry.add("spring.datasource.username", postgres::getUsername);
-//        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+//    static GenericContainer<?> redis = new GenericContainer<>("redis:alpine")
+//            .withExposedPorts(6379);
+//
+//    // 🐳 2. PostgreSQL 컨테이너 설정 (데이터 저장용)
+//    // H2를 써도 되지만, 실제 환경과 똑같이 맞추기 위해 Postgres 권장
+////    @Container
+////    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
+//
+//    // 🔗 3. 스프링 설정에 컨테이너 정보 주입 (IP, Port가 랜덤으로 뜨기 때문)
+//    @DynamicPropertySource
+//    static void overrideProps(DynamicPropertyRegistry registry) {
+//        registry.add("spring.data.redis.host", redis::getHost);
+//        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
+//
+////        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+////        registry.add("spring.datasource.username", postgres::getUsername);
+////        registry.add("spring.datasource.password", postgres::getPassword);
+//    }
 
     @Test
     @DisplayName("동시성 테스트: 100명이 동시에 줄을 서도 대기 번호는 중복 없이 순차적으로 발급되어야 한다.")

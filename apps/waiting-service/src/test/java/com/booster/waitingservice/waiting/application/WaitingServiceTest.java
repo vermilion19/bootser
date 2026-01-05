@@ -18,6 +18,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.time.LocalDateTime;
@@ -34,12 +37,13 @@ import static org.mockito.Mockito.*;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class WaitingServiceTest {
 
+    private static final Logger log = LoggerFactory.getLogger(WaitingServiceTest.class);
     @Mock
     private WaitingRepository waitingRepository;
     @Mock
     private RedissonRankingRepository rankingRepository;
     @Mock
-    private WaitingEventProducer eventProducer;
+    ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private WaitingService waitingService;
@@ -69,7 +73,8 @@ class WaitingServiceTest {
 
         verify(waitingRepository).save(any(Waiting.class));
         verify(rankingRepository).add(any(WaitingUser.class));
-        verify(eventProducer).send(any());
+        ArgumentCaptor<WaitingEvent> eventCaptor = ArgumentCaptor.forClass(WaitingEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
     }
 
     @Test
@@ -170,7 +175,8 @@ class WaitingServiceTest {
         // then
         assertThat(waiting.getStatus()).isEqualTo(WaitingStatus.ENTERED);
         verify(rankingRepository).remove(any(WaitingUser.class)); // Redis 삭제 검증
-        verify(eventProducer).send(any());
+        ArgumentCaptor<WaitingEvent> eventCaptor = ArgumentCaptor.forClass(WaitingEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
     }
 
     @Test
@@ -188,7 +194,8 @@ class WaitingServiceTest {
         // then
         assertThat(waiting.getStatus()).isEqualTo(WaitingStatus.CANCELED);
         verify(rankingRepository).remove(any(WaitingUser.class)); // Redis 삭제 검증
-        verify(eventProducer).send(any());
+        ArgumentCaptor<WaitingEvent> eventCaptor = ArgumentCaptor.forClass(WaitingEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
     }
 
     @Test
@@ -219,7 +226,8 @@ class WaitingServiceTest {
         ArgumentCaptor<WaitingEvent> eventCaptor = ArgumentCaptor.forClass(WaitingEvent.class);
 
         // "send 메서드가 총 2번 호출되었는지 검증하고, 그때 넘어간 파라미터를 다 캡처해라"
-        verify(eventProducer, times(2)).send(eventCaptor.capture());
+//        verify(eventProducer, times(2)).send(eventCaptor.capture());
+        verify(eventPublisher, times(2)).publishEvent(eventCaptor.capture());
 
         // 캡처된 값들을 순서대로 리스트로 꺼냅니다.
         List<WaitingEvent> events = eventCaptor.getAllValues();

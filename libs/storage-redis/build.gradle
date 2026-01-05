@@ -21,4 +21,5 @@ dependencies {
     testFixturesApi 'org.springframework.boot:spring-boot-testcontainers:4.0.1'
     testFixturesApi 'org.testcontainers:junit-jupiter:1.21.4'
     testFixturesApi 'com.redis:testcontainers-redis:2.2.4'
+    testFixturesApi 'org.springframework.boot:spring-boot-starter-test'
 }

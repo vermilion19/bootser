@@ -12,6 +12,7 @@ import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest
 import com.booster.waitingservice.waiting.web.dto.response.RegisterWaitingResponse;
 import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +25,8 @@ public class WaitingService {
 
     private final WaitingRepository waitingRepository;
     private final RedissonRankingRepository rankingRepository;
-    private final WaitingEventProducer eventProducer;
+//    private final WaitingEventProducer eventProducer;
+    private final ApplicationEventPublisher eventPublisher;
 
     public RegisterWaitingResponse registerInternal(RegisterWaitingRequest request) {
         validateDuplicate(request.restaurantId(), request.guestPhone());
@@ -174,7 +176,7 @@ public class WaitingService {
     }
 
     private void publishEvent(Waiting waiting, Long rank, WaitingEvent.EventType type) {
-        eventProducer.send(
+        eventPublisher.publishEvent(
                 WaitingEvent.of(
                         waiting.getRestaurantId(),
                         waiting.getId(),
