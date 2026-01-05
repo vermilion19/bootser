@@ -23,6 +23,10 @@ dependencies {
 
     testImplementation testFixtures(project(':libs:storage-db'))
     testImplementation testFixtures(project(':libs:storage-redis'))
+
+    // ShedLock (스케줄러 분산 락)
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.10.0'
 }
 tasks.withType(JavaCompile) {
     options.compilerArgs.add("-parameters")

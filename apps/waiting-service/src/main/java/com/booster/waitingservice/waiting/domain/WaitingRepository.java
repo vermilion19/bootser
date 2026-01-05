@@ -39,4 +39,12 @@ public interface WaitingRepository extends JpaRepository<Waiting,Long> {
     @Query("UPDATE Waiting w SET w.status = 'CANCELED' WHERE w.status = 'WAITING'")
     int bulkUpdateStatusToCanceled();
 
+    @Modifying(clearAutomatically = true) // 👈 벌크 연산 후 영속성 컨텍스트 초기화
+    @Query("""
+        UPDATE Waiting w 
+        SET w.status = 'CANCELED' 
+        WHERE w.status = 'CALLED' 
+          AND w.updatedAt < :limitTime
+    """)
+    int updateStatusToNoShow(@Param("limitTime") LocalDateTime limitTime);
 }
