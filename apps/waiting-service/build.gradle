@@ -18,7 +18,6 @@ dependencies {
 
     // [외부용] Embedded Kafka (원래는 테스트용이지만, Work 환경 구동을 위해 가져옴)
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test:4.0.1")
-    implementation 'org.springframework.kafka:spring-kafka-test'
 //    testImplementation 'org.springframework.kafka:spring-kafka-test'
 
     testImplementation testFixtures(project(':libs:storage-db'))
