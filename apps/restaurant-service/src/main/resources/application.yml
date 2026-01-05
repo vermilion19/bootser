@@ -24,6 +24,14 @@ management:
     web:
       exposure:
         include: health, info, metrics, prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+    metrics:
+      tags:
+        application: ${spring.application.name} # ?? ?? ??? ?? ??
 
 app:
   kafka:
