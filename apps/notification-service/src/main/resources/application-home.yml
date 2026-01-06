@@ -1,7 +1,7 @@
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/noti_service?reWriteBatchedInserts=true
+    url: jdbc:postgresql://localhost:5432/noti_service_db?reWriteBatchedInserts=true
 
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD}
