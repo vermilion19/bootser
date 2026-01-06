@@ -1,35 +1,42 @@
 package com.booster.notificationservice.client;
 
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class SlackClient {
-    @Value("${app.slack.webhook-url}")
-    private String webhookUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final String webhookUrl;
+    private final RestClient restClient;
 
+    public SlackClient(@Value("${app.slack.webhook-url}") String webhookUrl) {
+        this.webhookUrl = webhookUrl;
+        this.restClient = RestClient.builder().build();
+    }
+
+    @Async
     public void sendMessage(String message) {
         try {
-            // 슬랙이 요구하는 JSON 포맷: { "text": "보낼 메시지" }
-            Map<String, String> payload = new HashMap<>();
-            payload.put("text", message);
+            Map<String, String> payload = Map.of("text", message);
 
-            restTemplate.postForEntity(webhookUrl, payload, String.class);
-            log.info("슬랙 알림 전송 성공: {}", message);
+            restClient.post()
+                    .uri(webhookUrl)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity(); // 응답 본문 필요 없을 때
+
+            log.info("슬랙 전송 완료 (Virtual Thread): {}", Thread.currentThread());
         } catch (Exception e) {
-            log.error("슬랙 알림 전송 실패: {}", e.getMessage());
-            // 실제 운영에선 알림 실패 시 재시도 로직(Retry)이나 DLQ 처리가 필요합니다.
+            log.error("전송 실패: {}", e.getMessage());
         }
     }
 }

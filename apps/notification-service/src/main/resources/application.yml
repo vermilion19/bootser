@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: notification-service
+  threads:
+    virtual:
+      enabled: true
 
   kafka:
     bootstrap-servers: localhost:9092
