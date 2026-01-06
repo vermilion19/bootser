@@ -24,5 +24,12 @@ app:
   kafka:
     topics:
       waiting-events: waiting-events
+
+    listener:
+      type: batch #핵심! (기본값은 single)
+      consumer:
+        max-poll-records: 500 # 한 번에 최대 500개까지 가져옴
+        fetch-min-size: 100 # (선택) 데이터가 적으면 좀 기다렸다가 뭉쳐서 가져옴
+
   slack:
     webhook-url: ${WEBHOOK_URL:}
