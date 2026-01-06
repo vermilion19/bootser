@@ -1,6 +1,7 @@
 server:
   port: 0
   shutdown: graceful
+  forward-headers-strategy: framework
 
 spring:
   application:

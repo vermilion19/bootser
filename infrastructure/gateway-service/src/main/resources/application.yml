@@ -25,22 +25,7 @@ spring:
                 - Path=/restaurants/**
               filters:
                 - StripPrefix=1
-#  cloud:
-#    gateway:
-#      routes:
-#        - id: waiting-service-route
-#          uri: lb://waiting-service
-#          predicates:
-#            - Path=/waiting/**
-#          filters:
-#            - StripPrefix=1
-#
-#        - id: restaurant-service-route
-#          uri: lb://restaurant-service
-#          predicates:
-#            - Path=/restaurants/**
-#          filters:
-#            - StripPrefix=1
+
 
 eureka:
   client:
