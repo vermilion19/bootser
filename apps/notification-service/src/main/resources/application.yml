@@ -1,0 +1,25 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: notification-service
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-offset-reset: latest
+      group-id: notification-service-group # 식당 서비스와 다른 그룹 ID 사용!
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka/
+
+# 우리가 사용할 커스텀 설정
+app:
+  kafka:
+    topics:
+      waiting-events: waiting-events
+  slack:
+    webhook-url: ${WEBHOOK_URL:}
