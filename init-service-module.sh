@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ------------------------------------------------------------------
-# 사용법: ./init-module.sh [부모디렉토리] [모듈명]
-# 예시: ./init-module.sh apps new-service
+# 사용법: ./init-service-module.sh [부모디렉토리] [모듈명]
+# 예시: ./init-service-module.sh apps new-service
 # ------------------------------------------------------------------
 
 PARENT_DIR=$1
