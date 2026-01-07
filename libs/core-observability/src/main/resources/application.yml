@@ -1,3 +1,12 @@
-spring:
-  application:
-    name: core-observability
+management:
+  tracing:
+    sampling:
+      # 0.0 ~ 1.0 사이 값 (1.0 = 100% 수집, 0.1 = 10% 수집)
+      # 개발 단계이므로 일단 100%로 설정하고, 나중에 운영 배포 시 환경변수로 덮어씁니다.
+      probability: 1.0
+
+  # 메트릭 내보내기 설정 (성능 위해 필요한 것만 켭니다)
+  endpoints:
+    web:
+      exposure:
+        include: "health, info, prometheus, metrics"
