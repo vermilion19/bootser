@@ -16,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,9 +46,14 @@ class WaitingServiceTest {
     private RedissonRankingRepository rankingRepository;
     @Mock
     ApplicationEventPublisher eventPublisher;
+    @Mock
+    RestaurantCacheService restaurantCacheService;
 
     @InjectMocks
     private WaitingService waitingService;
+
+    @Captor // 1. 이벤트를 가로챌 캡처 선언
+    ArgumentCaptor<WaitingEvent> eventCaptor;
 
     @Test
     @DisplayName("대기열 등록 성공: 첫 번째 손님이면 대기번호 1번을 부여받고 Redis에 등록된다.")
@@ -309,5 +315,31 @@ class WaitingServiceTest {
         verify(eventPublisher, never()).publishEvent(any());
     }
 
+    @Test
+    @DisplayName("대기 등록 시 식당 이름을 캐시에서 조회하여 이벤트에 포함해야 한다")
+    void register_check_restaurant_name() {
+        // given
+        Long restaurantId = 1L;
+        String expectedName = "맛있는 식당";
+
+        Long waitingId = 100L;
+        Waiting waiting = Waiting.create(waitingId, restaurantId, "010-1234-5678", 2, 5);
+
+        given(waitingRepository.findById(any()))
+                .willReturn(Optional.of(waiting));
+        given(restaurantCacheService.getRestaurantName(restaurantId))
+                .willReturn(expectedName);
+
+        // when
+        waitingService.registerInternal(any()); // 테스트 대상 메서드 실행
+
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        WaitingEvent capturedEvent = eventCaptor.getValue();
+
+        assertThat(capturedEvent.restaurantName()).isEqualTo(expectedName);
+        assertThat(capturedEvent.restaurantId()).isEqualTo(restaurantId);
+        verify(restaurantCacheService, times(1)).getRestaurantName(restaurantId);
+    }
 
 }

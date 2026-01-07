@@ -1,4 +1,4 @@
-package com.booster.waitingservice.waiting.evnet;
+package com.booster.waitingservice.waiting.event;
 
 import com.booster.core.web.event.WaitingEvent;
 import com.booster.waitingservice.waiting.application.WaitingEventProducer;

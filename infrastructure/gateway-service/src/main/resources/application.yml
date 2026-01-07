@@ -32,11 +32,6 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
-
-#logging:
-#  level:
-#    org.springframework.cloud.gateway: DEBUG
-
 management:
   endpoints:
     web:
@@ -45,3 +40,14 @@ management:
   endpoint:
     gateway:
       access: unrestricted
+
+app:
+  jwt:
+    secret: "vMFZ7YkY5+JjK3Hq8Lw9XzC2Vb4N/mQaR1TsD6EfG8UoWpI0OxLrYtZ3V5KjH9NcXyZ1QaW2EcR4VtB6NkM8=="
+    expiration: 3600000 # 1시간 (3600초 * 1000ms)
+
+# JWT 필터 설정
+gateway:
+  jwt:
+    filter:
+      enabled: false  # 현재 비활성화

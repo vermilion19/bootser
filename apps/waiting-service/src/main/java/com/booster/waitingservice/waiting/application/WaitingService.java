@@ -25,8 +25,8 @@ public class WaitingService {
 
     private final WaitingRepository waitingRepository;
     private final RedissonRankingRepository rankingRepository;
-//    private final WaitingEventProducer eventProducer;
     private final ApplicationEventPublisher eventPublisher;
+    private final RestaurantCacheService restaurantCacheService;
 
     public RegisterWaitingResponse registerInternal(RegisterWaitingRequest request) {
         validateDuplicate(request.restaurantId(), request.guestPhone());
@@ -182,9 +182,11 @@ public class WaitingService {
     }
 
     private void publishEvent(Waiting waiting, Long rank, WaitingEvent.EventType type) {
+        String restaurantName = restaurantCacheService.getRestaurantName(waiting.getRestaurantId());
         eventPublisher.publishEvent(
                 WaitingEvent.of(
                         waiting.getRestaurantId(),
+                        restaurantName,
                         waiting.getId(),
                         waiting.getGuestPhone(),
                         waiting.getWaitingNumber(),

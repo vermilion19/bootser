@@ -8,6 +8,7 @@ plugins {
 dependencies {
     implementation project(':libs:core-web')
     implementation project(':libs:storage-db')
+    implementation project(':libs:storage-redis')
     implementation project(':libs:storage-kafka')
     runtimeOnly 'com.h2database:h2'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
@@ -16,7 +17,6 @@ dependencies {
 
     testImplementation testFixtures(project(':libs:storage-db'))
     testImplementation testFixtures(project(':libs:storage-redis'))
-
 }
 
 tasks.named('test') {
