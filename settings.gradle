@@ -12,10 +12,12 @@ include 'libs:core-web'
 include 'libs:storage-db'
 include 'libs:storage-redis'
 include 'libs:storage-kafka'
+include 'libs:core-observability'
 
 include 'infrastructure:discovery-service'
 include 'infrastructure:gateway-service'
 
 include 'playground:java-coding-test'
 include 'playground:kotlin-lab'
+
 

@@ -1,0 +1,15 @@
+dependencies {
+    // 1. Spring Boot Actuator (메트릭/헬스체크 필수)
+    api 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // 2. Micrometer Tracing (추적 Facade)
+    api 'io.micrometer:micrometer-tracing-bridge-brave'
+    // (또는 bridge-otel을 쓸 수도 있지만, Spring Boot 3+ 표준은 Brave가 기본 호환성이 좋습니다)
+
+    // 3. Log Correlation (로그에 TraceID 자동 주입)
+    // Logback과 연동하여 로그에 [traceId=...]를 찍어줌
+    api 'io.micrometer:micrometer-tracing-reporter-brave'
+
+    // 4. (선택) 외부 전송용 Reporter (Zipkin/Tempo 등으로 쏠 때 필요)
+    // api 'io.zipkin.reporter2:zipkin-reporter-brave'
+}

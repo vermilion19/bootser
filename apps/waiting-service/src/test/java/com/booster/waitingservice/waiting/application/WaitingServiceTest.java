@@ -322,16 +322,13 @@ class WaitingServiceTest {
         Long restaurantId = 1L;
         String expectedName = "맛있는 식당";
 
-        Long waitingId = 100L;
-        Waiting waiting = Waiting.create(waitingId, restaurantId, "010-1234-5678", 2, 5);
-
-        given(waitingRepository.findById(any()))
-                .willReturn(Optional.of(waiting));
         given(restaurantCacheService.getRestaurantName(restaurantId))
                 .willReturn(expectedName);
 
+        RegisterWaitingRequest registerWaitingRequest = new RegisterWaitingRequest(restaurantId, "010-1234-5678", 2);
+
         // when
-        waitingService.registerInternal(any()); // 테스트 대상 메서드 실행
+        waitingService.registerInternal(registerWaitingRequest); // 테스트 대상 메서드 실행
 
         verify(eventPublisher).publishEvent(eventCaptor.capture());
 
