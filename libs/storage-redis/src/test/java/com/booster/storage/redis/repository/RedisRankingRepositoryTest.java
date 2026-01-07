@@ -10,12 +10,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = TestRedisApplication.class)
 @Import(TestRedisConfig.class)
+@Testcontainers(disabledWithoutDocker = true)
 class RedisRankingRepositoryTest {
 
     @Autowired
