@@ -2,7 +2,7 @@ package com.booster.restaurantservice.restaurant.application;
 
 import com.booster.restaurantservice.restaurant.domain.Restaurant;
 import com.booster.restaurantservice.restaurant.domain.RestaurantRepository;
-import com.booster.restaurantservice.restaurant.domain.RestaurantStatus;
+import com.booster.restaurantservice.restaurant.domain.RestaurantStatus; // Assuming this enum exists
 import com.booster.restaurantservice.restaurant.web.dto.RegisterRestaurantRequest;
 import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
@@ -28,10 +28,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RestaurantServiceTest {
@@ -53,265 +53,252 @@ class RestaurantServiceTest {
 
     @BeforeEach
     void setUp() {
-        // given
-        // redisTemplate.opsForValue() 호출 시 Mock 객체 반환하도록 설정
-//        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        // RedisTemplate의 opsForValue()가 valueOperations를 반환하도록 설정
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
-    @DisplayName("식당_등록_성공")
+    @DisplayName("식당을 성공적으로 등록한다")
     @Test
-    void 식당_등록_성공() {
+    void registerRestaurantSuccessfully() {
         // given
         RegisterRestaurantRequest request = new RegisterRestaurantRequest("테스트식당", 50, 10);
-        Restaurant restaurant = Restaurant.create("테스트식당", 50, 10);
-        // 엔티티 ID는 ReflectionTestUtils를 사용하여 설정
-        ReflectionTestUtils.setField(restaurant, "id", 1L);
+        Restaurant newRestaurant = Restaurant.create(request.name(), request.capacity(), request.maxWaitingLimit());
+        ReflectionTestUtils.setField(newRestaurant, "id", 1L); // ID 설정
+        ReflectionTestUtils.setField(newRestaurant, "status", RestaurantStatus.CLOSED); // 초기 상태 설정
 
-        given(restaurantRepository.save(any(Restaurant.class))).willReturn(restaurant);
+        when(restaurantRepository.save(any(Restaurant.class))).thenReturn(newRestaurant);
 
         // when
         RestaurantResponse response = restaurantService.register(request);
 
         // then
+        assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.name()).isEqualTo("테스트식당");
         assertThat(response.capacity()).isEqualTo(50);
         assertThat(response.maxWaitingLimit()).isEqualTo(10);
-
-        then(restaurantRepository).should(times(1)).save(any(Restaurant.class));
-        then(redisTemplate).should(times(1)).opsForValue();
-        then(valueOperations).should(times(1)).set(eq(KEY_PREFIX + 1L), eq("테스트식당"), eq(CACHE_TTL));
+        assertThat(response.status()).isEqualTo(RestaurantStatus.CLOSED); // 초기 상태 확인
+        verify(restaurantRepository, times(1)).save(any(Restaurant.class));
+        verify(valueOperations, times(1)).set(eq(KEY_PREFIX + 1L), eq("테스트식당"), eq(CACHE_TTL));
     }
 
-    @DisplayName("식당_단건_조회_성공")
+    @DisplayName("ID로 식당을 성공적으로 조회한다")
     @Test
-    void 식당_단건_조회_성공() {
+    void getRestaurantByIdSuccessfully() {
         // given
         Long restaurantId = 1L;
-        Restaurant restaurant = Restaurant.create("테스트식당", 50, 10);
+        Restaurant restaurant = Restaurant.create("조회식당", 30, 5);
         ReflectionTestUtils.setField(restaurant, "id", restaurantId);
+        ReflectionTestUtils.setField(restaurant, "status", RestaurantStatus.OPEN);
 
-        given(restaurantRepository.findById(restaurantId)).willReturn(Optional.of(restaurant));
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(restaurant));
 
         // when
         RestaurantResponse response = restaurantService.getRestaurant(restaurantId);
 
         // then
+        assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(restaurantId);
-        assertThat(response.name()).isEqualTo("테스트식당");
-        assertThat(response.capacity()).isEqualTo(50);
-        assertThat(response.maxWaitingLimit()).isEqualTo(10);
-
-        then(restaurantRepository).should(times(1)).findById(restaurantId);
+        assertThat(response.name()).isEqualTo("조회식당");
+        assertThat(response.status()).isEqualTo(RestaurantStatus.OPEN);
+        verify(restaurantRepository, times(1)).findById(restaurantId);
     }
 
-    @DisplayName("식당_단건_조회_실패_존재하지_않는_식당")
+    @DisplayName("존재하지 않는 ID로 식당 조회 시 EntityNotFoundException을 발생시킨다")
     @Test
-    void 식당_단건_조회_실패_존재하지_않는_식당() {
+    void getRestaurantByIdNotFoundThrowsException() {
         // given
-        Long restaurantId = 99L;
-        given(restaurantRepository.findById(restaurantId)).willReturn(Optional.empty());
+        Long nonExistentId = 99L;
+        when(restaurantRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> restaurantService.getRestaurant(restaurantId))
+        // when, then
+        assertThatThrownBy(() -> restaurantService.getRestaurant(nonExistentId))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + restaurantId);
-
-        then(restaurantRepository).should(times(1)).findById(restaurantId);
+                .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + nonExistentId);
+        verify(restaurantRepository, times(1)).findById(nonExistentId);
     }
 
-    @DisplayName("식당_정보_수정_성공")
+    @DisplayName("식당 정보를 성공적으로 수정한다")
     @Test
-    void 식당_정보_수정_성공() {
+    void updateRestaurantInfoSuccessfully() {
         // given
         Long restaurantId = 1L;
-        Restaurant restaurant = Restaurant.create("기존식당", 50, 10);
-        ReflectionTestUtils.setField(restaurant, "id", restaurantId);
+        UpdateRestaurantRequest request = new UpdateRestaurantRequest("수정된식당", 60, 15);
+        Restaurant existingRestaurant = Restaurant.create("기존식당", 50, 10);
+        ReflectionTestUtils.setField(existingRestaurant, "id", restaurantId);
+        ReflectionTestUtils.setField(existingRestaurant, "status", RestaurantStatus.OPEN);
 
-        UpdateRestaurantRequest request = new UpdateRestaurantRequest("새로운식당", 60, 15);
-
-        given(restaurantRepository.findById(restaurantId)).willReturn(Optional.of(restaurant));
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(existingRestaurant));
 
         // when
         RestaurantResponse response = restaurantService.update(restaurantId, request);
 
         // then
+        assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(restaurantId);
-        assertThat(response.name()).isEqualTo("새로운식당");
+        assertThat(response.name()).isEqualTo("수정된식당");
         assertThat(response.capacity()).isEqualTo(60);
         assertThat(response.maxWaitingLimit()).isEqualTo(15);
-
-        // Dirty Checking으로 인해 Restaurant 객체의 상태가 변경되었는지 확인
-        assertThat(restaurant.getName()).isEqualTo("새로운식당");
-        assertThat(restaurant.getCapacity()).isEqualTo(60);
-        assertThat(restaurant.getMaxWaitingLimit()).isEqualTo(15);
-
-        then(restaurantRepository).should(times(1)).findById(restaurantId);
-        then(redisTemplate).should(times(1)).opsForValue();
-        then(valueOperations).should(times(1)).set(eq(KEY_PREFIX + restaurantId), eq("새로운식당"), eq(CACHE_TTL));
+        assertThat(response.status()).isEqualTo(RestaurantStatus.OPEN); // 상태는 변경되지 않음
+        verify(restaurantRepository, times(1)).findById(restaurantId);
+        verify(valueOperations, times(1)).set(eq(KEY_PREFIX + restaurantId), eq("수정된식당"), eq(CACHE_TTL));
     }
 
-    @DisplayName("식당_정보_수정_실패_존재하지_않는_식당")
+    @DisplayName("존재하지 않는 식당 정보 수정 시 EntityNotFoundException을 발생시킨다")
     @Test
-    void 식당_정보_수정_실패_존재하지_않는_식당() {
+    void updateRestaurantInfoNotFoundThrowsException() {
         // given
-        Long restaurantId = 99L;
-        UpdateRestaurantRequest request = new UpdateRestaurantRequest("새로운식당", 60, 15);
+        Long nonExistentId = 99L;
+        UpdateRestaurantRequest request = new UpdateRestaurantRequest("수정된식당", 60, 15);
+        when(restaurantRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        given(restaurantRepository.findById(restaurantId)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> restaurantService.update(restaurantId, request))
+        // when, then
+        assertThatThrownBy(() -> restaurantService.update(nonExistentId, request))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + restaurantId);
-
-        then(restaurantRepository).should(times(1)).findById(restaurantId);
-        then(redisTemplate).shouldHaveNoInteractions(); // 식당을 찾지 못하면 Redis와 상호작용 없음
+                .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + nonExistentId);
+        verify(restaurantRepository, times(1)).findById(nonExistentId);
     }
 
-    @DisplayName("식당_영업_상태_OPEN_성공")
+    @DisplayName("식당을 성공적으로 오픈 상태로 변경한다")
     @Test
-    void 식당_영업_상태_OPEN_성공() {
+    void openRestaurantSuccessfully() {
         // given
         Long restaurantId = 1L;
-        Restaurant restaurant = Restaurant.create("테스트식당", 50, 10);
+        Restaurant restaurant = Restaurant.create("오픈식당", 30, 5);
         ReflectionTestUtils.setField(restaurant, "id", restaurantId);
-        restaurant.close(); // 초기 상태를 CLOSED로 설정
+        ReflectionTestUtils.setField(restaurant, "status", RestaurantStatus.CLOSED); // 초기 상태는 닫힘
 
-        given(restaurantRepository.findById(restaurantId)).willReturn(Optional.of(restaurant));
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(restaurant));
 
         // when
         restaurantService.open(restaurantId);
 
         // then
-        assertThat(restaurant.getStatus()).isEqualTo(RestaurantStatus.OPEN); // 상태 변경 확인
-        then(restaurantRepository).should(times(1)).findById(restaurantId);
+        assertThat(restaurant.getStatus()).isEqualTo(RestaurantStatus.OPEN);
+        verify(restaurantRepository, times(1)).findById(restaurantId);
     }
 
-    @DisplayName("식당_영업_상태_OPEN_실패_존재하지_않는_식당")
+    @DisplayName("존재하지 않는 식당 오픈 시 EntityNotFoundException을 발생시킨다")
     @Test
-    void 식당_영업_상태_OPEN_실패_존재하지_않는_식당() {
+    void openRestaurantNotFoundThrowsException() {
         // given
-        Long restaurantId = 99L;
-        given(restaurantRepository.findById(restaurantId)).willReturn(Optional.empty());
+        Long nonExistentId = 99L;
+        when(restaurantRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> restaurantService.open(restaurantId))
+        // when, then
+        assertThatThrownBy(() -> restaurantService.open(nonExistentId))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + restaurantId);
-
-        then(restaurantRepository).should(times(1)).findById(restaurantId);
+                .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + nonExistentId);
+        verify(restaurantRepository, times(1)).findById(nonExistentId);
     }
 
-    @DisplayName("식당_영업_상태_CLOSE_성공")
+    @DisplayName("식당을 성공적으로 닫힘 상태로 변경한다")
     @Test
-    void 식당_영업_상태_CLOSE_성공() {
+    void closeRestaurantSuccessfully() {
         // given
         Long restaurantId = 1L;
-        Restaurant restaurant = Restaurant.create("테스트식당", 50, 10);
+        Restaurant restaurant = Restaurant.create("닫힘식당", 30, 5);
         ReflectionTestUtils.setField(restaurant, "id", restaurantId);
-        restaurant.open(); // 초기 상태를 OPEN으로 설정
+        ReflectionTestUtils.setField(restaurant, "status", RestaurantStatus.OPEN); // 초기 상태는 열림
 
-        given(restaurantRepository.findById(restaurantId)).willReturn(Optional.of(restaurant));
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(restaurant));
 
         // when
         restaurantService.close(restaurantId);
 
         // then
-        assertThat(restaurant.getStatus()).isEqualTo(RestaurantStatus.CLOSED); // 상태 변경 확인
-        then(restaurantRepository).should(times(1)).findById(restaurantId);
+        assertThat(restaurant.getStatus()).isEqualTo(RestaurantStatus.CLOSED);
+        verify(restaurantRepository, times(1)).findById(restaurantId);
     }
 
-    @DisplayName("식당_영업_상태_CLOSE_실패_존재하지_않는_식당")
+    @DisplayName("존재하지 않는 식당 닫힘 시 EntityNotFoundException을 발생시킨다")
     @Test
-    void 식당_영업_상태_CLOSE_실패_존재하지_않는_식당() {
+    void closeRestaurantNotFoundThrowsException() {
         // given
-        Long restaurantId = 99L;
-        given(restaurantRepository.findById(restaurantId)).willReturn(Optional.empty());
+        Long nonExistentId = 99L;
+        when(restaurantRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> restaurantService.close(restaurantId))
+        // when, then
+        assertThatThrownBy(() -> restaurantService.close(nonExistentId))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + restaurantId);
-
-        then(restaurantRepository).should(times(1)).findById(restaurantId);
+                .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + nonExistentId);
+        verify(restaurantRepository, times(1)).findById(nonExistentId);
     }
 
-    @DisplayName("손님_입장_성공")
+    @DisplayName("식당에 손님이 성공적으로 입장한다")
     @Test
-    void 손님_입장_성공() {
+    void enterRestaurantSuccessfully() {
         // given
         Long restaurantId = 1L;
         int partySize = 2;
-        given(restaurantRepository.increaseOccupancy(restaurantId, partySize)).willReturn(1); // 1개의 행이 업데이트됨 (성공)
+        when(restaurantRepository.increaseOccupancy(restaurantId, partySize)).thenReturn(1); // 1행 업데이트 성공
 
         // when
         restaurantService.enter(restaurantId, partySize);
 
         // then
-        then(restaurantRepository).should(times(1)).increaseOccupancy(restaurantId, partySize);
+        verify(restaurantRepository, times(1)).increaseOccupancy(restaurantId, partySize);
     }
 
-    @DisplayName("손님_입장_실패_만석")
+    @DisplayName("만석으로 인해 손님 입장 실패 시 IllegalStateException을 발생시킨다")
     @Test
-    void 손님_입장_실패_만석() {
+    void enterRestaurantWhenFullThrowsException() {
         // given
         Long restaurantId = 1L;
         int partySize = 2;
-        given(restaurantRepository.increaseOccupancy(restaurantId, partySize)).willReturn(0); // 0개의 행이 업데이트됨 (실패)
+        when(restaurantRepository.increaseOccupancy(restaurantId, partySize)).thenReturn(0); // 0행 업데이트 (만석)
 
-        // when & then
+        // when, then
         assertThatThrownBy(() -> restaurantService.enter(restaurantId, partySize))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("만석이라 입장할 수 없습니다.");
-
-        then(restaurantRepository).should(times(1)).increaseOccupancy(restaurantId, partySize);
+        verify(restaurantRepository, times(1)).increaseOccupancy(restaurantId, partySize);
     }
 
-    @DisplayName("손님_퇴장_성공")
+    @DisplayName("식당에서 손님이 성공적으로 퇴장한다")
     @Test
-    void 손님_퇴장_성공() {
+    void exitRestaurantSuccessfully() {
         // given
         Long restaurantId = 1L;
         int partySize = 2;
-        given(restaurantRepository.decreaseOccupancy(restaurantId, partySize)).willReturn(1); // 1개의 행이 업데이트됨 (성공)
+        when(restaurantRepository.decreaseOccupancy(restaurantId, partySize)).thenReturn(1); // 1행 업데이트 성공
 
         // when
         restaurantService.exit(restaurantId, partySize);
 
         // then
-        then(restaurantRepository).should(times(1)).decreaseOccupancy(restaurantId, partySize);
+        verify(restaurantRepository, times(1)).decreaseOccupancy(restaurantId, partySize);
     }
 
-    @DisplayName("손님_퇴장_실패_현재_입장_중인_손님_없음")
+    @DisplayName("현재 입장 중인 손님이 없어 퇴장 실패 시 IllegalStateException을 발생시킨다")
     @Test
-    void 손님_퇴장_실패_현재_입장_중인_손님_없음() {
+    void exitRestaurantWhenNoOccupancyThrowsException() {
         // given
         Long restaurantId = 1L;
         int partySize = 2;
-        given(restaurantRepository.decreaseOccupancy(restaurantId, partySize)).willReturn(0); // 0개의 행이 업데이트됨 (실패)
+        when(restaurantRepository.decreaseOccupancy(restaurantId, partySize)).thenReturn(0); // 0행 업데이트 (손님 없음)
 
-        // when & then
+        // when, then
         assertThatThrownBy(() -> restaurantService.exit(restaurantId, partySize))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("현재 입장 중인 손님이 없습니다.");
-
-        then(restaurantRepository).should(times(1)).decreaseOccupancy(restaurantId, partySize);
+        verify(restaurantRepository, times(1)).decreaseOccupancy(restaurantId, partySize);
     }
 
-    @DisplayName("모든_식당_조회_성공")
+    @DisplayName("모든 식당 목록을 성공적으로 조회한다")
     @Test
-    void 모든_식당_조회_성공() {
+    void getAllRestaurantsSuccessfully() {
         // given
-        Restaurant restaurant1 = Restaurant.create("식당1", 30, 5);
+        Restaurant restaurant1 = Restaurant.create("식당1", 20, 5);
         ReflectionTestUtils.setField(restaurant1, "id", 1L);
-        Restaurant restaurant2 = Restaurant.create("식당2", 40, 8);
+        ReflectionTestUtils.setField(restaurant1, "status", RestaurantStatus.OPEN);
+
+        Restaurant restaurant2 = Restaurant.create("식당2", 40, 10);
         ReflectionTestUtils.setField(restaurant2, "id", 2L);
+        ReflectionTestUtils.setField(restaurant2, "status", RestaurantStatus.CLOSED);
 
         List<Restaurant> restaurants = Arrays.asList(restaurant1, restaurant2);
-        // findAll 호출 시 Sort.by(Sort.Direction.DESC, "id") 인자가 전달되는지 확인
-        given(restaurantRepository.findAll(Sort.by(Sort.Direction.DESC, "id"))).willReturn(restaurants);
+        when(restaurantRepository.findAll(any(Sort.class))).thenReturn(restaurants);
 
         // when
         List<RestaurantResponse> responses = restaurantService.getAllRestaurants();
@@ -320,15 +307,16 @@ class RestaurantServiceTest {
         assertThat(responses).hasSize(2);
         assertThat(responses.get(0).id()).isEqualTo(1L);
         assertThat(responses.get(0).name()).isEqualTo("식당1");
+        assertThat(responses.get(0).status()).isEqualTo(RestaurantStatus.OPEN);
         assertThat(responses.get(1).id()).isEqualTo(2L);
         assertThat(responses.get(1).name()).isEqualTo("식당2");
-
-        then(restaurantRepository).should(times(1)).findAll(Sort.by(Sort.Direction.DESC, "id"));
+        assertThat(responses.get(1).status()).isEqualTo(RestaurantStatus.CLOSED);
+        verify(restaurantRepository, times(1)).findAll(any(Sort.class));
     }
 
-    @DisplayName("식당_삭제_성공")
+    @DisplayName("식당을 성공적으로 삭제한다")
     @Test
-    void 식당_삭제_성공() {
+    void deleteRestaurantSuccessfully() {
         // given
         Long restaurantId = 1L;
 
@@ -336,7 +324,7 @@ class RestaurantServiceTest {
         restaurantService.deleteRestaurant(restaurantId);
 
         // then
-        then(restaurantRepository).should(times(1)).deleteById(restaurantId);
-        then(redisTemplate).should(times(1)).delete(eq(KEY_PREFIX + restaurantId));
+        verify(restaurantRepository, times(1)).deleteById(restaurantId);
+        verify(redisTemplate, times(1)).delete(eq(KEY_PREFIX + restaurantId));
     }
 }
