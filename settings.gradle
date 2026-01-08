@@ -19,3 +19,6 @@ include 'infrastructure:gateway-service'
 
 include 'playground:java-coding-test'
 include 'playground:kotlin-lab'
+
+include 'agents'
+include 'agents:TestMakerAgent'
