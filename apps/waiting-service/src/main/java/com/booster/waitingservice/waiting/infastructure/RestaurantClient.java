@@ -9,7 +9,7 @@ public interface RestaurantClient {
 
     // 식당 서비스의 GET /api/restaurants/{id} 를 호출한다고 가정
     @GetMapping("/api/restaurants/{restaurantId}")
-    RestaurantResponse getRestaurant(@PathVariable("restaurantId") Long restaurantId);
+    RestaurantResponse getRestaurant(@PathVariable Long restaurantId);
 
     // 응답 DTO (내부 static record로 정의하거나 별도 클래스로 분리)
     record RestaurantResponse(Long id, String name, String address) {}
