@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 
 public class TestGeneratorApp {
 
-    private static final String GEMINI_API_KEY = "AIzaSyDojL9DKhB69KbThIBBdsnHvVyxoOznsh8"; // 여기에 키 입력
+    private static final String GEMINI_API_KEY = System.getenv("GEMINI_API_KEY");
 
     // 1. 우선 이 모델명으로 시도합니다.
     // 만약 에러가 나면, 콘솔에 "사용 가능한 모델 목록"이 출력될 것입니다. 그 중 하나로 여기를 바꾸세요.
@@ -33,6 +33,13 @@ public class TestGeneratorApp {
 
     public static void main(String[] args) {
         forceUtf8Console(); // 한글 깨짐 방지
+
+        if (GEMINI_API_KEY == null || GEMINI_API_KEY.isEmpty()) {
+            System.err.println("❌ 오류: 'GEMINI_API_KEY' 환경 변수가 설정되지 않았습니다.");
+            System.err.println("👉 IntelliJ: Run Configuration -> Environment variables에 추가하세요.");
+            System.err.println("👉 Terminal: export GEMINI_API_KEY='your_key' (Mac/Linux) 또는 $env:GEMINI_API_KEY='your_key' (Windows PS)");
+            return; // 프로그램 종료
+        }
 
         if (args.length == 0) {
             System.err.println("❌ 사용법 오류: [모듈경로] (선택:클래스명)");
