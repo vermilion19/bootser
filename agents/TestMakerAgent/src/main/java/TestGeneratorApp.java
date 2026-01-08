@@ -42,15 +42,15 @@ public class TestGeneratorApp {
 
         // 1. API 키 검증
         if (GEMINI_API_KEY == null || GEMINI_API_KEY.isEmpty()) {
-            System.err.println("❌ [오류] 'GEMINI_API_KEY' 환경 변수가 없습니다.");
-            System.err.println("👉 Run Configuration -> Environment variables에 추가해주세요.");
+            System.err.println("[오류] 'GEMINI_API_KEY' 환경 변수가 없습니다.");
+            System.err.println("Run Configuration -> Environment variables에 추가해주세요.");
             return;
         }
 
         // 2. 인자 검증
         if (args.length == 0) {
-            System.err.println("❌ [사용법] [모듈경로] (선택:클래스명)");
-            System.err.println("👉 예시: apps/order-service OrderController");
+            System.err.println("[사용법] [모듈경로] (선택:클래스명)");
+            System.err.println("예시: apps/order-service OrderController");
             return;
         }
 
@@ -62,15 +62,15 @@ public class TestGeneratorApp {
         Path scanStartPath = MODULE_ROOT_PATH.resolve(FIXED_PACKAGE_PATH);
 
         if (!Files.exists(scanStartPath)) {
-            System.err.println("❌ 경로를 찾을 수 없습니다: " + scanStartPath.toAbsolutePath());
+            System.err.println("경로를 찾을 수 없습니다: " + scanStartPath.toAbsolutePath());
             return;
         }
 
         System.out.println("==========================================");
-        System.out.println("🤖 AI 테스트 에이전트 가동 (DTO 참조 기능 탑재)");
-        System.out.println("📂 대상 모듈: " + modulePathStr);
-        System.out.println("🔑 모델: " + MODEL_NAME);
-        if (specificFileName != null) System.out.println("🎯 타겟 모드: Only '" + specificFileName + "'");
+        System.out.println("AI 테스트 에이전트 가동 (DTO 참조 기능 탑재)");
+        System.out.println("대상 모듈: " + modulePathStr);
+        System.out.println("모델: " + MODEL_NAME);
+        if (specificFileName != null) System.out.println("타겟 모드: Only '" + specificFileName + "'");
         System.out.println("==========================================\n");
 
         // 3. 파일 탐색 및 처리
@@ -90,7 +90,7 @@ public class TestGeneratorApp {
             e.printStackTrace();
         }
 
-        System.out.println("\n✅ 모든 작업이 완료되었습니다.");
+        System.out.println("\n모든 작업이 완료되었습니다.");
     }
 
     private static void processFile(Path sourcePath) {
@@ -99,15 +99,15 @@ public class TestGeneratorApp {
 
             // 이미 테스트가 있으면 건너뜀
             if (Files.exists(testPath)) {
-                System.out.println("⏭️ [SKIP] " + sourcePath.getFileName());
+                System.out.println("⏭[SKIP] " + sourcePath.getFileName());
                 return;
             }
 
-            System.out.print("⏳ [GENERATE] " + sourcePath.getFileName() + " (문맥 분석 중...) ");
+            System.out.print("[GENERATE] " + sourcePath.getFileName() + " (문맥 분석 중...) ");
 
             String sourceCode = Files.readString(sourcePath);
 
-            // ✅ [핵심 기능] 관련된 DTO/Request/Response 코드를 긁어옴 (RAG Lite)
+            // 핵심 기능] 관련된 DTO/Request/Response 코드를 긁어옴 (RAG Lite)
             String relatedCode = collectRelatedCode(sourceCode);
 
             // 프롬프트 구성: 타겟 코드 + 참조 코드
@@ -118,7 +118,7 @@ public class TestGeneratorApp {
             String generatedCode = callGeminiApi(fullContext);
 
             saveTestFile(testPath, generatedCode);
-            System.out.println("DONE ✅");
+            System.out.println("DONE");
 
             // Rate Limit 방지
             Thread.sleep(1000);
@@ -136,7 +136,7 @@ public class TestGeneratorApp {
         }
     }
 
-    // ✅ 소스코드의 import 문을 분석하여 DTO 파일 내용을 가져오는 메소드
+    // 소스코드의 import 문을 분석하여 DTO 파일 내용을 가져오는 메소드
     private static String collectRelatedCode(String sourceCode) {
         StringBuilder sb = new StringBuilder();
         // com.booster 패키지 내의 Dto, Request, Response 로 끝나는 클래스만 탐색

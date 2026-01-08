@@ -58,3 +58,6 @@ app:
   kafka:
     topics:
       waiting-events: waiting-events
+  feign:
+    restaurant:
+      url: "http://localhost:6000/restaurants"

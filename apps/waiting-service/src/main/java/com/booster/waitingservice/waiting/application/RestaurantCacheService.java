@@ -1,15 +1,20 @@
 package com.booster.waitingservice.waiting.application;
 
+import com.booster.waitingservice.waiting.infastructure.RestaurantClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RestaurantCacheService {
     private final StringRedisTemplate redisTemplate;
+    private final RestaurantClient restaurantClient;
+
     private static final String KEY_PREFIX = "restaurant:name:";
 
     public String getRestaurantName(Long restaurantId) {
@@ -22,9 +27,24 @@ public class RestaurantCacheService {
             return cachedName;
         }
 
-        // Cache Miss: 식당 서비스가 아직 캐시를 안 넣었거나, 만료된 경우
-        // Waiting Service는 DB 접근 권한이 없으므로 '기본값' 반환
-        log.warn("🚨 Cache Miss! 식당 이름을 찾을 수 없습니다. ID={}", restaurantId);
-        return "(알 수 없는 식당)";
+        // 2. Cache Miss -> Feign으로 원본 서비스 호출 (Read-Through)
+        try {
+            log.info("Cache Miss! Fetching from Restaurant Service. ID={}", restaurantId);
+
+            // HTTP 요청 발생 📡
+            RestaurantClient.RestaurantResponse response = restaurantClient.getRestaurant(restaurantId);
+
+            String realName = response.name();
+
+            // 3. Redis에 적재 (다음엔 캐시 쓰도록)
+            redisTemplate.opsForValue().set(key, realName, Duration.ofHours(24));
+
+            return realName;
+
+        } catch (Exception e) {
+            // 🚨 식당 서비스가 죽었거나 에러가 난 경우
+            log.error("식당 서비스 호출 실패: {}", e.getMessage());
+            return "알 수 없는 식당 (일시적 오류)"; // Fallback
+        }
     }
 }

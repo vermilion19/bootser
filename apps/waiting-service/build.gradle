@@ -26,6 +26,7 @@ dependencies {
     implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.10.0'
 
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation("org.springframework.cloud:spring-cloud-starter-openfeign:5.0.0")
 }
 tasks.withType(JavaCompile) {
     options.compilerArgs.add("-parameters")
