@@ -25,7 +25,7 @@ public class RestaurantService {
     private final RestaurantRepository restaurantRepository;
     private final StringRedisTemplate redisTemplate;
 
-    // 🔑 Waiting Service와 공유하는 키 규칙 (토씨 하나 틀리면 안됨!)
+    //  Waiting Service와 공유하는 키 규칙 (토씨 하나 틀리면 안됨!)
     private static final String KEY_PREFIX = "restaurant:name:";
     private static final Duration CACHE_TTL = Duration.ofHours(24);
 
@@ -37,8 +37,8 @@ public class RestaurantService {
                 request.maxWaitingLimit()
         );
         Restaurant saved = restaurantRepository.save(restaurant);
-        // 🚀 [Redis] 식당 이름 캐시 등록 (Write-Through)
-        String key = KEY_PREFIX + restaurant.getId();
+        // [Redis] 식당 이름 캐시 등록 (Write-Through)
+        String key = KEY_PREFIX + saved.getId();
         redisTemplate.opsForValue().set(key, restaurant.getName(), CACHE_TTL);
         log.info("Redis Cache Saved: id={}, name={}", restaurant.getId(), restaurant.getName());
         return RestaurantResponse.from(saved);
@@ -56,7 +56,7 @@ public class RestaurantService {
 
         // Dirty Checking을 이용한 업데이트
         restaurant.updateInfo(request.name(), request.capacity(), request.maxWaitingLimit());
-        // 🚀 [Redis] 캐시 덮어쓰기 (Update)
+        // [Redis] 캐시 덮어쓰기 (Update)
         String key = KEY_PREFIX + restaurantId;
         redisTemplate.opsForValue().set(key, restaurant.getName(), CACHE_TTL);
         log.info("Redis Cache Updated: id={}, name={}", restaurantId, restaurant.getName());
@@ -104,7 +104,7 @@ public class RestaurantService {
     public void deleteRestaurant(Long restaurantId) {
         restaurantRepository.deleteById(restaurantId);
 
-        // 🚀 [Redis] 캐시 삭제 (Evict)
+        //  [Redis] 캐시 삭제 (Evict)
         String key = KEY_PREFIX + restaurantId;
         redisTemplate.delete(key);
         log.info("Redis Cache Deleted: id={}", restaurantId);
