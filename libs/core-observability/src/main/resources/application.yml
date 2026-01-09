@@ -10,3 +10,8 @@ management:
     web:
       exposure:
         include: "health, info, prometheus, metrics"
+
+    # [Tempo] 트레이싱 데이터 전송 설정
+    zipkin:
+      tracing:
+        endpoint: "http://localhost:9411/api/v2/spans"

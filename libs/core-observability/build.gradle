@@ -11,5 +11,9 @@ dependencies {
     api 'io.micrometer:micrometer-tracing-reporter-brave'
 
     // 4. (선택) 외부 전송용 Reporter (Zipkin/Tempo 등으로 쏠 때 필요)
-    // api 'io.zipkin.reporter2:zipkin-reporter-brave'
+     api 'io.zipkin.reporter2:zipkin-reporter-brave'
+    // [Loki] 로그를 Loki 서버로 전송 (Loki4j Appender)
+     api 'com.github.loki4j:loki-logback-appender:1.5.1'
+    // [Prometheus] 메트릭을 프로메테우스가 이해할 수 있는 포맷으로 변환
+     api 'io.micrometer:micrometer-registry-prometheus'
 }
