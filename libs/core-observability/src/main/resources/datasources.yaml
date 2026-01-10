@@ -1,0 +1,36 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    url: http://prometheus:9090
+    editable: true
+    jsonData:
+      exemplarTraceIdDestinations: # 메트릭 -> 트레이스 연결 설정
+        - name: trace_id
+          datasourceUid: tempo
+          urlDisplayLabel: 'Trace: $${__value.raw}'
+
+  - name: Loki
+    type: loki
+    uid: loki
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      derivedFields: # 로그 -> 트레이스 연결 설정
+        - datasourceUid: tempo
+          matcherRegex: "traceId=(\\w+)"
+          name: TraceID
+          url: "$${__value.raw}"
+
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: loki

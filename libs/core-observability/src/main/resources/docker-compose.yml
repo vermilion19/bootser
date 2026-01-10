@@ -1,0 +1,55 @@
+version: "3"
+
+networks:
+  lgtm-network:
+    driver: bridge
+
+services:
+  # 1. Loki (로그 수집)
+  loki:
+    image: grafana/loki:3.0.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+    networks:
+      - lgtm-network
+
+  # 2. Tempo (트레이싱 수집)
+  tempo:
+    image: grafana/tempo:2.4.0
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo-config.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200"   # Tempo HTTP API
+      - "9411:9411"   # Zipkin 호환 포트 (Spring Boot가 여기로 쏨)
+    networks:
+      - lgtm-network
+
+  # 3. Prometheus (메트릭 수집)
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --enable-feature=exemplar-storage # 트레이스 ID 연결 기능 활성화
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - lgtm-network
+
+  # 4. Grafana (시각화 대시보드)
+  grafana:
+    image: grafana/grafana:11.0.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true # 로그인 없이 접속 가능
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    networks:
+      - lgtm-network

@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 2s # 2초마다 수집 (개발용이라 짧게 설정)
+
+scrape_configs:
+  - job_name: 'booster-apps'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      # 여기에 실행 중인 스프링 부트 앱들의 주소를 적습니다.
+      - targets: ['host.docker.internal:8080'] # Auth Service (예시)
+        labels:
+          application: 'auth-service'
+      - targets: ['host.docker.internal:8081'] # Waiting Service (예시)
+        labels:
+          application: 'waiting-service'
