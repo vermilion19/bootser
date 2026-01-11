@@ -1,20 +1,26 @@
 package com.booster.waitingservice.waiting.application;
 
+import com.booster.common.JsonUtils;
 import com.booster.common.SnowflakeGenerator;
 import com.booster.core.web.event.WaitingEvent;
 import com.booster.storage.redis.domain.WaitingUser;
 import com.booster.storage.redis.repository.RedissonRankingRepository;
+import com.booster.waitingservice.waiting.application.dto.WaitingRegisteredEvent;
 import com.booster.waitingservice.waiting.domain.Waiting;
 import com.booster.waitingservice.waiting.domain.WaitingRepository;
 import com.booster.waitingservice.waiting.domain.WaitingStatus;
+import com.booster.waitingservice.waiting.domain.outbox.OutboxEvent;
+import com.booster.waitingservice.waiting.domain.outbox.OutboxRepository;
 import com.booster.waitingservice.waiting.exception.DuplicateWaitingException;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
 import com.booster.waitingservice.waiting.web.dto.response.RegisterWaitingResponse;
 import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
 
@@ -27,6 +33,8 @@ public class WaitingService {
     private final RedissonRankingRepository rankingRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final RestaurantCacheService restaurantCacheService;
+    private final OutboxRepository outboxRepository;
+    private final JsonMapper jsonMapper = JsonUtils.MAPPER;
 
     public RegisterWaitingResponse registerInternal(RegisterWaitingRequest request) {
         validateDuplicate(request.restaurantId(), request.guestPhone());
@@ -197,4 +205,5 @@ public class WaitingService {
         );
     }
 
+    //todo: 입장 호출 시 outbox 등록
 }
