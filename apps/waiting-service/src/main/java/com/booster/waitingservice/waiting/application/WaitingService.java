@@ -166,6 +166,7 @@ public class WaitingService {
         Waiting waiting = findById(waitingId);
         waiting.call();
         publishEvent(waiting, null, WaitingEvent.EventType.CALLED);
+        createOutboxEvent(waiting);
     }
 
     // 공통: 엔티티 조회 (없으면 예외)
@@ -205,5 +206,20 @@ public class WaitingService {
         );
     }
 
-    //todo: 입장 호출 시 outbox 등록
+    private void createOutboxEvent(Waiting waiting) {
+        WaitingCallEvent event = new WaitingCallEvent(waiting.getId());
+        String payload = jsonMapper.writeValueAsString(event);
+
+        OutboxEvent outbox = OutboxEvent.builder()
+                .aggregateType("WAITING")
+                .aggregateId(waiting.getId())
+                .eventType("CALLED")
+                .payload(payload)
+                .build();
+        outboxRepository.save(outbox);
+    }
+
+    public record WaitingCallEvent(Long waitingId) { }
+
+
 }
