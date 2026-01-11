@@ -47,4 +47,9 @@ public class RestaurantCacheService {
             return "알 수 없는 식당 (일시적 오류)"; // Fallback
         }
     }
+
+    public void updateCache(Long restaurantId, String newName) {
+        String key = KEY_PREFIX + restaurantId;
+        redisTemplate.opsForValue().set(key, newName, Duration.ofHours(24));
+    }
 }
