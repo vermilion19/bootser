@@ -1,10 +1,14 @@
 package com.booster.restaurantservice.restaurant.application;
 
+import com.booster.common.JsonUtils;
 import com.booster.restaurantservice.restaurant.domain.Restaurant;
 import com.booster.restaurantservice.restaurant.domain.RestaurantRepository;
+import com.booster.restaurantservice.restaurant.domain.outbox.OutboxEvent;
+import com.booster.restaurantservice.restaurant.domain.outbox.OutboxRepository;
 import com.booster.restaurantservice.restaurant.web.dto.RegisterRestaurantRequest;
 import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.util.List;
@@ -24,6 +29,8 @@ public class RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
     private final StringRedisTemplate redisTemplate;
+    private final OutboxRepository outboxRepository;
+    private final JsonMapper objectMapper = JsonUtils.MAPPER;
 
     //  Waiting Service와 공유하는 키 규칙 (토씨 하나 틀리면 안됨!)
     private static final String KEY_PREFIX = "restaurant:name:";
@@ -37,6 +44,9 @@ public class RestaurantService {
                 request.maxWaitingLimit()
         );
         Restaurant saved = restaurantRepository.save(restaurant);
+
+        createOutboxEvent(saved);
+
         // [Redis] 식당 이름 캐시 등록 (Write-Through)
         String key = KEY_PREFIX + saved.getId();
         redisTemplate.opsForValue().set(key, restaurant.getName(), CACHE_TTL);
@@ -114,4 +124,24 @@ public class RestaurantService {
         return restaurantRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다. ID: " + id));
     }
+
+    private void createOutboxEvent(Restaurant restaurant) {
+        // 이벤트 페이로드 생성 (별도 DTO 사용 권장)
+        RestaurantCreatedEvent event = new RestaurantCreatedEvent(
+                restaurant.getId(),
+                restaurant.getName()
+        );
+        String payload = objectMapper.writeValueAsString(event);
+
+        OutboxEvent outbox = OutboxEvent.builder()
+                .aggregateType("RESTAURANT")
+                .aggregateId(restaurant.getId())
+                .eventType("RESTAURANT_CREATED")
+                .payload(payload)
+                .build();
+
+        outboxRepository.save(outbox);
+
+    }
+    public record RestaurantCreatedEvent(Long id, String name) {}
 }
