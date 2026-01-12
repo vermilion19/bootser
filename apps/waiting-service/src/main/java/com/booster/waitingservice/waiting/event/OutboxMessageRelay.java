@@ -40,6 +40,5 @@ public class OutboxMessageRelay {
                 // 실패하면 다음 스케줄에 다시 시도함 (Retry)
             }
         }
-        }
     }
 }
