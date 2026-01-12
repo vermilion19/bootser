@@ -7,6 +7,7 @@ services:
   # 1. Loki (로그 수집)
   loki:
     image: grafana/loki:3.0.0
+    restart: unless-stopped  # [추가] 컴퓨터 재시작 시 자동 실행 (수동으로 끄기 전까지)
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
@@ -18,6 +19,7 @@ services:
   # 2. Tempo (트레이싱 수집)
   tempo:
     image: grafana/tempo:2.4.0
+    restart: unless-stopped
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./tempo-config.yaml:/etc/tempo.yaml
@@ -30,6 +32,7 @@ services:
   # 3. Prometheus (메트릭 수집)
   prometheus:
     image: prom/prometheus:latest
+    restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --enable-feature=exemplar-storage # 트레이스 ID 연결 기능 활성화
@@ -43,6 +46,7 @@ services:
   # 4. Grafana (시각화 대시보드)
   grafana:
     image: grafana/grafana:11.0.0
+    restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:

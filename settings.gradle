@@ -22,3 +22,4 @@ include 'playground:kotlin-lab'
 
 include 'agents'
 include 'agents:TestMakerAgent'
+include 'libs:core-resilience'
