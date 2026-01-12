@@ -21,7 +21,7 @@ public class OutboxMessageRelay {
     private final OutboxRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 3000)
     @Transactional // 읽고 -> 쏘고 -> 상태변경까지 하나의 작업
     public void publishEvents() {
         List<OutboxEvent> events = outboxRepository.findByPublishedFalseOrderByCreatedAtAsc();

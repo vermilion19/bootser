@@ -21,7 +21,7 @@ public class OutboxMessageRelay {
     private final OutboxRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 3000)
     @Transactional
     public void publishEvents() {
         List<OutboxEvent> events = outboxRepository.findByPublishedFalseOrderByCreatedAtAsc();
