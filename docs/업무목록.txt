@@ -1,0 +1,17 @@
+ 진행했던 프로젝트
+
+ Vueroid Cloud
+- api 개발, 웹소켓 서버 개발,배치로직
+redis 사용 이중화시 pub/sub
+
+ 택시-bsd
+ - api 개발
+
+ Blur
+ - api 개발, 동시성문제 해결
+
+ adas-dataset
+ - api 개발, 많은데이터, 커서방식 페이징
+
+ Vueroid-line
+ - api 개발
