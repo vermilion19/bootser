@@ -61,3 +61,18 @@ app:
   feign:
     restaurant:
       url: "http://localhost:6000/restaurants"
+
+
+resilience4j:
+  bulkhead:
+    instances:
+      restaurantService: # [중요] 이 이름이 나중에 어노테이션의 name과 일치해야 합니다.
+        maxConcurrentCalls: 20  # 동시에 20개 스레드까지만 진입 허용
+        maxWaitDuration: 100ms  # 꽉 찼을 때 0.1초만 대기하고 바로 거절(Fast Fail)
+
+  # (선택) 서킷 브레이커 설정도 오버라이딩하고 싶다면 추가
+  circuitbreaker:
+    instances:
+      restaurantService:
+        baseConfig: default # 공통 모듈의 설정을 상속받음
+        slidingWindowSize: 20 # 식당 호출은 빈번하지 않으니 윈도우 사이즈를 작게 조정

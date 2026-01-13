@@ -4,4 +4,5 @@ dependencies {
 
     // 2. AOP (어노테이션 기반 동작을 위해 필수)
     api 'org.springframework.boot:spring-boot-starter-aop'
+    api 'io.github.resilience4j:resilience4j-bulkhead'
 }

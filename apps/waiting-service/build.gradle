@@ -11,6 +11,7 @@ dependencies {
     implementation project(':libs:storage-db')
     implementation project(':libs:storage-redis')
     implementation project(':libs:storage-kafka')
+    implementation project(':libs:core-resilience')
     runtimeOnly 'com.h2database:h2'
 
     // [외부용] Embedded Redis (자바 17+ 호환 버전 사용 권장)
