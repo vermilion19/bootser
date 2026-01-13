@@ -5,6 +5,7 @@ import com.booster.restaurantservice.restaurant.domain.RestaurantRepository;
 import com.booster.restaurantservice.restaurant.domain.RestaurantStatus;
 import com.booster.restaurantservice.restaurant.domain.outbox.OutboxEvent;
 import com.booster.restaurantservice.restaurant.domain.outbox.OutboxRepository;
+import com.booster.restaurantservice.restaurant.exception.RestaurantException;
 import com.booster.restaurantservice.restaurant.web.dto.RegisterRestaurantRequest;
 import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
@@ -111,7 +112,7 @@ class RestaurantServiceTest {
         verify(restaurantRepository, times(1)).findById(restaurantId);
     }
 
-    @DisplayName("존재하지 않는 ID로 식당 조회 시 EntityNotFoundException을 발생시킨다")
+    @DisplayName("존재하지 않는 ID로 식당 조회 시 RestaurantException 발생시킨다")
     @Test
     void getRestaurantByIdNotFoundThrowsException() {
         // given
@@ -120,7 +121,7 @@ class RestaurantServiceTest {
 
         // when, then
         assertThatThrownBy(() -> restaurantService.getRestaurant(nonExistentId))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(RestaurantException.class)
                 .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + nonExistentId);
         verify(restaurantRepository, times(1)).findById(nonExistentId);
     }
@@ -151,7 +152,7 @@ class RestaurantServiceTest {
         verify(valueOperations, times(1)).set(eq(KEY_PREFIX + restaurantId), eq("수정된식당"), eq(CACHE_TTL));
     }
 
-    @DisplayName("존재하지 않는 식당 정보 수정 시 EntityNotFoundException을 발생시킨다")
+    @DisplayName("존재하지 않는 식당 정보 수정 시 RestaurantException 발생시킨다")
     @Test
     void updateRestaurantInfoNotFoundThrowsException() {
         // given
@@ -161,7 +162,7 @@ class RestaurantServiceTest {
 
         // when, then
         assertThatThrownBy(() -> restaurantService.update(nonExistentId, request))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(RestaurantException.class)
                 .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + nonExistentId);
         verify(restaurantRepository, times(1)).findById(nonExistentId);
     }
@@ -185,7 +186,7 @@ class RestaurantServiceTest {
         verify(restaurantRepository, times(1)).findById(restaurantId);
     }
 
-    @DisplayName("존재하지 않는 식당 오픈 시 EntityNotFoundException을 발생시킨다")
+    @DisplayName("존재하지 않는 식당 오픈 시 RestaurantException 발생시킨다")
     @Test
     void openRestaurantNotFoundThrowsException() {
         // given
@@ -194,7 +195,7 @@ class RestaurantServiceTest {
 
         // when, then
         assertThatThrownBy(() -> restaurantService.open(nonExistentId))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(RestaurantException.class)
                 .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + nonExistentId);
         verify(restaurantRepository, times(1)).findById(nonExistentId);
     }
@@ -218,7 +219,7 @@ class RestaurantServiceTest {
         verify(restaurantRepository, times(1)).findById(restaurantId);
     }
 
-    @DisplayName("존재하지 않는 식당 닫힘 시 EntityNotFoundException을 발생시킨다")
+    @DisplayName("존재하지 않는 식당 닫힘 시 RestaurantException 발생시킨다")
     @Test
     void closeRestaurantNotFoundThrowsException() {
         // given
@@ -227,7 +228,7 @@ class RestaurantServiceTest {
 
         // when, then
         assertThatThrownBy(() -> restaurantService.close(nonExistentId))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(RestaurantException.class)
                 .hasMessageContaining("식당을 찾을 수 없습니다. ID: " + nonExistentId);
         verify(restaurantRepository, times(1)).findById(nonExistentId);
     }
@@ -247,7 +248,7 @@ class RestaurantServiceTest {
         verify(restaurantRepository, times(1)).increaseOccupancy(restaurantId, partySize);
     }
 
-    @DisplayName("만석으로 인해 손님 입장 실패 시 IllegalStateException을 발생시킨다")
+    @DisplayName("만석으로 인해 손님 입장 실패 시 RestaurantException 발생시킨다")
     @Test
     void enterRestaurantWhenFullThrowsException() {
         // given
@@ -257,7 +258,7 @@ class RestaurantServiceTest {
 
         // when, then
         assertThatThrownBy(() -> restaurantService.enter(restaurantId, partySize))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(RestaurantException.class)
                 .hasMessageContaining("만석이라 입장할 수 없습니다.");
         verify(restaurantRepository, times(1)).increaseOccupancy(restaurantId, partySize);
     }
@@ -277,7 +278,7 @@ class RestaurantServiceTest {
         verify(restaurantRepository, times(1)).decreaseOccupancy(restaurantId, partySize);
     }
 
-    @DisplayName("현재 입장 중인 손님이 없어 퇴장 실패 시 IllegalStateException을 발생시킨다")
+    @DisplayName("현재 입장 중인 손님이 없어 퇴장 실패 시 RestaurantException 발생시킨다")
     @Test
     void exitRestaurantWhenNoOccupancyThrowsException() {
         // given
@@ -287,7 +288,7 @@ class RestaurantServiceTest {
 
         // when, then
         assertThatThrownBy(() -> restaurantService.exit(restaurantId, partySize))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(RestaurantException.class)
                 .hasMessageContaining("현재 입장 중인 손님이 없습니다.");
         verify(restaurantRepository, times(1)).decreaseOccupancy(restaurantId, partySize);
     }

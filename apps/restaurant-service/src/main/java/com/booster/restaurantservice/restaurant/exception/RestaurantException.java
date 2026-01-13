@@ -2,14 +2,14 @@ package com.booster.restaurantservice.restaurant.exception;
 
 import com.booster.core.web.exception.CoreException;
 
-public class FullEntryException extends CoreException {
+public class RestaurantException extends CoreException {
 
-    public FullEntryException() {
+    public RestaurantException() {
         super(RestaurantErrorCode.RESTAURANT_ERROR_CODE);
     }
 
-    public FullEntryException(String message) {
-        super(RestaurantErrorCode.RESTAURANT_ERROR_CODE);
+    public RestaurantException(String message) {
+        super(RestaurantErrorCode.RESTAURANT_ERROR_CODE,message);
     }
 
 }

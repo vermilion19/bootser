@@ -5,11 +5,10 @@ import com.booster.restaurantservice.restaurant.domain.Restaurant;
 import com.booster.restaurantservice.restaurant.domain.RestaurantRepository;
 import com.booster.restaurantservice.restaurant.domain.outbox.OutboxEvent;
 import com.booster.restaurantservice.restaurant.domain.outbox.OutboxRepository;
-import com.booster.restaurantservice.restaurant.exception.FullEntryException;
+import com.booster.restaurantservice.restaurant.exception.RestaurantException;
 import com.booster.restaurantservice.restaurant.web.dto.RegisterRestaurantRequest;
 import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -91,7 +90,7 @@ public class RestaurantService {
         int updatedRows = restaurantRepository.increaseOccupancy(restaurantId,partySize);
 
         if (updatedRows == 0) {
-            throw new FullEntryException();
+            throw new RestaurantException("만석이라 입장할 수 없습니다.");
         }
     }
 
@@ -101,7 +100,7 @@ public class RestaurantService {
 
         if (updatedRows == 0) {
             // 이미 0명인데 퇴장 처리를 시도한 경우 등
-            throw new IllegalStateException("현재 입장 중인 손님이 없습니다.");
+            throw new RestaurantException("현재 입장 중인 손님이 없습니다.");
         }
     }
 
@@ -123,7 +122,7 @@ public class RestaurantService {
 
     private Restaurant findByIdOrThrow(Long id) {
         return restaurantRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("식당을 찾을 수 없습니다. ID: " + id));
+                .orElseThrow(() -> new RestaurantException("식당을 찾을 수 없습니다. ID: " + id));
     }
 
     private void createOutboxEvent(Restaurant restaurant) {

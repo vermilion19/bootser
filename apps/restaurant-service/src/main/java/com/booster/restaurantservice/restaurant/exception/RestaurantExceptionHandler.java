@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class RestaurantExceptionHandler {
 
-    @ExceptionHandler(FullEntryException.class)
+    @ExceptionHandler(RestaurantException.class)
     public ResponseEntity<ApiResponse<Void>> handleCoreException(CoreException e) {
         log.warn("FullEntryException : {}", e.getMessage());
         return ResponseEntity

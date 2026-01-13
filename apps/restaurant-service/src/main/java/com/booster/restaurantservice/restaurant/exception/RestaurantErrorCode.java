@@ -9,7 +9,7 @@ import lombok.Getter;
 public enum RestaurantErrorCode implements ErrorCode {
 
     // 대기 서비스 전용 에러들
-    RESTAURANT_FULL(400, "W-001", "이미 대기 중인 식당입니다.");
+    RESTAURANT_ERROR_CODE(400, "W-001", "레스토랑 서비스 에러");
     private final int status;
     private final String code;
     private final String message;

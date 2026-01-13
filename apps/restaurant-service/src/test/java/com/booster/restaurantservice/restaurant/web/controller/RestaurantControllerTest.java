@@ -1,9 +1,8 @@
 package com.booster.restaurantservice.restaurant.web.controller;
 
-import com.booster.core.web.exception.GlobalExceptionHandler;
 import com.booster.restaurantservice.restaurant.application.RestaurantService;
 import com.booster.restaurantservice.restaurant.domain.RestaurantStatus;
-import com.booster.restaurantservice.restaurant.exception.FullEntryException;
+import com.booster.restaurantservice.restaurant.exception.RestaurantException;
 import com.booster.restaurantservice.restaurant.web.dto.RegisterRestaurantRequest;
 import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
@@ -13,7 +12,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -221,13 +219,13 @@ class RestaurantControllerTest {
         void open_notFound() throws Exception {
             // given
             Long nonExistentId = 999L;
-            doThrow(new EntityNotFoundException("식당을 찾을 수 없습니다."))
+            doThrow(new RestaurantException("식당을 찾을 수 없습니다."))
                     .when(restaurantService).open(nonExistentId);
 
             // when & then
             mockMvc.perform(post("/restaurants/{restaurantId}/open", nonExistentId))
                     .andDo(print())
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().is4xxClientError());
         }
     }
 
@@ -280,7 +278,7 @@ class RestaurantControllerTest {
             // given
             Long restaurantId = 1L;
             int partySize = 4;
-            doThrow(new FullEntryException())
+            doThrow(new RestaurantException())
                     .when(restaurantService).enter(restaurantId, partySize);
 
             // when & then
@@ -333,14 +331,14 @@ class RestaurantControllerTest {
             // given
             Long restaurantId = 1L;
             int partySize = 4;
-            doThrow(new IllegalStateException("현재 입장 중인 손님이 없습니다."))
+            doThrow(new RestaurantException("현재 입장 중인 손님이 없습니다."))
                     .when(restaurantService).exit(restaurantId, partySize);
 
             // when & then
             mockMvc.perform(post("/restaurants/{restaurantId}/exit", restaurantId)
                             .param("partySize", String.valueOf(partySize)))
                     .andDo(print())
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().is4xxClientError());
         }
     }
 
