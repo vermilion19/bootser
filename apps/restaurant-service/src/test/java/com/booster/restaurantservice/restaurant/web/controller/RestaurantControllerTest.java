@@ -1,7 +1,9 @@
 package com.booster.restaurantservice.restaurant.web.controller;
 
+import com.booster.core.web.exception.GlobalExceptionHandler;
 import com.booster.restaurantservice.restaurant.application.RestaurantService;
 import com.booster.restaurantservice.restaurant.domain.RestaurantStatus;
+import com.booster.restaurantservice.restaurant.exception.FullEntryException;
 import com.booster.restaurantservice.restaurant.web.dto.RegisterRestaurantRequest;
 import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,7 +32,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(RestaurantController.class)
 @DisplayName("RestaurantController 테스트")
+//@Import(GlobalExceptionHandler.class)
 class RestaurantControllerTest {
+
+    //todo : 아직 테스트 실패함
 
     @Autowired
     private MockMvc mockMvc;
@@ -274,14 +280,14 @@ class RestaurantControllerTest {
             // given
             Long restaurantId = 1L;
             int partySize = 4;
-            doThrow(new IllegalStateException("만석이라 입장할 수 없습니다."))
+            doThrow(new FullEntryException())
                     .when(restaurantService).enter(restaurantId, partySize);
 
             // when & then
             mockMvc.perform(post("/restaurants/{restaurantId}/entry", restaurantId)
                             .param("partySize", String.valueOf(partySize)))
                     .andDo(print())
-                    .andExpect(status().isInternalServerError()); // 500 또는 예외 핸들러에 따라 다름
+                    .andExpect(status().is4xxClientError());
         }
 
         @Test

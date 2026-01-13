@@ -5,6 +5,7 @@ import com.booster.restaurantservice.restaurant.domain.Restaurant;
 import com.booster.restaurantservice.restaurant.domain.RestaurantRepository;
 import com.booster.restaurantservice.restaurant.domain.outbox.OutboxEvent;
 import com.booster.restaurantservice.restaurant.domain.outbox.OutboxRepository;
+import com.booster.restaurantservice.restaurant.exception.FullEntryException;
 import com.booster.restaurantservice.restaurant.web.dto.RegisterRestaurantRequest;
 import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
@@ -90,7 +91,7 @@ public class RestaurantService {
         int updatedRows = restaurantRepository.increaseOccupancy(restaurantId,partySize);
 
         if (updatedRows == 0) {
-            throw new IllegalStateException("만석이라 입장할 수 없습니다.");
+            throw new FullEntryException();
         }
     }
 
