@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew :apps:waiting-service:test:*)"
+    ]
+  }
+}
