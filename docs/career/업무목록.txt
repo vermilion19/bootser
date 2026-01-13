@@ -2,7 +2,7 @@
 
  Vueroid Cloud
 - api 개발, 웹소켓 서버 개발,배치로직
-redis 사용 이중화시 pub/sub
+redis 사용 이중화시 pub/sub, mqtt 사용
 
  택시-bsd
  - api 개발
