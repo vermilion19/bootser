@@ -7,6 +7,7 @@ import com.booster.waitingservice.waiting.application.dto.PostponeCommand;
 import com.booster.waitingservice.waiting.domain.Waiting;
 import com.booster.waitingservice.waiting.domain.WaitingRepository;
 import com.booster.waitingservice.waiting.domain.WaitingStatus;
+import com.booster.waitingservice.waiting.domain.outbox.OutboxRepository;
 import com.booster.waitingservice.waiting.exception.DuplicateWaitingException;
 import com.booster.waitingservice.waiting.exception.InvalidWaitingStatusException;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
@@ -48,6 +49,8 @@ class WaitingServiceTest {
     ApplicationEventPublisher eventPublisher;
     @Mock
     RestaurantCacheService restaurantCacheService;
+    @Mock
+    OutboxRepository outboxRepository;
 
     @InjectMocks
     private WaitingService waitingService;

@@ -1,8 +1,12 @@
+plugins {
+    id 'java-library'
+}
+
 dependencies {
     // 1. Resilience4j (CircuitBreaker, Bulkhead, Ratelimiter 등 포함)
-    api 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
+    api 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j:5.0.0'
 
     // 2. AOP (어노테이션 기반 동작을 위해 필수)
-    api 'org.springframework.boot:spring-boot-starter-aop'
+    api 'org.springframework.boot:spring-boot-starter-aop:4.0.0-M2'
     api 'io.github.resilience4j:resilience4j-bulkhead'
 }
