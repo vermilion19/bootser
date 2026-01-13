@@ -15,8 +15,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 
-
-    testImplementation testFixtures(project(':libs:storage-db'))
+    // Test dependencies
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
