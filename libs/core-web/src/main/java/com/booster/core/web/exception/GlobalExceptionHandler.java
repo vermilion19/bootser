@@ -10,6 +10,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.LocalDateTime;
+import java.util.Map;
+
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -65,6 +68,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(500)
                 .body(ApiResponse.error("서버 내부 오류가 발생했습니다."));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalStateException(IllegalStateException e) {
+        Map<String, Object> body = Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 400,
+                "error", "Bad Request",
+                "message", e.getMessage()
+        );
+
+        return ResponseEntity.badRequest().body(body);
     }
 
 }

@@ -2,7 +2,9 @@ package com.booster.restaurantservice.restaurant.application;
 
 import com.booster.restaurantservice.restaurant.domain.Restaurant;
 import com.booster.restaurantservice.restaurant.domain.RestaurantRepository;
-import com.booster.restaurantservice.restaurant.domain.RestaurantStatus; // Assuming this enum exists
+import com.booster.restaurantservice.restaurant.domain.RestaurantStatus;
+import com.booster.restaurantservice.restaurant.domain.outbox.OutboxEvent;
+import com.booster.restaurantservice.restaurant.domain.outbox.OutboxRepository;
 import com.booster.restaurantservice.restaurant.web.dto.RegisterRestaurantRequest;
 import com.booster.restaurantservice.restaurant.web.dto.RestaurantResponse;
 import com.booster.restaurantservice.restaurant.web.dto.UpdateRestaurantRequest;
@@ -27,6 +29,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
@@ -47,6 +50,9 @@ class RestaurantServiceTest {
 
     @Mock
     private ValueOperations<String, String> valueOperations;
+
+    @Mock
+    private OutboxRepository outboxRepository;
 
     private static final String KEY_PREFIX = "restaurant:name:";
     private static final Duration CACHE_TTL = Duration.ofHours(24);
@@ -80,6 +86,7 @@ class RestaurantServiceTest {
         assertThat(response.status()).isEqualTo(RestaurantStatus.CLOSED); // 초기 상태 확인
         verify(restaurantRepository, times(1)).save(any(Restaurant.class));
         verify(valueOperations, times(1)).set(eq(KEY_PREFIX + 1L), eq("테스트식당"), eq(CACHE_TTL));
+        verify(outboxRepository, times(1)).save(any(OutboxEvent.class)); // Outbox 이벤트 저장 검증
     }
 
     @DisplayName("ID로 식당을 성공적으로 조회한다")
@@ -326,5 +333,133 @@ class RestaurantServiceTest {
         // then
         verify(restaurantRepository, times(1)).deleteById(restaurantId);
         verify(redisTemplate, times(1)).delete(eq(KEY_PREFIX + restaurantId));
+    }
+
+    // ========== 추가 엣지 케이스 테스트 ==========
+
+    @DisplayName("식당 등록 시 Outbox 이벤트가 RESTAURANT_CREATED 타입으로 저장된다")
+    @Test
+    void registerRestaurantCreatesOutboxEvent() {
+        // given
+        RegisterRestaurantRequest request = new RegisterRestaurantRequest("이벤트테스트식당", 30, 5);
+        Restaurant newRestaurant = Restaurant.create(request.name(), request.capacity(), request.maxWaitingLimit());
+        ReflectionTestUtils.setField(newRestaurant, "id", 1L);
+        ReflectionTestUtils.setField(newRestaurant, "status", RestaurantStatus.CLOSED);
+
+        when(restaurantRepository.save(any(Restaurant.class))).thenReturn(newRestaurant);
+
+        // when
+        restaurantService.register(request);
+
+        // then
+        org.mockito.ArgumentCaptor<OutboxEvent> captor = org.mockito.ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxRepository).save(captor.capture());
+
+        OutboxEvent savedEvent = captor.getValue();
+        assertThat(savedEvent.getAggregateType()).isEqualTo("RESTAURANT");
+        assertThat(savedEvent.getEventType()).isEqualTo("RESTAURANT_CREATED");
+        assertThat(savedEvent.getAggregateId()).isEqualTo(1L);
+    }
+
+    @DisplayName("모든 식당 조회 시 빈 목록이면 빈 리스트를 반환한다")
+    @Test
+    void getAllRestaurantsReturnsEmptyList() {
+        // given
+        when(restaurantRepository.findAll(any(Sort.class))).thenReturn(List.of());
+
+        // when
+        List<RestaurantResponse> responses = restaurantService.getAllRestaurants();
+
+        // then
+        assertThat(responses).isEmpty();
+        verify(restaurantRepository, times(1)).findAll(any(Sort.class));
+    }
+
+    @DisplayName("식당 정보 수정 시 일부 필드만 수정하면 해당 필드만 변경된다")
+    @Test
+    void updateRestaurantPartialUpdate() {
+        // given
+        Long restaurantId = 1L;
+        UpdateRestaurantRequest request = new UpdateRestaurantRequest("수정된이름", null, null); // name만 변경
+        Restaurant existingRestaurant = Restaurant.create("기존식당", 50, 10);
+        ReflectionTestUtils.setField(existingRestaurant, "id", restaurantId);
+        ReflectionTestUtils.setField(existingRestaurant, "status", RestaurantStatus.OPEN);
+
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(existingRestaurant));
+
+        // when
+        RestaurantResponse response = restaurantService.update(restaurantId, request);
+
+        // then
+        assertThat(response.name()).isEqualTo("수정된이름");
+        assertThat(response.capacity()).isEqualTo(50); // 변경 안됨
+        assertThat(response.maxWaitingLimit()).isEqualTo(10); // 변경 안됨
+    }
+
+    @DisplayName("이미 OPEN 상태인 식당을 open 호출해도 정상 동작한다")
+    @Test
+    void openAlreadyOpenRestaurant() {
+        // given
+        Long restaurantId = 1L;
+        Restaurant restaurant = Restaurant.create("오픈식당", 30, 5);
+        ReflectionTestUtils.setField(restaurant, "id", restaurantId);
+        ReflectionTestUtils.setField(restaurant, "status", RestaurantStatus.OPEN); // 이미 OPEN
+
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(restaurant));
+
+        // when
+        restaurantService.open(restaurantId);
+
+        // then
+        assertThat(restaurant.getStatus()).isEqualTo(RestaurantStatus.OPEN);
+    }
+
+    @DisplayName("이미 CLOSED 상태인 식당을 close 호출해도 정상 동작한다")
+    @Test
+    void closeAlreadyClosedRestaurant() {
+        // given
+        Long restaurantId = 1L;
+        Restaurant restaurant = Restaurant.create("닫힌식당", 30, 5);
+        ReflectionTestUtils.setField(restaurant, "id", restaurantId);
+        ReflectionTestUtils.setField(restaurant, "status", RestaurantStatus.CLOSED); // 이미 CLOSED
+
+        when(restaurantRepository.findById(restaurantId)).thenReturn(Optional.of(restaurant));
+
+        // when
+        restaurantService.close(restaurantId);
+
+        // then
+        assertThat(restaurant.getStatus()).isEqualTo(RestaurantStatus.CLOSED);
+    }
+
+    @DisplayName("여러 명의 손님이 순차적으로 입장한다")
+    @Test
+    void enterMultipleParties() {
+        // given
+        Long restaurantId = 1L;
+        when(restaurantRepository.increaseOccupancy(eq(restaurantId), anyInt())).thenReturn(1);
+
+        // when
+        restaurantService.enter(restaurantId, 2);
+        restaurantService.enter(restaurantId, 3);
+        restaurantService.enter(restaurantId, 4);
+
+        // then
+        verify(restaurantRepository, times(3)).increaseOccupancy(eq(restaurantId), anyInt());
+    }
+
+    @DisplayName("여러 명의 손님이 순차적으로 퇴장한다")
+    @Test
+    void exitMultipleParties() {
+        // given
+        Long restaurantId = 1L;
+        when(restaurantRepository.decreaseOccupancy(eq(restaurantId), anyInt())).thenReturn(1);
+
+        // when
+        restaurantService.exit(restaurantId, 2);
+        restaurantService.exit(restaurantId, 3);
+
+        // then
+        verify(restaurantRepository, times(2)).decreaseOccupancy(eq(restaurantId), anyInt());
     }
 }

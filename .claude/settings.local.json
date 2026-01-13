@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./gradlew :apps:waiting-service:test:*)"
+      "Bash(./gradlew :apps:waiting-service:test:*)",
+      "Bash(./gradlew :apps:restaurant-service:test:*)"
     ]
   }
 }
