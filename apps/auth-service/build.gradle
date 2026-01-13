@@ -19,6 +19,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test:4.0.1")
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+
     
 }
 
