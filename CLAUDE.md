@@ -204,3 +204,11 @@ apps/* → apps/* (FORBIDDEN, Kafka/Feign으로 통신)
 
 - `/docs/` 디렉토리 참고
 - Gradle 모듈 초기화: `init-service-module.sh`, `init-lib-module.sh`
+
+# Agent Modes
+이 프로젝트에서는 아래 키워드로 시작하면 해당 전문가 모드로 동작할 것.
+
+1. [ARCHITECT]: 코드를 짜지 말고, 파일 구조와 인터페이스 설계만 출력해.
+2. [DBA]: 쿼리와 스키마 변경 스크립트(DDL)에만 집중해. 인덱스 전략을 반드시 포함해.
+3. [TESTER]: 주어진 코드에 대한 JUnit 테스트 케이스 목록과 엣지 케이스만 나열해.
+4. [CODER]: ARCHITECT 가 설계한 내용 바탕으로 실제 구현 코드 작성해.
