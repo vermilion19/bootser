@@ -11,8 +11,10 @@ import com.booster.waitingservice.waiting.domain.outbox.OutboxRepository;
 import com.booster.waitingservice.waiting.exception.DuplicateWaitingException;
 import com.booster.waitingservice.waiting.exception.InvalidWaitingStatusException;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
+import com.booster.waitingservice.waiting.web.dto.response.CursorPageResponse;
 import com.booster.waitingservice.waiting.web.dto.response.RegisterWaitingResponse;
 import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse;
+import com.booster.waitingservice.waiting.web.dto.response.WaitingListResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -342,4 +344,144 @@ class WaitingServiceTest {
         verify(restaurantCacheService, times(1)).getRestaurantName(restaurantId);
     }
 
+    // ===== 대기 목록 조회 (커서 기반 페이지네이션) 테스트 =====
+
+    @Test
+    @DisplayName("대기 목록 조회 성공: 첫 페이지 조회 시 커서 없이 데이터를 반환한다")
+    void getWaitingList_first_page() {
+        // given
+        Long restaurantId = 1L;
+        int size = 3;
+
+        List<Waiting> waitings = List.of(
+                Waiting.create(1L, restaurantId, "010-1111-1111", 2, 1),
+                Waiting.create(2L, restaurantId, "010-2222-2222", 3, 2),
+                Waiting.create(3L, restaurantId, "010-3333-3333", 4, 3),
+                Waiting.create(4L, restaurantId, "010-4444-4444", 2, 4) // size + 1개 (다음 페이지 존재 확인용)
+        );
+
+        given(waitingRepository.findByRestaurantIdAndStatusWithCursor(
+                eq(restaurantId), eq(WaitingStatus.WAITING), isNull(), eq(size + 1)))
+                .willReturn(waitings);
+        given(waitingRepository.countByRestaurantIdAndStatus(restaurantId, WaitingStatus.WAITING))
+                .willReturn(10L);
+
+        // when
+        CursorPageResponse<WaitingListResponse> response = waitingService.getWaitingList(restaurantId, null, size);
+
+        // then
+        assertThat(response.content()).hasSize(3);
+        assertThat(response.hasNext()).isTrue();
+        assertThat(response.nextCursor()).isEqualTo("3"); // 마지막 요소의 waitingNumber
+        assertThat(response.totalCount()).isEqualTo(10L);
+        assertThat(response.size()).isEqualTo(3);
+
+        // 첫 번째 요소 검증
+        WaitingListResponse firstItem = response.content().getFirst();
+        assertThat(firstItem.waitingNumber()).isEqualTo(1);
+        assertThat(firstItem.guestPhone()).isEqualTo("010-1111-1111");
+    }
+
+    @Test
+    @DisplayName("대기 목록 조회 성공: 커서를 사용하여 다음 페이지를 조회한다")
+    void getWaitingList_with_cursor() {
+        // given
+        Long restaurantId = 1L;
+        Integer cursor = 3; // waitingNumber 3 이후 데이터 조회
+        int size = 2;
+
+        List<Waiting> waitings = List.of(
+                Waiting.create(4L, restaurantId, "010-4444-4444", 2, 4),
+                Waiting.create(5L, restaurantId, "010-5555-5555", 3, 5)
+        );
+
+        given(waitingRepository.findByRestaurantIdAndStatusWithCursor(
+                eq(restaurantId), eq(WaitingStatus.WAITING), eq(cursor), eq(size + 1)))
+                .willReturn(waitings);
+        given(waitingRepository.countByRestaurantIdAndStatus(restaurantId, WaitingStatus.WAITING))
+                .willReturn(5L);
+
+        // when
+        CursorPageResponse<WaitingListResponse> response = waitingService.getWaitingList(restaurantId, cursor, size);
+
+        // then
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+        assertThat(response.totalCount()).isEqualTo(5L);
+    }
+
+    @Test
+    @DisplayName("대기 목록 조회 성공: 데이터가 없으면 빈 목록을 반환한다")
+    void getWaitingList_empty() {
+        // given
+        Long restaurantId = 1L;
+        int size = 20;
+
+        given(waitingRepository.findByRestaurantIdAndStatusWithCursor(
+                eq(restaurantId), eq(WaitingStatus.WAITING), isNull(), eq(size + 1)))
+                .willReturn(List.of());
+        given(waitingRepository.countByRestaurantIdAndStatus(restaurantId, WaitingStatus.WAITING))
+                .willReturn(0L);
+
+        // when
+        CursorPageResponse<WaitingListResponse> response = waitingService.getWaitingList(restaurantId, null, size);
+
+        // then
+        assertThat(response.content()).isEmpty();
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+        assertThat(response.totalCount()).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("대기 목록 조회 성공: 요청한 size가 100을 초과하면 100개로 제한된다")
+    void getWaitingList_size_limit() {
+        // given
+        Long restaurantId = 1L;
+        int requestedSize = 200; // 100 초과
+        int limitedSize = 100;
+
+        given(waitingRepository.findByRestaurantIdAndStatusWithCursor(
+                eq(restaurantId), eq(WaitingStatus.WAITING), isNull(), eq(limitedSize + 1)))
+                .willReturn(List.of());
+        given(waitingRepository.countByRestaurantIdAndStatus(restaurantId, WaitingStatus.WAITING))
+                .willReturn(0L);
+
+        // when
+        CursorPageResponse<WaitingListResponse> response = waitingService.getWaitingList(restaurantId, null, requestedSize);
+
+        // then
+        assertThat(response.size()).isEqualTo(100);
+        verify(waitingRepository).findByRestaurantIdAndStatusWithCursor(
+                eq(restaurantId), eq(WaitingStatus.WAITING), isNull(), eq(101)); // 100 + 1
+    }
+
+    @Test
+    @DisplayName("대기 목록 조회 성공: 마지막 페이지는 hasNext가 false이다")
+    void getWaitingList_last_page() {
+        // given
+        Long restaurantId = 1L;
+        int size = 10;
+
+        // size보다 적은 개수 반환 (마지막 페이지)
+        List<Waiting> waitings = List.of(
+                Waiting.create(8L, restaurantId, "010-8888-8888", 2, 8),
+                Waiting.create(9L, restaurantId, "010-9999-9999", 3, 9)
+        );
+
+        given(waitingRepository.findByRestaurantIdAndStatusWithCursor(
+                eq(restaurantId), eq(WaitingStatus.WAITING), eq(7), eq(size + 1)))
+                .willReturn(waitings);
+        given(waitingRepository.countByRestaurantIdAndStatus(restaurantId, WaitingStatus.WAITING))
+                .willReturn(9L);
+
+        // when
+        CursorPageResponse<WaitingListResponse> response = waitingService.getWaitingList(restaurantId, 7, size);
+
+        // then
+        assertThat(response.content()).hasSize(2);
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
 }
