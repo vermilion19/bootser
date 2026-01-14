@@ -12,13 +12,11 @@ import org.springframework.stereotype.Component;
 public class WaitingRegisterFacade {
     private final WaitingService waitingService;
 
-//    @DistributedLock(key = "'waiting:restaurant:' + #reqeust.restaurantId")
     @DistributedLock(key = "'waiting:restaurant:' + #request.restaurantId()")
     public RegisterWaitingResponse register(RegisterWaitingRequest request) {
         return waitingService.registerInternal(request);
     }
 
-//    @DistributedLock(key = "'waiting:restaurant:' + #request.restaurantId")
     @DistributedLock(key = "'waiting:restaurant:' + #command.restaurantId()")
     public RegisterWaitingResponse postpone(PostponeCommand request) {
         return waitingService.postponeInternal(request.waitingId());

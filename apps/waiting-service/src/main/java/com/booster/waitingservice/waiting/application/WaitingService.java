@@ -13,8 +13,10 @@ import com.booster.waitingservice.waiting.domain.outbox.OutboxEvent;
 import com.booster.waitingservice.waiting.domain.outbox.OutboxRepository;
 import com.booster.waitingservice.waiting.exception.DuplicateWaitingException;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
+import com.booster.waitingservice.waiting.web.dto.response.CursorPageResponse;
 import com.booster.waitingservice.waiting.web.dto.response.RegisterWaitingResponse;
 import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse;
+import com.booster.waitingservice.waiting.web.dto.response.WaitingListResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @Transactional
@@ -221,5 +224,55 @@ public class WaitingService {
 
     public record WaitingCallEvent(Long waitingId) { }
 
+    /**
+     * 특정 식당의 대기 목록 조회 (커서 기반 페이지네이션)
+     *
+     * @param restaurantId 식당 ID
+     * @param cursor 마지막으로 조회한 waitingNumber (첫 페이지면 null)
+     * @param size 조회할 개수 (기본값 20, 최대 100)
+     * @return 커서 페이지 응답
+     */
+    @Transactional(readOnly = true)
+    public CursorPageResponse<WaitingListResponse> getWaitingList(
+            Long restaurantId,
+            Integer cursor,
+            int size
+    ) {
+        // 1. size 제한 (최대 100개)
+        int limitedSize = Math.min(size, 100);
 
+        // 2. 다음 페이지 존재 여부 확인을 위해 size + 1개 조회
+        List<Waiting> waitings = waitingRepository.findByRestaurantIdAndStatusWithCursor(
+                restaurantId,
+                WaitingStatus.WAITING,
+                cursor,
+                limitedSize + 1
+        );
+
+        // 3. 다음 페이지 존재 여부 판단
+        boolean hasNext = waitings.size() > limitedSize;
+
+        // 4. 실제 반환할 데이터는 size만큼만
+        List<Waiting> content = hasNext
+                ? waitings.subList(0, limitedSize)
+                : waitings;
+
+        // 5. 다음 커서 계산 (마지막 요소의 waitingNumber)
+        String nextCursor = hasNext && !content.isEmpty()
+                ? String.valueOf(content.getLast().getWaitingNumber())
+                : null;
+
+        // 6. 전체 대기 개수 조회
+        long totalCount = waitingRepository.countByRestaurantIdAndStatus(
+                restaurantId,
+                WaitingStatus.WAITING
+        );
+
+        // 7. Response DTO 변환
+        List<WaitingListResponse> responseList = content.stream()
+                .map(WaitingListResponse::from)
+                .toList();
+
+        return CursorPageResponse.of(responseList, nextCursor, hasNext, totalCount, limitedSize);
+    }
 }

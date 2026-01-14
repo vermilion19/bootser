@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface WaitingRepository extends JpaRepository<Waiting,Long> {
@@ -41,10 +42,36 @@ public interface WaitingRepository extends JpaRepository<Waiting,Long> {
 
     @Modifying(clearAutomatically = true) // 👈 벌크 연산 후 영속성 컨텍스트 초기화
     @Query("""
-        UPDATE Waiting w 
-        SET w.status = 'CANCELED' 
-        WHERE w.status = 'CALLED' 
+        UPDATE Waiting w
+        SET w.status = 'CANCELED'
+        WHERE w.status = 'CALLED'
           AND w.updatedAt < :limitTime
     """)
     int updateStatusToNoShow(@Param("limitTime") LocalDateTime limitTime);
+
+    /**
+     * 커서 기반 페이지네이션으로 특정 식당의 대기 목록 조회
+     * - 첫 페이지: cursor가 null이면 처음부터 조회
+     * - 다음 페이지: cursor(waitingNumber) 이후 데이터만 조회
+     * - waitingNumber 기준 오름차순 정렬 (대기 순서대로)
+     */
+    @Query("""
+        SELECT w FROM Waiting w
+        WHERE w.restaurantId = :restaurantId
+          AND w.status = :status
+          AND (:cursor IS NULL OR w.waitingNumber > :cursor)
+        ORDER BY w.waitingNumber ASC
+        LIMIT :size
+    """)
+    List<Waiting> findByRestaurantIdAndStatusWithCursor(
+            @Param("restaurantId") Long restaurantId,
+            @Param("status") WaitingStatus status,
+            @Param("cursor") Integer cursor,
+            @Param("size") int size
+    );
+
+    /**
+     * 특정 식당의 특정 상태 대기 총 개수 조회
+     */
+    long countByRestaurantIdAndStatus(Long restaurantId, WaitingStatus status);
 }

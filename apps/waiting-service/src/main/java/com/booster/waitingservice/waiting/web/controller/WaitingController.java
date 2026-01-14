@@ -4,10 +4,12 @@ import com.booster.core.web.response.ApiResponse;
 import com.booster.waitingservice.waiting.application.WaitingRegisterFacade;
 import com.booster.waitingservice.waiting.application.WaitingService;
 import com.booster.waitingservice.waiting.application.dto.PostponeCommand;
+import com.booster.waitingservice.waiting.web.dto.request.PostponeRequest;
 import com.booster.waitingservice.waiting.web.dto.request.RegisterWaitingRequest;
+import com.booster.waitingservice.waiting.web.dto.response.CursorPageResponse;
 import com.booster.waitingservice.waiting.web.dto.response.RegisterWaitingResponse;
 import com.booster.waitingservice.waiting.web.dto.response.WaitingDetailResponse;
-import com.booster.waitingservice.waiting.web.dto.request.PostponeRequest;
+import com.booster.waitingservice.waiting.web.dto.response.WaitingListResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -90,5 +92,25 @@ public class WaitingController {
         return ApiResponse.success();
     }
 
-
+    /**
+     * 7. 대기 목록 조회 (커서 기반 페이지네이션)
+     * 무한 스크롤에 최적화된 커서 기반 페이지네이션으로 대기 목록을 조회합니다.
+     *
+     * @param restaurantId 식당 ID
+     * @param cursor 마지막으로 조회한 waitingNumber (첫 페이지 조회 시 생략)
+     * @param size 조회할 개수 (기본값 20, 최대 100)
+     */
+    @GetMapping("/restaurants/{restaurantId}")
+    public ApiResponse<CursorPageResponse<WaitingListResponse>> getWaitingList(
+            @PathVariable Long restaurantId,
+            @RequestParam(required = false) Integer cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        CursorPageResponse<WaitingListResponse> response = waitingService.getWaitingList(
+                restaurantId,
+                cursor,
+                size
+        );
+        return ApiResponse.success(response);
+    }
 }
