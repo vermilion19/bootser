@@ -28,8 +28,8 @@ subprojects {
     repositories {
         mavenCentral()
         // Spring Boot 4.x (Snapshot/Milestone) 사용 시 필요할 수 있는 저장소
-        maven { url 'https://repo.spring.io/milestone' }
-        maven { url 'https://repo.spring.io/snapshot' }
+        maven { url = 'https://repo.spring.io/milestone' }
+        maven { url = 'https://repo.spring.io/snapshot' }
     }
 
     dependencyManagement {
@@ -59,7 +59,8 @@ subprojects {
 
     // apps 폴더 아래에 있는 모듈만 '실행 가능한 Jar(BootJar)'로 만들고
     // libs 폴더 아래에 있는 모듈은 '일반 라이브러리 Jar'로 만듭니다.
-    if (it.path.startsWith(':apps') || it.path.startsWith(':infrastructure')) {
+    if ((it.path.startsWith(':apps') && it.name != 'apps') ||
+        (it.path.startsWith(':infrastructure')&& it.name != 'infrastructure')) {
         bootJar { enabled = true }
         jar { enabled = false }
 

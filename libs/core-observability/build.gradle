@@ -1,19 +1,19 @@
 dependencies {
-    // 1. Spring Boot Actuator (메트릭/헬스체크 필수)
+    // 1. Spring Boot Actuator (필수)
     api 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // 2. Micrometer Tracing (추적 Facade)
     api 'io.micrometer:micrometer-tracing-bridge-brave'
-    // (또는 bridge-otel을 쓸 수도 있지만, Spring Boot 3+ 표준은 Brave가 기본 호환성이 좋습니다)
 
-    // 3. Log Correlation (로그에 TraceID 자동 주입)
-    // Logback과 연동하여 로그에 [traceId=...]를 찍어줌
-    api 'io.micrometer:micrometer-tracing-reporter-brave'
+    // 3. [삭제하세요] 존재하지 않는 라이브러리입니다.
+//     api 'io.micrometer:micrometer-tracing-reporter-brave'
 
-    // 4. (선택) 외부 전송용 Reporter (Zipkin/Tempo 등으로 쏠 때 필요)
-     api 'io.zipkin.reporter2:zipkin-reporter-brave'
-    // [Loki] 로그를 Loki 서버로 전송 (Loki4j Appender)
-     api 'com.github.loki4j:loki-logback-appender:1.5.1'
-    // [Prometheus] 메트릭을 프로메테우스가 이해할 수 있는 포맷으로 변환
-     api 'io.micrometer:micrometer-registry-prometheus'
+    // 4. (선택) 외부 전송용 Reporter (Zipkin 등으로 보낼 때만 필요)
+    // 필요 없다면 지우셔도 됩니다.
+    api 'io.zipkin.reporter2:zipkin-reporter-brave'
+
+    // [Loki]
+    api 'com.github.loki4j:loki-logback-appender:1.5.1'
+
+    // [Prometheus]
+    api 'io.micrometer:micrometer-registry-prometheus'
 }

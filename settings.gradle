@@ -13,6 +13,7 @@ include 'libs:storage-db'
 include 'libs:storage-redis'
 include 'libs:storage-kafka'
 include 'libs:core-observability'
+include 'libs:core-resilience'
 
 include 'infrastructure:discovery-service'
 include 'infrastructure:gateway-service'
@@ -20,6 +21,5 @@ include 'infrastructure:gateway-service'
 include 'playground:java-coding-test'
 include 'playground:kotlin-lab'
 
-include 'agents'
 include 'agents:TestMakerAgent'
-include 'libs:core-resilience'
+

@@ -145,7 +145,7 @@ class RestaurantCacheServiceTest {
             String result = restaurantCacheService.fallbackGetRestaurant(restaurantId, exception);
 
             // then
-            assertThat(result).isEqualTo("조회 지연 중");
+            assertThat(result).isEqualTo("서버가 바쁩니다. 잠시 후 시도해주세요.");
         }
 
         @Test
