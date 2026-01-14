@@ -61,18 +61,11 @@ public class RestaurantCacheService {
 
     // Fallback 메서드 구현
     // 조건: 원본 메서드와 파라미터가 같아야 하고, 마지막에 예외 파라미터를 추가해야 함
-    public String fallbackGetRestaurant(Long restaurantId, BulkheadFullException e) {
-        log.error("식당 조회 Bulkhead 가득 참! (요청 차단): restaurantId={}", restaurantId);
-
-        // 대안 1: 기본값 반환
-        return "조회 지연 중";
-
-        // 대안 2: 에러를 다시 던져서 클라이언트에게 '잠시 후 시도해주세요' 메시지 전달
-        // throw new CustomException(ErrorCode.SERVER_BUSY);
-    }
-
-    // (선택) 서킷 브레이커가 열렸을 때나 기타 에러용 Fallback도 필요하다면 Throwable로 잡을 수 있음
     public String fallbackGetRestaurant(Long restaurantId, Throwable t) {
+        if (t instanceof BulkheadFullException) {
+            log.error("식당 조회 Bulkhead 가득 참! (요청 차단): restaurantId={}", restaurantId);
+            return "서버가 바쁩니다. 잠시 후 시도해주세요.";
+        }
         log.error("식당 조회 실패 (Circuit/Unknown Error): {}", t.getMessage());
         return "알 수 없는 식당";
     }
