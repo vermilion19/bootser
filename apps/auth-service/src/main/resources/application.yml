@@ -1,5 +1,5 @@
 server:
-  port: 19090
+  port: 0
 
 spring:
   application:
@@ -11,3 +11,11 @@ app:
     # 터미널에서 `openssl rand -base64 64` 명령어로 생성한 값을 넣으세요.
     secret: "vMFZ7YkY5+JjK3Hq8Lw9XzC2Vb4N/mQaR1TsD6EfG8UoWpI0OxLrYtZ3V5KjH9NcXyZ1QaW2EcR4VtB6NkM8=="
     expiration: 3600000 # 1시간 (3600초 * 1000ms)
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    prefer-ip-address: true
