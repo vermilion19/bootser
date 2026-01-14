@@ -23,3 +23,5 @@ include 'playground:kotlin-lab'
 
 include 'agents:TestMakerAgent'
 
+
+include 'apps:promotion-service'

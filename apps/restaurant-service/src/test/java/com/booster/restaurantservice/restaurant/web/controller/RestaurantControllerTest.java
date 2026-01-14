@@ -30,10 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(RestaurantController.class)
 @DisplayName("RestaurantController 테스트")
-//@Import(GlobalExceptionHandler.class)
 class RestaurantControllerTest {
 
-    //todo : 아직 테스트 실패함
 
     @Autowired
     private MockMvc mockMvc;
