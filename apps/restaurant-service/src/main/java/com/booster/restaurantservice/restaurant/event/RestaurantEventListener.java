@@ -26,8 +26,8 @@ public class RestaurantEventListener {
 
                 log.info("식당 입장 처리 완료 (Current Occupancy Updated)");
             } catch (Exception e) {
-                // 예외 발생 시 로그 남김 (추후 DLQ나 재시도 로직 고민 필요)
                 log.error("입장 처리 중 오류 발생: {}", e.getMessage());
+                throw e;
             }
         }
     }

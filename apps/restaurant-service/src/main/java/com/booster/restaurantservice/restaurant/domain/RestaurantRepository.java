@@ -26,8 +26,7 @@ public interface RestaurantRepository extends JpaRepository<Restaurant,Long> {
     @Query("""
         UPDATE Restaurant r 
         SET r.currentOccupancy = r.currentOccupancy - :partySize 
-        WHERE r.id = :id 
-          AND (r.currentOccupancy + :partySize) <= r.capacity 
+        WHERE r.id = :id
     """)
     int decreaseOccupancy(@Param("id") Long id, @Param("partySize") int partySize);
 }
