@@ -22,17 +22,17 @@ public class LineCounter {
         Path projectRoot = findProjectRoot(startPath);
 
         if (projectRoot == null) {
-            System.err.println("❌ Cannot find project root. (settings.gradle missing)");
+            System.err.println("Cannot find project root. (settings.gradle missing)");
             return;
         }
 
         // 3. Verification (Optional): Check if folder name is 'booster'
         if (!projectRoot.getFileName().toString().equals("booster")) {
-            System.out.println("⚠️ Warning: Detected root folder name is not 'booster': " + projectRoot.getFileName());
+            System.out.println("Warning: Detected root folder name is not 'booster': " + projectRoot.getFileName());
             // Proceeding anyway as settings.gradle exists
         }
 
-        System.out.println("✅ Analysis Root Path: " + projectRoot.toAbsolutePath());
+        System.out.println("Analysis Root Path: " + projectRoot.toAbsolutePath());
         System.out.println("Project Root Detected: " + projectRoot.toAbsolutePath());
         System.out.println("Analyzing code...");
 
