@@ -2,6 +2,7 @@
 # Infrastructure Only (for local development)
 # Usage: docker-compose -f docker-compose-infra.yml up -d
 # ==============================================
+# 순차 시작 순서: postgres → redis → zookeeper → kafka → kafka-ui
 
 networks:
   booster-network:
@@ -13,6 +14,7 @@ volumes:
   kafka-data:
 
 services:
+  # 1. PostgreSQL - 가장 먼저 시작
   postgres:
     image: postgres:16-alpine
     container_name: booster-postgres
@@ -31,13 +33,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
     networks:
       - booster-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
+  # 2. Redis - PostgreSQL 이후 시작
   redis:
     image: redis:7-alpine
     container_name: booster-redis
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
@@ -48,13 +60,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - booster-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
 
+  # 3. Zookeeper - Redis 이후 시작
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: booster-zookeeper
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -62,7 +84,13 @@ services:
       - "2181:2181"
     networks:
       - booster-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
 
+  # 4. Kafka - Zookeeper 이후 시작
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: booster-kafka
@@ -83,15 +111,15 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - kafka-data:/var/lib/kafka/data
-    healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
     networks:
       - booster-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
-  # Kafka UI (optional - for debugging)
+  # 5. Kafka UI (optional - for debugging) - Kafka 이후 시작
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: booster-kafka-ui
@@ -106,3 +134,8 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     networks:
       - booster-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
