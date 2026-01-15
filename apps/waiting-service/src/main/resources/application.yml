@@ -22,6 +22,7 @@ spring:
     consumer:
       group-id: waiting-service-group-out
       auto-offset-reset: latest
+
 management:
   endpoints:
     web:

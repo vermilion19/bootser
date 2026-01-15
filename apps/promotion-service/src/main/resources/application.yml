@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: promotion-service
+
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: promotion-service-group-out
+      auto-offset-reset: latest

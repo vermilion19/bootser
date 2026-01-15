@@ -3,7 +3,9 @@
     "allow": [
       "Bash(./gradlew :apps:waiting-service:test:*)",
       "Bash(./gradlew :apps:restaurant-service:test:*)",
-      "Bash(./gradlew:*)"
+      "Bash(./gradlew:*)",
+      "Bash(gradlew.bat :apps:promotion-service:test:*)",
+      "Bash(cmd.exe /c \"gradlew.bat :apps:promotion-service:test --tests CouponControllerTest\")"
     ]
   }
 }
