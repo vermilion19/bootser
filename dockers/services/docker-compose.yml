@@ -183,7 +183,7 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-      APP_FEIGN_RESTAURANT_URL: http://gateway-service:6000/restaurants
+      APP_FEIGN_RESTAURANT_URL: http://gateway-service:6000
     networks:
       - booster-network
 

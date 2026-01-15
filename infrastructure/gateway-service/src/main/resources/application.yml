@@ -27,6 +27,11 @@ spring:
               predicates:
                 - Path=/auth/**
 
+            - id: promotion-service-route
+              uri: lb://promotion-service
+              predicates:
+                - Path=/coupons/**
+
 eureka:
   client:
     service-url:
