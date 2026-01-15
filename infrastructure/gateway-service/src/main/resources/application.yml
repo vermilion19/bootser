@@ -15,23 +15,17 @@ spring:
             - id: waiting-service-route
               uri: lb://waiting-service
               predicates:
-                - Path=/waiting/**
-              filters:
-                - StripPrefix=1
+                - Path=/waitings/**
 
             - id: restaurant-service-route
               uri: lb://restaurant-service
               predicates:
                 - Path=/restaurants/**
-              filters:
-                - StripPrefix=1
 
             - id: auth-service-route
               uri: lb://auth-service
               predicates:
                 - Path=/auth/**
-              filters:
-                - StripPrefix=1
 
 eureka:
   client:
