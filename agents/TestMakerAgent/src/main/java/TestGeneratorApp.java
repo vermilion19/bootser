@@ -22,16 +22,16 @@ import java.util.stream.Stream;
 
 public class TestGeneratorApp {
 
-    // ✅ API 키: 환경 변수에서 로드
+    // API 키: 환경 변수에서 로드
     private static final String GEMINI_API_KEY = System.getenv("GEMINI_API_KEY");
 
-    // ✅ 모델명: 1.5 Flash (가성비/속도 최적). 404 에러시 자가 진단 로직 작동함.
+    // 모델명: 1.5 Flash (가성비/속도 최적). 404 에러시 자가 진단 로직 작동함.
     private static final String MODEL_NAME = "gemini-3-flash-preview";
 
-    // ✅ 패키지 경로: 프로젝트 구조에 맞게 수정 가능
+    // 패키지 경로: 프로젝트 구조에 맞게 수정 가능
     private static final String FIXED_PACKAGE_PATH = "src/main/java/com/booster";
 
-    // ✅ 모듈 루트 경로 (DTO 파일을 찾기 위해 사용)
+    // 모듈 루트 경로 (DTO 파일을 찾기 위해 사용)
     private static Path MODULE_ROOT_PATH;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -124,7 +124,7 @@ public class TestGeneratorApp {
             Thread.sleep(1000);
 
         } catch (Exception e) {
-            System.out.println("FAIL ❌");
+            System.out.println("FAIL");
 
             // 에러 내용을 출력하되, 프로그램을 죽이지 않음 (Gradle 에러 방지)
             System.err.println("   └─ 이유: " + e.getMessage());
