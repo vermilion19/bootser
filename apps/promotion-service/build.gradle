@@ -17,4 +17,6 @@ dependencies {
     testImplementation testFixtures(project(':libs:storage-db'))
     testImplementation testFixtures(project(':libs:storage-redis'))
 
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test:4.0.1")
+
 }
