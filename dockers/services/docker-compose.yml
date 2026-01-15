@@ -9,10 +9,9 @@ volumes:
 
 services:
   # ==============================================
-  # Infrastructure - External Dependencies
+  # Tier 1: Infrastructure (동시 시작)
   # ==============================================
 
-  # 1. PostgreSQL - 가장 먼저 시작
   postgres:
     image: postgres:16-alpine
     container_name: booster-postgres
@@ -28,26 +27,17 @@ services:
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
+      interval: 5s       # 10s -> 5s 단축
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 10
+      start_period: 10s
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
-  # 2. Redis - PostgreSQL 이후 시작
   redis:
     image: redis:7-alpine
     container_name: booster-redis
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
@@ -55,25 +45,17 @@ services:
       - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 256M
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: booster-zookeeper
     restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -81,11 +63,35 @@ services:
       - "2181:2181"
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 256M
+
+  # Discovery는 다른 인프라와 함께 시작
+  discovery-service:
+    image: booster/discovery-service
+    build:
+      context: ../..
+      dockerfile: dockers/services/Dockerfile
+      args:
+        SERVICE_PATH: infrastructure/discovery-service
+    container_name: booster-discovery
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    environment:
+      SERVER_PORT: 8761
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_INSTANCE_HOSTNAME: discovery-service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks:
+      - booster-network
+
+  # ==============================================
+  # Tier 2: Middleware (Tier 1 의존)
+  # ==============================================
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -106,51 +112,15 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - kafka-data:/var/lib/kafka/data
-    networks:
-      - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-
-  # ==============================================
-  # Infrastructure - Spring Cloud
-  # ==============================================
-
-  # 5. Discovery Service - Kafka 이후 시작
-  discovery-service:
-    image: booster/discovery-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: infrastructure/discovery-service
-    container_name: booster-discovery
-    restart: unless-stopped
-    depends_on:
-      - kafka
-    ports:
-      - "8761:8761"
-    environment:
-      SERVER_PORT: 8761
-      SPRING_PROFILES_ACTIVE: docker
-      EUREKA_INSTANCE_HOSTNAME: discovery-service
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
-  # 6. Gateway Service - Discovery 이후 시작
   gateway-service:
     image: booster/gateway-service
     build:
@@ -171,23 +141,19 @@ services:
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6000/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
   # ==============================================
-  # Application Services - Gateway 이후 순차 시작
+  # Tier 3: Applications (모두 병렬 시작)
   # ==============================================
+  # 공통 의존성: DB, Redis, Kafka, Gateway가 준비되면 동시에 뜹니다.
+  # 서비스 간 의존성(App to App)은 제거하여 병렬성을 극대화합니다.
 
-  # 7. Waiting Service
   waiting-service:
     image: booster/waiting-service
     build:
@@ -197,6 +163,12 @@ services:
         SERVICE_PATH: apps/waiting-service
     restart: unless-stopped
     depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
       gateway-service:
         condition: service_healthy
     expose:
@@ -212,21 +184,9 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
       APP_FEIGN_RESTAURANT_URL: http://gateway-service:6000/restaurants
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
-  # 8. Restaurant Service - Waiting 이후 시작
   restaurant-service:
     image: booster/restaurant-service
     build:
@@ -236,7 +196,13 @@ services:
         SERVICE_PATH: apps/restaurant-service
     restart: unless-stopped
     depends_on:
-      waiting-service:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      gateway-service:
         condition: service_healthy
     expose:
       - "8080"
@@ -250,21 +216,9 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
-  # 9. Notification Service - Restaurant 이후 시작
   notification-service:
     image: booster/notification-service
     build:
@@ -274,7 +228,11 @@ services:
         SERVICE_PATH: apps/notification-service
     restart: unless-stopped
     depends_on:
-      restaurant-service:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      gateway-service:
         condition: service_healthy
     expose:
       - "8080"
@@ -287,21 +245,9 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
       WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
-  # 10. Auth Service - Notification 이후 시작
   auth-service:
     image: booster/auth-service
     build:
@@ -311,7 +257,9 @@ services:
         SERVICE_PATH: apps/auth-service
     restart: unless-stopped
     depends_on:
-      notification-service:
+      postgres:
+        condition: service_healthy
+      gateway-service:
         condition: service_healthy
     expose:
       - "8080"
@@ -323,21 +271,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
       APP_JWT_SECRET: ${JWT_SECRET}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
-  # 11. Promotion Service - Auth 이후 시작 (마지막)
   promotion-service:
     image: booster/promotion-service
     build:
@@ -347,7 +283,13 @@ services:
         SERVICE_PATH: apps/promotion-service
     restart: unless-stopped
     depends_on:
-      auth-service:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      gateway-service:
         condition: service_healthy
     expose:
       - "8080"
@@ -361,16 +303,5 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M

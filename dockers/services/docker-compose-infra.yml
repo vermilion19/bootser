@@ -1,8 +1,7 @@
 # ==============================================
-# Infrastructure Only (for local development)
+# Infrastructure Only (Optimized for Speed)
 # Usage: docker-compose -f docker-compose-infra.yml up -d
 # ==============================================
-# 순차 시작 순서: postgres → redis → zookeeper → kafka → kafka-ui
 
 networks:
   booster-network:
@@ -14,7 +13,11 @@ volumes:
   kafka-data:
 
 services:
-  # 1. PostgreSQL - 가장 먼저 시작
+  # ==============================================
+  # Group 1: Independent Services (동시 시작)
+  # ==============================================
+
+  # 1. PostgreSQL
   postgres:
     image: postgres:16-alpine
     container_name: booster-postgres
@@ -30,26 +33,19 @@ services:
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-booster}"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 10s
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
-  # 2. Redis - PostgreSQL 이후 시작
+  # 2. Redis
   redis:
     image: redis:7-alpine
     container_name: booster-redis
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # Postgres 의존성 제거 -> 동시 시작
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
@@ -57,26 +53,19 @@ services:
       - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
-      start_period: 10s
+      start_period: 5s
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 256M
 
-  # 3. Zookeeper - Redis 이후 시작
+  # 3. Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: booster-zookeeper
     restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
+    # Redis 의존성 제거 -> 동시 시작
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -84,13 +73,12 @@ services:
       - "2181:2181"
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 256M
 
-  # 4. Kafka - Zookeeper 이후 시작
+  # ==============================================
+  # Group 2: Dependent Services (순차 시작)
+  # ==============================================
+
+  # 4. Kafka - Zookeeper 준비 후 시작
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: booster-kafka
@@ -103,7 +91,6 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      # localhost:9092 for host access, kafka:29092 for container access
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
@@ -111,21 +98,23 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
 
-  # 5. Kafka UI (optional - for debugging) - Kafka 이후 시작
+  # 5. Kafka UI - Kafka 준비 후 시작
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: booster-kafka-ui
     restart: unless-stopped
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy # Kafka가 완전히 뜬 후 접속 시도
     ports:
       - "8989:8080"
     environment:
@@ -134,8 +123,3 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     networks:
       - booster-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 256M
