@@ -96,6 +96,7 @@ services:
   # ==============================================
 
   discovery-service:
+    image: booster/discovery-service
     build:
       context: ../..
       dockerfile: dockers/services/Dockerfile
@@ -119,6 +120,7 @@ services:
       - booster-network
 
   gateway-service:
+    image: booster/gateway-service
     build:
       context: ../..
       dockerfile: dockers/services/Dockerfile
@@ -143,6 +145,7 @@ services:
   # ==============================================
 
   waiting-service:
+    image: booster/waiting-service
     build:
       context: ../..
       dockerfile: dockers/services/Dockerfile
@@ -175,6 +178,7 @@ services:
       - booster-network
 
   restaurant-service:
+    image: booster/restaurant-service
     build:
       context: ../..
       dockerfile: dockers/services/Dockerfile
@@ -186,6 +190,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       kafka:
         condition: service_healthy
     expose:
@@ -196,12 +202,15 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/restaurant_service_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
     networks:
       - booster-network
 
   notification-service:
+    image: booster/notification-service
     build:
       context: ../..
       dockerfile: dockers/services/Dockerfile
@@ -230,6 +239,7 @@ services:
       - booster-network
 
   auth-service:
+    image: booster/auth-service
     build:
       context: ../..
       dockerfile: dockers/services/Dockerfile
@@ -255,6 +265,7 @@ services:
       - booster-network
 
   promotion-service:
+    image: booster/promotion-service
     build:
       context: ../..
       dockerfile: dockers/services/Dockerfile

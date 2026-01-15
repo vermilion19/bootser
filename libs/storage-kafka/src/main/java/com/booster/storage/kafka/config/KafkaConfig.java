@@ -48,6 +48,20 @@ public class KafkaConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
+    @Bean
+    public ProducerFactory<String, String> stringProducerFactory() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServers);
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        return new DefaultKafkaProducerFactory<>(config);
+    }
+
+    @Bean
+    public KafkaTemplate<String, String> stringKafkaTemplate() {
+        return new KafkaTemplate<>(stringProducerFactory());
+    }
+
     // ---------------------------------------
     // Consumer 설정 (메시지 수신)
     // ---------------------------------------

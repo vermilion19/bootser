@@ -11,7 +11,7 @@ WORKDIR /app
 # Gradle wrapper & settings
 COPY gradlew .
 COPY gradle gradle
-COPY settings.gradle .
+COPY settings-docker.gradle settings.gradle
 COPY build.gradle .
 
 # Copy all modules (for dependency resolution)
@@ -23,8 +23,10 @@ COPY infrastructure infrastructure
 ARG SERVICE_PATH
 
 # Build the specific service
+# [수정됨] SERVICE_PATH 대신 치환된 GRADLE_PROJECT_PATH를 사용해야 합니다.
 RUN chmod +x ./gradlew && \
-    ./gradlew :${SERVICE_PATH}:bootJar -x test --no-daemon
+    GRADLE_PROJECT_PATH=$(echo "${SERVICE_PATH}" | sed 's/\//:/g') && \
+    ./gradlew :${GRADLE_PROJECT_PATH}:bootJar -x test --no-daemon
 
 # Stage 2: Runtime
 FROM eclipse-temurin:25-jre-alpine
@@ -40,6 +42,7 @@ ARG SERVICE_PATH
 ARG SERVICE_NAME
 
 # Copy the built JAR
+# [주의] 파일 경로는 슬래시(/)가 맞으므로 여기는 SERVICE_PATH를 그대로 쓰는 게 맞습니다.
 COPY --from=builder /app/${SERVICE_PATH}/build/libs/*.jar app.jar
 
 # JVM options for containers

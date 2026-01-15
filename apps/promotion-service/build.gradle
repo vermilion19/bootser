@@ -13,6 +13,7 @@ dependencies {
     // 테스트 필수 의존성
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 
     testImplementation testFixtures(project(':libs:storage-db'))
     testImplementation testFixtures(project(':libs:storage-redis'))

@@ -13,7 +13,7 @@ import org.springframework.util.backoff.FixedBackOff;
 public class KafkaRetryConfig {
 
     @Bean
-    public DefaultErrorHandler errorHandler(KafkaTemplate<Object, Object> template) {
+    public DefaultErrorHandler errorHandler(KafkaTemplate<String, Object> template) {
         // 1. 실패 시 어디로 보낼지 결정 (기본값: 원본토픽명.DLT)
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(template);
 
