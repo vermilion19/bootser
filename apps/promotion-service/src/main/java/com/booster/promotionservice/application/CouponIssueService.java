@@ -1,6 +1,8 @@
 package com.booster.promotionservice.application;
 
 
+import com.booster.promotionservice.exception.CouponSoldOutException;
+import com.booster.promotionservice.exception.DuplicateCouponIssueException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
@@ -39,10 +41,10 @@ public class CouponIssueService {
 
         // 2. 결과 처리
         if ("DUPLICATED".equals(result)) {
-            throw new IllegalStateException("이미 발급된 쿠폰입니다.");
+            throw new DuplicateCouponIssueException(couponId, userId);
         }
         if ("SOLD_OUT".equals(result)) {
-            throw new IllegalStateException("선착순 마감되었습니다.");
+            throw new CouponSoldOutException(couponId);
         }
 
         // 3. Kafka 이벤트 발행 (비동기 DB 저장용)

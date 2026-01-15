@@ -2,6 +2,7 @@ package com.booster.promotionservice.event;
 
 import com.booster.promotionservice.domain.CouponIssueRepository;
 import com.booster.promotionservice.domain.entity.CouponIssue;
+import com.booster.promotionservice.exception.InvalidMessageFormatException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -19,31 +20,35 @@ public class CouponIssueConsumer {
     @KafkaListener(topics = "coupon.issue.request", groupId = "${spring.kafka.consumer.group-id}")
     @Transactional
     public void listen(String message) {
+        Long userId;
+        Long couponId;
+
+        // 1. 메시지 파싱 (Format: "userId:couponId")
         try {
-            // 1. 메시지 파싱 (Format: "userId:couponId")
-            // 실무에서는 JSON(ObjectMapper)을 쓰지만, 여기선 문자열로 간단히 처리
             String[] parts = message.split(":");
-            Long userId = Long.parseLong(parts[0]);
-            Long couponId = Long.parseLong(parts[1]);
+            if (parts.length != 2) {
+                throw new InvalidMessageFormatException(message);
+            }
+            userId = Long.parseLong(parts[0]);
+            couponId = Long.parseLong(parts[1]);
+        } catch (NumberFormatException e) {
+            throw new InvalidMessageFormatException(message);
+        }
 
-            log.info("쿠폰 발급 요청 수신 - CouponId: {}, UserId: {}", couponId, userId);
+        log.info("쿠폰 발급 요청 수신 - CouponId: {}, UserId: {}", couponId, userId);
 
-            // 2. 엔티티 생성 및 저장
+        // 2. 엔티티 생성 및 저장
+        try {
             CouponIssue couponIssue = new CouponIssue(couponId, userId);
             couponIssueRepository.save(couponIssue);
-
-            // TODO: (선택사항) Coupon 테이블의 issuedQuantity 증가 로직 추가 가능
-            // couponRepository.findById(couponId).ifPresent(Coupon::increaseIssuedQuantity);
-
         } catch (DataIntegrityViolationException e) {
-            // 3. 중복 발급 예외 처리 (매우 중요)
-            // Redis가 터지거나 네트워크 이슈로 메시지가 두 번 왔을 때 DB 유니크 제약조건이 막아줌.
-            // 이건 "에러"가 아니라 "이미 처리된 건"으로 보고 그냥 로그 찍고 넘어가야 함.
-            log.warn("이미 발급된 쿠폰입니다. (중복 이슈 무시) - Message: {}", message);
-        } catch (Exception e) {
-            // 4. 그 외 에러는 로그를 남기고, 추후 Dead Letter Queue(DLQ)로 보내거나 재시도해야 함
-            log.error("쿠폰 발급 중 시스템 오류 발생: {}", message, e);
-            // 여기서 throw를 던지면 Kafka가 재시도를 수행함 (Default 설정 시)
+            // 중복 발급은 "에러"가 아니라 "이미 처리된 건"으로 보고 로그만 남기고 정상 처리
+            // DLQ로 보내지 않음 (재시도해도 계속 실패하므로)
+            log.warn("이미 발급된 쿠폰입니다. (중복 이슈 무시) - CouponId: {}, UserId: {}", couponId, userId);
+            return;
         }
+
+        // TODO: (선택사항) Coupon 테이블의 issuedQuantity 증가 로직 추가 가능
+        // couponRepository.findById(couponId).ifPresent(Coupon::increaseIssuedQuantity);
     }
 }
