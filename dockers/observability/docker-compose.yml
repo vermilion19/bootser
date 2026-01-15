@@ -51,8 +51,13 @@ services:
       - "3000:3000"
     volumes:
       - ./datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - grafana-data:/var/lib/grafana
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true # 로그인 없이 접속 가능
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
     networks:
       - lgtm-network
+
+volumes:
+  grafana-data:

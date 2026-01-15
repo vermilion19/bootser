@@ -1,0 +1,43 @@
+# Build outputs
+**/build/
+**/out/
+**/target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Docker
+dockers/
+Dockerfile*
+docker-compose*
+
+# Logs
+*.log
+logs/
+
+# Test
+**/test/
+**/testFixtures/
+
+# Documentation
+*.md
+docs/
+
+# Playground
+playground/
+
+# Misc
+.env
+.env.*
+*.bak
