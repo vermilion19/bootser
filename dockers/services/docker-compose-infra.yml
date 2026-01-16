@@ -17,35 +17,32 @@ services:
   # Group 1: Independent Services (동시 시작)
   # ==============================================
 
-  # 1. PostgreSQL
   postgres:
     image: postgres:16-alpine
     container_name: booster-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-booster}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-booster123}
-      POSTGRES_DB: ${POSTGRES_DB:-booster}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-booster}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 10s
     networks:
       - booster-network
 
-  # 2. Redis
   redis:
     image: redis:7-alpine
     container_name: booster-redis
     restart: unless-stopped
-    # Postgres 의존성 제거 -> 동시 시작
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
@@ -55,17 +52,15 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
       start_period: 5s
     networks:
       - booster-network
 
-  # 3. Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: booster-zookeeper
     restart: unless-stopped
-    # Redis 의존성 제거 -> 동시 시작
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -78,7 +73,6 @@ services:
   # Group 2: Dependent Services (순차 시작)
   # ==============================================
 
-  # 4. Kafka - Zookeeper 준비 후 시작
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: booster-kafka
@@ -107,14 +101,13 @@ services:
     networks:
       - booster-network
 
-  # 5. Kafka UI - Kafka 준비 후 시작
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: booster-kafka-ui
     restart: unless-stopped
     depends_on:
       kafka:
-        condition: service_healthy # Kafka가 완전히 뜬 후 접속 시도
+        condition: service_healthy
     ports:
       - "8989:8080"
     environment:
