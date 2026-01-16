@@ -33,3 +33,6 @@ graph TD
         Kafka -->|Consume| Noti[Notification Service]
         Kafka -->|Consume| Data[Statistics Service]
     end
+```
+
+hello
