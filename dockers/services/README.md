@@ -7,8 +7,9 @@
 cp .env.example .env
 
 # 2. 전체 서비스 실행
-docker-compose up -d
-
+docker-compose -f docker-compose.infra.yml up -d
+docker-compose -f docker-compose.services.yml up -d
+docker-compose -f docker-compose.frontend.yml up -d
 # 3. 로그 확인
 docker-compose logs -f
 ```

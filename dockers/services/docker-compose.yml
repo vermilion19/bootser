@@ -8,13 +8,12 @@ volumes:
   kafka-data:
 
 services:
-  # ==============================================
-  # Tier 1: Infrastructure (기본 인프라 - 제한 없음)
-  # ==============================================
+  # ====================================================
+  # 1단계: Infrastructure (가장 먼저 실행됨)
+  # ====================================================
   postgres:
     image: postgres:16-alpine
     container_name: booster-postgres
-    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -36,7 +35,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: booster-redis
-    restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
@@ -54,7 +52,6 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: booster-zookeeper
-    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -63,37 +60,9 @@ services:
     networks:
       - booster-network
 
-  discovery-service:
-    image: booster/discovery-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: infrastructure/discovery-service
-    container_name: booster-discovery
-    restart: unless-stopped
-    ports:
-      - "8761:8761"
-    environment:
-      SERVER_PORT: 8761
-      SPRING_PROFILES_ACTIVE: docker
-      EUREKA_INSTANCE_HOSTNAME: discovery-service
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      start_period: 30s
-      retries: 5
-    networks:
-      - booster-network
-
-  # ==============================================
-  # Tier 2: Middleware (Tier 1 이후 실행)
-  # ==============================================
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: booster-kafka
-    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
@@ -113,7 +82,7 @@ services:
       test: ["CMD", "nc", "-z", "localhost", "9092"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 30s
     networks:
       - booster-network
@@ -121,7 +90,6 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: booster-kafka-ui
-    restart: unless-stopped
     depends_on:
       kafka:
         condition: service_healthy
@@ -134,15 +102,50 @@ services:
     networks:
       - booster-network
 
+  # ====================================================
+  # 2단계: Service Group 1 (Discovery Service)
+  # * 인프라(DB, Redis)가 건강해져야만 실행됨
+  # ====================================================
+  discovery-service:
+    image: booster/discovery-service
+    build:
+      context: .
+      dockerfile: dockers/services/Dockerfile
+      args:
+        SERVICE_PATH: infrastructure/discovery-service
+    container_name: booster-discovery
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8761:8761"
+    environment:
+      SERVER_PORT: 8761
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_INSTANCE_HOSTNAME: discovery-service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks:
+      - booster-network
+
+  # ====================================================
+  # 3단계: Service Group 2 (Gateway & Core Services)
+  # * Discovery가 건강해져야만 실행됨 (엄격한 순서 보장)
+  # ====================================================
   gateway-service:
     image: booster/gateway-service
     build:
-      context: ../..
+      context: .
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: infrastructure/gateway-service
     container_name: booster-gateway
-    restart: unless-stopped
     depends_on:
       discovery-service:
         condition: service_healthy
@@ -161,92 +164,18 @@ services:
     networks:
       - booster-network
 
-  # ==============================================
-  # Frontend (Nginx)
-  # ==============================================
-  frontend:
-    image: booster/frontend
-    build:
-      context: ../../frontend
-      dockerfile: Dockerfile
-    container_name: booster-frontend
-    restart: unless-stopped
-    depends_on:
-      gateway-service:
-        condition: service_healthy
-    ports:
-      - "3000:80"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 128M
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    networks:
-      - booster-network
-
-  # ==============================================
-  # Tier 3: Applications (그룹 실행 + 코어 할당 제한)
-  # 전략: 0번 코어는 윈도우 OS가 쓰고, 도커는 1번~7번만 사용한다.
-  # ==============================================
-
-  # [Group 1]
-  auth-service:
-    image: booster/auth-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: apps/auth-service
-    restart: unless-stopped
-    depends_on:
-      gateway-service:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-    expose:
-      - "8080"
-    environment:
-      SERVER_PORT: 8080
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_service_db
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-      APP_JWT_SECRET: ${JWT_SECRET}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 120s
-    networks:
-      - booster-network
-
   restaurant-service:
     image: booster/restaurant-service
     build:
-      context: ../..
+      context: .
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/restaurant-service
-    restart: unless-stopped
     depends_on:
-      gateway-service:
+      discovery-service:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
+      kafka:
+        condition: service_healthy
     expose:
       - "8080"
     environment:
@@ -264,29 +193,24 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
-      start_period: 120s
+      start_period: 180s
     networks:
       - booster-network
 
-  # [Group 2]
+  # ====================================================
+  # 4단계: Service Group 3 (Dependent Services)
+  # * Core Service(Auth, Restaurant)가 건강해져야만 실행됨
+  # ====================================================
   waiting-service:
     image: booster/waiting-service
     build:
-      context: ../..
+      context: .
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/waiting-service
-    restart: unless-stopped
     depends_on:
-      auth-service:
-        condition: service_healthy
       restaurant-service:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
     expose:
       - "8080"
     environment:
@@ -305,28 +229,22 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
-      start_period: 120s
+      start_period: 180s
     networks:
       - booster-network
 
   promotion-service:
     image: booster/promotion-service
     build:
-      context: ../..
+      context: .
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/promotion-service
-    restart: unless-stopped
     depends_on:
-      auth-service:
-        condition: service_healthy
+#      auth-service:
+#        condition: service_healthy
       restaurant-service:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
     expose:
       - "8080"
     environment:
@@ -344,29 +262,22 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
-      start_period: 120s
+      start_period: 180s
     networks:
       - booster-network
 
-  # [Group 3]
   notification-service:
     image: booster/notification-service
     build:
-      context: ../..
+      context: .
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/notification-service
-    restart: unless-stopped
     depends_on:
       waiting-service:
         condition: service_healthy
       promotion-service:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
     expose:
       - "8080"
     environment:
@@ -378,5 +289,64 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
       WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    networks:
+      - booster-network
+
+  # ====================================================
+  # 5단계: Auth Service (다른 서비스 빌드 완료 후 실행)
+  # * notification-service가 건강해져야만 실행됨
+  # ====================================================
+  auth-service:
+    image: booster/auth-service
+    build:
+      context: .
+      dockerfile: dockers/services/Dockerfile
+      args:
+        SERVICE_PATH: apps/auth-service
+    depends_on:
+      notification-service:
+        condition: service_started
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      APP_JWT_SECRET: ${JWT_SECRET}
+      JAVA_TOOL_OPTIONS: "-Djava.security.egd=file:/dev/./urandom"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+    networks:
+      - booster-network
+
+  # ====================================================
+  # 6단계: Frontend (가장 마지막 실행)
+  # * Gateway가 건강해져야만 실행됨 (API 호출 가능 시점)
+  # ====================================================
+  frontend:
+    image: booster/frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: booster-frontend
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    ports:
+      - "3300:80"
+    # CPU/Memory 제한(deploy) 제거함
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - booster-network

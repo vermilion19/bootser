@@ -154,7 +154,7 @@ cd dockers/services
 docker compose up -d
 
 # 또는 인프라만 실행
-docker compose -f docker-compose-infra.yml up -d
+docker compose -f docker-compose.infra.yml up -d
 ```
 
 ### 서비스 상태 확인

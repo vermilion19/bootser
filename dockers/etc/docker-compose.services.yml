@@ -1,0 +1,232 @@
+networks:
+  booster-network:
+    external: true # 인프라에서 만든 네트워크를 가져다 씀
+
+
+services:
+  discovery-service:
+    image: booster/discovery-service
+    build:
+      context: ../..
+      dockerfile: ../services/Dockerfile
+      args:
+        SERVICE_PATH: infrastructure/discovery-service
+    container_name: booster-discovery
+    ports:
+      - "8761:8761"
+    environment:
+      SERVER_PORT: 8761
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_INSTANCE_HOSTNAME: discovery-service
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks:
+      - booster-network
+
+  gateway-service:
+    image: booster/gateway-service
+    build:
+      context: ../..
+      dockerfile: ../services/Dockerfile
+      args:
+        SERVICE_PATH: infrastructure/gateway-service
+    container_name: booster-gateway
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+    ports:
+      - "6000:6000"
+    environment:
+      SERVER_PORT: 6000
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6000/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks:
+      - booster-network
+
+  auth-service:
+    image: booster/auth-service
+    build:
+      context: ../..
+      dockerfile: ../services/Dockerfile
+      args:
+        SERVICE_PATH: apps/auth-service
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      APP_JWT_SECRET: ${JWT_SECRET}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - booster-network
+
+  restaurant-service:
+    image: booster/restaurant-service
+    build:
+      context: ../..
+      dockerfile: ../services/Dockerfile
+      args:
+        SERVICE_PATH: apps/restaurant-service
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/restaurant_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - booster-network
+
+  waiting-service:
+    image: booster/waiting-service
+    build:
+      context: ../..
+      dockerfile: ../services/Dockerfile
+      args:
+        SERVICE_PATH: apps/waiting-service
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      restaurant-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/waiting_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      APP_FEIGN_RESTAURANT_URL: http://gateway-service:6000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - booster-network
+
+  promotion-service:
+    image: booster/promotion-service
+    build:
+      context: ../..
+      dockerfile: ../services/Dockerfile
+      args:
+        SERVICE_PATH: apps/promotion-service
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      restaurant-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/promotion_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - booster-network
+
+  notification-service:
+    image: booster/notification-service
+    build:
+      context: ../..
+      dockerfile: ../services/Dockerfile
+      args:
+        SERVICE_PATH: apps/notification-service
+    depends_on:
+      waiting-service:
+        condition: service_healthy
+      promotion-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/noti_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    networks:
+      - booster-network
