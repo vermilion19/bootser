@@ -162,6 +162,35 @@ services:
       - booster-network
 
   # ==============================================
+  # Frontend (Nginx)
+  # ==============================================
+  frontend:
+    image: booster/frontend
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: booster-frontend
+    restart: unless-stopped
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - booster-network
+
+  # ==============================================
   # Tier 3: Applications (그룹 실행 + 코어 할당 제한)
   # 전략: 0번 코어는 윈도우 OS가 쓰고, 도커는 1번~7번만 사용한다.
   # ==============================================

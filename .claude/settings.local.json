@@ -5,7 +5,8 @@
       "Bash(./gradlew :apps:restaurant-service:test:*)",
       "Bash(./gradlew:*)",
       "Bash(gradlew.bat :apps:promotion-service:test:*)",
-      "Bash(cmd.exe /c \"gradlew.bat :apps:promotion-service:test --tests CouponControllerTest\")"
+      "Bash(cmd.exe /c \"gradlew.bat :apps:promotion-service:test --tests CouponControllerTest\")",
+      "Bash(npm install)"
     ]
   }
 }
