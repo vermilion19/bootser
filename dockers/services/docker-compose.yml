@@ -9,9 +9,8 @@ volumes:
 
 services:
   # ==============================================
-  # Tier 1: Infrastructure (동시 시작)
+  # Tier 1: Infrastructure (기본 인프라 - 제한 없음)
   # ==============================================
-
   postgres:
     image: postgres:16-alpine
     container_name: booster-postgres
@@ -27,7 +26,7 @@ services:
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s       # 10s -> 5s 단축
+      interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
@@ -64,7 +63,6 @@ services:
     networks:
       - booster-network
 
-  # Discovery는 다른 인프라와 함께 시작
   discovery-service:
     image: booster/discovery-service
     build:
@@ -90,9 +88,8 @@ services:
       - booster-network
 
   # ==============================================
-  # Tier 2: Middleware (Tier 1 의존)
+  # Tier 2: Middleware (Tier 1 이후 실행)
   # ==============================================
-
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: booster-kafka
@@ -149,11 +146,84 @@ services:
       - booster-network
 
   # ==============================================
-  # Tier 3: Applications (모두 병렬 시작)
+  # Tier 3: Applications (그룹 실행 + 코어 할당 제한)
+  # 전략: 0번 코어는 윈도우 OS가 쓰고, 도커는 1번~7번만 사용한다.
   # ==============================================
-  # 공통 의존성: DB, Redis, Kafka, Gateway가 준비되면 동시에 뜹니다.
-  # 서비스 간 의존성(App to App)은 제거하여 병렬성을 극대화합니다.
 
+  # [Group 1]
+  auth-service:
+    image: booster/auth-service
+    build:
+      context: ../..
+      dockerfile: dockers/services/Dockerfile
+      args:
+        SERVICE_PATH: apps/auth-service
+    restart: unless-stopped
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      APP_JWT_SECRET: ${JWT_SECRET}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - booster-network
+
+  restaurant-service:
+    image: booster/restaurant-service
+    build:
+      context: ../..
+      dockerfile: dockers/services/Dockerfile
+      args:
+        SERVICE_PATH: apps/restaurant-service
+    restart: unless-stopped
+    depends_on:
+      gateway-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/restaurant_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - booster-network
+
+  # [Group 2]
   waiting-service:
     image: booster/waiting-service
     build:
@@ -163,14 +233,15 @@ services:
         SERVICE_PATH: apps/waiting-service
     restart: unless-stopped
     depends_on:
-      postgres:
+      auth-service:
         condition: service_healthy
-      redis:
+      restaurant-service:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
-      gateway-service:
-        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     expose:
       - "8080"
     environment:
@@ -184,93 +255,12 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
       APP_FEIGN_RESTAURANT_URL: http://gateway-service:6000
-    networks:
-      - booster-network
-
-  restaurant-service:
-    image: booster/restaurant-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: apps/restaurant-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      gateway-service:
-        condition: service_healthy
-    expose:
-      - "8080"
-    environment:
-      SERVER_PORT: 8080
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/restaurant_service_db
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-    networks:
-      - booster-network
-
-  notification-service:
-    image: booster/notification-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: apps/notification-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      gateway-service:
-        condition: service_healthy
-    expose:
-      - "8080"
-    environment:
-      SERVER_PORT: 8080
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/noti_service_db
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-      WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
-    networks:
-      - booster-network
-
-  auth-service:
-    image: booster/auth-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: apps/auth-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      gateway-service:
-        condition: service_healthy
-    expose:
-      - "8080"
-    environment:
-      SERVER_PORT: 8080
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_service_db
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-      APP_JWT_SECRET: ${JWT_SECRET}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
     networks:
       - booster-network
 
@@ -283,14 +273,15 @@ services:
         SERVICE_PATH: apps/promotion-service
     restart: unless-stopped
     depends_on:
-      postgres:
+      auth-service:
         condition: service_healthy
-      redis:
+      restaurant-service:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
-      gateway-service:
-        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     expose:
       - "8080"
     environment:
@@ -303,5 +294,44 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - booster-network
+
+  # [Group 3]
+  notification-service:
+    image: booster/notification-service
+    build:
+      context: ../..
+      dockerfile: dockers/services/Dockerfile
+      args:
+        SERVICE_PATH: apps/notification-service
+    restart: unless-stopped
+    depends_on:
+      waiting-service:
+        condition: service_healthy
+      promotion-service:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    expose:
+      - "8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/noti_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
     networks:
       - booster-network
