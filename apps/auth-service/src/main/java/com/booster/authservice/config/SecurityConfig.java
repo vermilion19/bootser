@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 회원가입(/auth/signup), 로그인(/auth/login)은 누구나 접근 가능
                         .requestMatchers("/auth/**").permitAll()
+                        // Actuator 엔드포인트 허용 (Prometheus 메트릭 수집용)
+                        .requestMatchers("/actuator/**").permitAll()
                         // 그 외 요청은 인증 필요 (현재는 Auth Service 내부에 다른 API가 없어서 의미는 적음)
                         .anyRequest().authenticated()
                 );

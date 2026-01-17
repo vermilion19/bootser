@@ -14,6 +14,20 @@ spring:
       auto-offset-reset: latest
       group-id: notification-service-group # 식당 서비스와 다른 그룹 ID 사용!
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 eureka:
   client:
     service-url:

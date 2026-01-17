@@ -1,3 +1,6 @@
+server:
+  port: 0
+
 spring:
   application:
     name: promotion-service
@@ -14,3 +17,25 @@ spring:
     consumer:
       group-id: promotion-service-group
       auto-offset-reset: latest
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    prefer-ip-address: true

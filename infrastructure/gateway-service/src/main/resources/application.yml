@@ -41,10 +41,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: gateway, health # gateway ????? ??
+        include: gateway, health, prometheus, metrics
   endpoint:
     gateway:
-      access: unrestricted
+      enabled: true
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
 
 app:
   jwt:

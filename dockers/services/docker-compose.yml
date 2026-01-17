@@ -1,5 +1,6 @@
 networks:
   booster-network:
+    name: booster-network
     driver: bridge
 
 volumes:
@@ -8,9 +9,7 @@ volumes:
   kafka-data:
 
 services:
-  # ====================================================
-  # 1단계: Infrastructure (가장 먼저 실행됨)
-  # ====================================================
+  # 인프라(DB, Redis, Kafka) 설정은 그대로 유지...
   postgres:
     image: postgres:16-alpine
     container_name: booster-postgres
@@ -103,13 +102,12 @@ services:
       - booster-network
 
   # ====================================================
-  # 2단계: Service Group 1 (Discovery Service)
-  # * 인프라(DB, Redis)가 건강해져야만 실행됨
+  # 빌드 설정 수정됨 (context: .. 확인 필수)
   # ====================================================
   discovery-service:
     image: booster/discovery-service
     build:
-      context: .
+      context: ../..
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: infrastructure/discovery-service
@@ -134,14 +132,10 @@ services:
     networks:
       - booster-network
 
-  # ====================================================
-  # 3단계: Service Group 2 (Gateway & Core Services)
-  # * Discovery가 건강해져야만 실행됨 (엄격한 순서 보장)
-  # ====================================================
   gateway-service:
     image: booster/gateway-service
     build:
-      context: .
+      context: ../..
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: infrastructure/gateway-service
@@ -167,7 +161,7 @@ services:
   restaurant-service:
     image: booster/restaurant-service
     build:
-      context: .
+      context: ../..
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/restaurant-service
@@ -197,14 +191,10 @@ services:
     networks:
       - booster-network
 
-  # ====================================================
-  # 4단계: Service Group 3 (Dependent Services)
-  # * Core Service(Auth, Restaurant)가 건강해져야만 실행됨
-  # ====================================================
   waiting-service:
     image: booster/waiting-service
     build:
-      context: .
+      context: ../..
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/waiting-service
@@ -236,13 +226,11 @@ services:
   promotion-service:
     image: booster/promotion-service
     build:
-      context: .
+      context: ../..
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/promotion-service
     depends_on:
-#      auth-service:
-#        condition: service_healthy
       restaurant-service:
         condition: service_healthy
     expose:
@@ -269,7 +257,7 @@ services:
   notification-service:
     image: booster/notification-service
     build:
-      context: .
+      context: ../..
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/notification-service
@@ -292,14 +280,10 @@ services:
     networks:
       - booster-network
 
-  # ====================================================
-  # 5단계: Auth Service (다른 서비스 빌드 완료 후 실행)
-  # * notification-service가 건강해져야만 실행됨
-  # ====================================================
   auth-service:
     image: booster/auth-service
     build:
-      context: .
+      context: ../..
       dockerfile: dockers/services/Dockerfile
       args:
         SERVICE_PATH: apps/auth-service
@@ -326,14 +310,10 @@ services:
     networks:
       - booster-network
 
-  # ====================================================
-  # 6단계: Frontend (가장 마지막 실행)
-  # * Gateway가 건강해져야만 실행됨 (API 호출 가능 시점)
-  # ====================================================
   frontend:
     image: booster/frontend
     build:
-      context: ./frontend
+      context: ../../frontend
       dockerfile: Dockerfile
     container_name: booster-frontend
     depends_on:
@@ -341,7 +321,6 @@ services:
         condition: service_healthy
     ports:
       - "3300:80"
-    # CPU/Memory 제한(deploy) 제거함
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
       interval: 10s

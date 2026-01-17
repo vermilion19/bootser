@@ -10,6 +10,20 @@ spring:
     hibernate:
       ddl-auto: validate
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 eureka:
   client:
     service-url:

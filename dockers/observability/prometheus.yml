@@ -1,14 +1,22 @@
 global:
-  scrape_interval: 2s # 2초마다 수집 (개발용이라 짧게 설정)
+  scrape_interval: 5s
 
 scrape_configs:
-  - job_name: 'booster-apps'
+  # Eureka 서비스 디스커버리를 통해 동적으로 서비스 탐색
+  - job_name: 'eureka-services'
     metrics_path: '/actuator/prometheus'
-    static_configs:
-      # 여기에 실행 중인 스프링 부트 앱들의 주소를 적습니다.
-      - targets: ['host.docker.internal:8080'] # Auth Service (예시)
-        labels:
-          application: 'auth-service'
-      - targets: ['host.docker.internal:8081'] # Waiting Service (예시)
-        labels:
-          application: 'waiting-service'
+    eureka_sd_configs:
+      - server: 'http://discovery-service:8761/eureka'
+        refresh_interval: 10s
+    relabel_configs:
+      # Eureka에서 가져온 인스턴스 IP:Port 사용 (같은 Docker 네트워크)
+      - source_labels: [__meta_eureka_app_instance_ip_addr, __meta_eureka_app_instance_port]
+        separator: ':'
+        target_label: __address__
+      # 애플리케이션 이름을 라벨로 추가 (소문자로 변환)
+      - source_labels: [__meta_eureka_app_name]
+        target_label: application
+        action: lowercase
+      # 인스턴스 ID 라벨 추가
+      - source_labels: [__meta_eureka_app_instance_id]
+        target_label: instance_id

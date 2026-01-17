@@ -33,9 +33,9 @@ management:
       enabled: true
     health:
       show-details: always
-    metrics:
-      tags:
-        application: ${spring.application.name} # 여러 서버 식별을 위한 태그
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 eureka:
   client:
