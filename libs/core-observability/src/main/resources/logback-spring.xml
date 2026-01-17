@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Spring Boot 기본 설정 포함 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- 프로퍼티 설정 -->
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="unknown-app"/>
+    <springProperty scope="context" name="ACTIVE_PROFILE" source="spring.profiles.active" defaultValue="local"/>
+    <springProperty scope="context" name="LOKI_URL" source="loki.url" defaultValue="http://localhost:3100/loki/api/v1/push"/>
+
+    <!-- 콘솔 출력 (기본) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-},%X{spanId:-}] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loki Appender -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${LOKI_URL}</url>
+        </http>
+        <format>
+            <label>
+                <pattern>application=${APP_NAME},env=${ACTIVE_PROFILE},level=%level</pattern>
+            </label>
+            <message>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [traceId=%X{traceId:-},spanId=%X{spanId:-}] %-5level %logger{36} - %msg%n</pattern>
+            </message>
+            <sortByTime>true</sortByTime>
+        </format>
+    </appender>
+
+    <!-- 로컬 프로파일: 콘솔만 -->
+    <springProfile name="local,home,out">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- Docker 프로파일: 콘솔 + Loki -->
+    <springProfile name="docker">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
+        </root>
+    </springProfile>
+
+    <!-- 기본 (프로파일 없을 때): 콘솔만 -->
+    <springProfile name="default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>
