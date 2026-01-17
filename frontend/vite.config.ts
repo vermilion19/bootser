@@ -5,13 +5,14 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3001,
+    port: 3301,
     proxy: {
-      '/api': {
+      // '/restaurants'로 시작하는 요청이 오면 'http://localhost:6000'으로 토스한다.
+      '/restaurants': {
         target: 'http://localhost:6000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
+        secure: false,
+      }
     },
   },
 })

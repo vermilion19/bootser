@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation project(':libs:core-web')
+    implementation project(':libs:core-observability')
     implementation project(':libs:storage-db')
     implementation project(':libs:storage-redis')
     implementation project(':libs:storage-kafka')

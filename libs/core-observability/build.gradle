@@ -4,9 +4,6 @@ dependencies {
 
     api 'io.micrometer:micrometer-tracing-bridge-brave'
 
-    // 3. [삭제하세요] 존재하지 않는 라이브러리입니다.
-//     api 'io.micrometer:micrometer-tracing-reporter-brave'
-
     // 4. (선택) 외부 전송용 Reporter (Zipkin 등으로 보낼 때만 필요)
     // 필요 없다면 지우셔도 됩니다.
     api 'io.zipkin.reporter2:zipkin-reporter-brave'

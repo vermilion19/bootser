@@ -8,6 +8,7 @@ plugins {
 dependencies {
     // (이 안에 Redis, JPA, Jackson 설정 등이 다 포함되어 있습니다)
     implementation project(':libs:core-web')
+    implementation project(':libs:core-observability')
     implementation project(':libs:storage-db')
     implementation project(':libs:storage-redis')
     implementation project(':libs:storage-kafka')

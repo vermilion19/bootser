@@ -43,10 +43,11 @@ docker-compose logs -f
 
 ```bash
 # 특정 서비스만 빌드
+docker-compose up -d --no-deps --build frontend
 docker-compose build waiting-service
 
 # 특정 서비스만 실행
-docker-compose up -d waiting-service
+docker-compose up -d --no-deps waiting-service
 
 # 서비스 재시작
 docker-compose restart waiting-service

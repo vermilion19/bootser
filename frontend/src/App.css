@@ -1,42 +1,132 @@
+/* 전체 화면 중앙 정렬을 위한 설정 */
 #root {
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
   text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* 위에서부터 시작하되 가로는 중앙 */
+  align-items: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* 홈 화면 스타일 */
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh; /* 화면의 80% 높이에서 중앙 정렬 */
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.big-btn {
+  font-size: 1.5rem;
+  padding: 15px 30px;
+  margin-top: 20px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* 공통 컨테이너 */
+.container {
+  width: 100%;
+  max-width: 800px; /* 너무 퍼지지 않게 너비 제한 */
+  padding: 20px;
+  box-sizing: border-box; /* 패딩 포함 너비 계산 */
 }
 
+/* 네비게이션 헤더 */
+.header-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.header-nav .secondary-btn {
+  position: absolute;
+  left: 0;
+}
+
+/* 카드 및 기타 스타일 (기존 유지 + 레이아웃 보완) */
 .card {
-  padding: 2em;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  border: 1px solid #ddd;
+  text-align: left; /* 카드 내부 글씨는 왼쪽 정렬 */
 }
 
-.read-the-docs {
-  color: #888;
+.card.open { border-left: 5px solid #4caf50; }
+.card.closed { border-left: 5px solid #f44336; }
+
+.form-card {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end; /* 라벨과 입력창 높이 맞춤 */
+  background-color: #f9f9f9;
+  justify-content: center; /* 폼 내부 요소 중앙 정렬 */
 }
+
+/* 입력 필드 그룹 (라벨 + 인풋) */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+
+input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 150px; /* 입력창 너비 고정 */
+}
+
+/* 버튼 스타일 */
+button {
+  cursor: pointer;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  background-color: #eee;
+  transition: 0.2s;
+  white-space: nowrap; /* 버튼 글씨 줄바꿈 방지 */
+}
+button:hover { background-color: #ddd; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.primary-btn { background-color: #3b82f6; color: white; font-weight: bold; }
+.primary-btn:hover { background-color: #2563eb; }
+.secondary-btn { background-color: #64748b; color: white; }
+
+/* 목록 내부 스타일 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.open .badge { background-color: #dcfce7; color: #166534; }
+.closed .badge { background-color: #fee2e2; color: #991b1b; }
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+  justify-content: flex-end; /* 버튼들 오른쪽 정렬 */
+}
+
+.divider { width: 1px; background-color: #ddd; margin: 0 5px; }

@@ -4,8 +4,8 @@ plugins {
 }
 
 dependencies {
-
     implementation project(':libs:core-web')
+    implementation project(':libs:core-observability')
     implementation project(':libs:storage-db')
 
     implementation 'org.springframework.boot:spring-boot-starter-security'

@@ -41,3 +41,6 @@ playground/
 .env
 .env.*
 *.bak
+
+frontend/
+node_modules/

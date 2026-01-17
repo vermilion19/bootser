@@ -22,6 +22,14 @@ COPY infrastructure infrastructure
 # Build argument for service path (e.g., apps/waiting-service)
 ARG SERVICE_PATH
 
+#COPY ${SERVICE_PATH} ${SERVICE_PATH}
+
+#RUN echo "rootProject.name = 'booster'" > settings.gradle && \
+#    # (1) libs 폴더 안에 있는 build.gradle을 찾아서 include 추가
+#    find libs -name build.gradle | sed 's|/build.gradle||;s|/|:|g' | awk '{print "include \x27" $0 "\x27"}' >> settings.gradle && \
+#    # (2) 현재 서비스 폴더(SERVICE_PATH)를 include 추가
+#    echo "include '${SERVICE_PATH}'" | sed 's|/|:|g' >> settings.gradle
+
 # Build the specific service
 # [수정됨] SERVICE_PATH 대신 치환된 GRADLE_PROJECT_PATH를 사용해야 합니다.
 RUN chmod +x ./gradlew && \

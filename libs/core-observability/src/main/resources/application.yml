@@ -4,14 +4,11 @@ management:
       # 0.0 ~ 1.0 사이 값 (1.0 = 100% 수집, 0.1 = 10% 수집)
       # 개발 단계이므로 일단 100%로 설정하고, 나중에 운영 배포 시 환경변수로 덮어씁니다.
       probability: 1.0
+  zipkin:
+    tracing:
+      # Tempo Zipkin endpoint (로컬 개발용, Docker에서는 application-docker.yml에서 오버라이드)
+      endpoint: ${TEMPO_ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
 
-  # 메트릭 내보내기 설정 (성능 위해 필요한 것만 켭니다)
-  endpoints:
-    web:
-      exposure:
-        include: "health, info, prometheus, metrics"
-
-    # [Tempo] 트레이싱 데이터 전송 설정
-    zipkin:
-      tracing:
-        endpoint: "http://localhost:9411/api/v2/spans"
+# Loki 로깅 설정 (logback-spring.xml에서 사용)
+loki:
+  url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
