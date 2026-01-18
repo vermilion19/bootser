@@ -64,6 +64,13 @@ docker-compose down -v
 # 이미지 재빌드 후 실행
 docker-compose up -d --build
 ```
+docker-compose -f docker-compose.infra.yml up -d
+docker-compose -f docker-compose.frontend.yml up -d
+# 전체 서비스 실행
+docker-compose -f docker-compose.services.yml up -d
+
+# 특정 서비스만 실행 (예: auth-service)
+docker-compose -f docker-compose.services.yml up -d -no-deps auth-service
 
 ## Scale Out
 
