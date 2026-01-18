@@ -48,7 +48,7 @@ curl -X POST http://localhost:6000/auth/v1/login \
 # 식당 등록
 curl -X POST http://localhost:6000/restaurants/v1 \
   -H "Content-Type: application/json" \
-  -d '{"name": "맛있는 식당", "address": "서울시 강남구", "capacity": 50}'
+  -d '{"name": "맛있는 식당", "maxWaitingLimit": 200, "capacity": 50}'
 
 # 전체 식당 조회
 curl -X GET http://localhost:6000/restaurants/v1
