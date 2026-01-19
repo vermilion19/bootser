@@ -5,11 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Slf4j
@@ -17,8 +19,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UpbitWebSocketHandler extends TextWebSocketHandler {
 
-    // 핵심: 공통 RedisTemplate<String, Object>가 아닌 StringRedisTemplate 주입
-    // 이유: 업비트 JSON을 파싱하지 않고 문자열 그대로 토스하기 위함 (CPU 절약)
     private final StringRedisTemplate redisTemplate;
     private final ChannelTopic coinTopic;
 
@@ -26,9 +26,7 @@ public class UpbitWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("### [Upbit] 서버 연결 성공! Session ID: {}", session.getId());
 
-        // 1. 구독 요청 메시지 생성 (Raw JSON)
-        // Java Text Blocks (""") 사용 (Java 15+)
-        // 실제 운영 시 codes 부분은 설정 파일이나 DB에서 가져오도록 변경 필요
+        // 요청은 Text로 보내도 업비트가 알아듣습니다.
         String payload = """
                 [
                   {"ticket": "%s"},
@@ -36,32 +34,38 @@ public class UpbitWebSocketHandler extends TextWebSocketHandler {
                 ]
                 """.formatted(UUID.randomUUID().toString());
 
-        // 2. 요청 전송
         session.sendMessage(new TextMessage(payload));
-        log.info("### [Upbit] 데이터 요청 전송 완료: \n{}", payload);
+        log.info("### [Upbit] 요청 전송 완료");
     }
 
+    /**
+     * [핵심 수정] 업비트는 데이터를 BinaryMessage로 보냅니다!
+     * 이걸 처리하지 않으면 Code 1003 에러가 납니다.
+     */
+    @Override
+    protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
+        // 1. 바이너리 데이터를 UTF-8 문자열로 변환
+        // message.getPayload()는 ByteBuffer를 반환합니다.
+        String payload = StandardCharsets.UTF_8.decode(message.getPayload()).toString();
+        log.info("payload : {}",payload);
+        // 2. Redis로 바이패스
+        redisTemplate.convertAndSend(coinTopic.getTopic(), payload);
+    }
+
+    // 혹시라도 Text로 올 경우를 대비해 남겨둡니다.
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        // 3. 데이터 수신 (업비트 -> 내 서버)
         String payload = message.getPayload();
-
-        // 4. Redis로 바이패스 (내 서버 -> Redis)
-        // 별도의 DTO 변환 과정(Jackson Parsing) 없이 바로 쏘기 때문에 매우 빠름
         redisTemplate.convertAndSend(coinTopic.getTopic(), payload);
-
-        // 디버깅용 로그 (데이터가 너무 많이 오면 주석 처리하세요)
-        // log.debug("### [Redis Pub] Data: {}", payload);
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        log.error("### [Upbit] 데이터 전송 중 에러 발생", exception);
+        log.error("### [Upbit] 에러 발생", exception);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.warn("### [Upbit] 연결 끊김: {} (Code: {})", status.getReason(), status.getCode());
-        // 추후 여기에 재접속(Retry) 로직 구현 필요
     }
 }
