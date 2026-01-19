@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+dependencies {
+    // 테스트 필수 의존성
+    implementation project(':libs:core-web')
+    implementation project(':libs:core-observability')
+    implementation project(':libs:storage-db')
+    implementation project(':libs:storage-redis')
+
+    // Source: https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-websocket
+    implementation("org.springframework.boot:spring-boot-starter-websocket:4.0.1")
+
+    runtimeOnly 'com.h2database:h2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    testImplementation testFixtures(project(':libs:storage-db'))
+    testImplementation testFixtures(project(':libs:storage-redis'))
+
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
