@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Home from './Home';
-import Dashboard from './Dashboard';
+import Home from './home/Home.tsx';
+import Dashboard from './dashboard/Dashboard.tsx';
 import './App.css';
 
 function App() {

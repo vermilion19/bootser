@@ -1,0 +1,117 @@
+/* Dashboard.css */
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.header-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 내용물(제목)을 강제로 중앙 정렬 */
+    position: relative;      /* 내부 요소의 절대 위치 기준점이 됨 */
+    margin-bottom: 30px;
+    height: 50px;            /* 높이를 고정해야 버튼과 제목 수직 위치가 안정적 */
+}
+
+/* 뒤로가기 버튼: 왼쪽 끝에 절대적으로 고정 */
+.header-nav .secondary-btn {
+    position: absolute; /* 흐름에서 빠져나와 독자적으로 위치함 */
+    left: 0;            /* 왼쪽 벽에 딱 붙임 */
+    top: 50%;           /* 상하 중앙 정렬 1 */
+    transform: translateY(-50%); /* 상하 중앙 정렬 2 (정확한 수직 중앙) */
+}
+
+/* 제목 스타일 (혹시 마진 때문에 밀릴 수 있으니 마진 제거) */
+.header-nav h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    /* 글씨가 너무 길어질 경우를 대비한 처리 (선택사항) */
+    text-align: center;
+}
+
+.section-header {
+    margin-bottom: 15px;
+    color: #e2e8f0;
+}
+
+.section-header h3 {
+    font-weight: 500;
+    margin: 0;
+}
+
+/* --- Form Card (Grid Layout) --- */
+.form-card {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 20px;
+    align-items: end; /* 바닥 라인 맞춤 */
+    padding: 30px;
+    /* 배경색 등은 App.css의 .card에서 상속받거나 필요시 여기서 추가 */
+}
+
+/* 화면이 좁아지면(태블릿/모바일) 자동으로 2줄, 1줄로 변경하는 반응형 코드 추가 */
+@media (max-width: 1024px) {
+    .form-card {
+        grid-template-columns: 1fr 1fr; /* 태블릿: 2개씩 2줄 */
+    }
+}
+
+@media (max-width: 600px) {
+    .form-card {
+        grid-template-columns: 1fr; /* 모바일: 1줄로 쭉 나열 */
+    }
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.input-group label {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.05rem;
+}
+
+/* Form 내부 버튼 높이 맞춤 */
+.form-card button {
+    height: 45px;
+    width: 100%;
+    margin-top: 0;
+    font-weight: 600;
+}
+
+/* --- Restaurant List --- */
+.restaurant-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 40px;
+}
+
+.card-body p {
+    margin: 8px 0;
+    color: #cbd5e1;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #334155;
+    justify-content: flex-end;
+    flex-wrap: wrap; /* 모바일 대응 */
+}
+
+.divider {
+    width: 1px;
+    background-color: #334155;
+    margin: 0 10px;
+}

@@ -1,145 +1,49 @@
-/* 전체 레이아웃 초기화 및 폰트 설정 */
+/* App.css */
+
+/* 1. 전역 초기화 및 폰트 */
 #root {
   width: 100%;
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  background-color: #0f172a; /* 짙은 남색 계열의 다크 모드 배경 */
-  color: #e2e8f0; /* 눈이 편안한 밝은 회색 텍스트 */
+  background-color: #0f172a; /* Main Dark Background */
+  color: #e2e8f0; /* Base Text Color */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   display: flex;
   flex-direction: column;
 }
 
-/* 홈 화면 전체 래퍼 */
-.home-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); /* 중앙에서 퍼지는 은은한 조명 효과 */
-}
-
-/* 중앙 콘텐츠 박스 */
-.content-box {
-  text-align: center;
-  z-index: 10;
-  animation: fadeIn 1.5s ease-out;
-}
-
-/* 메인 타이틀 (vermilion19) */
-.brand-title {
-  font-size: 4rem;
-  font-weight: 200; /* 얇은 폰트로 세련됨 강조 */
-  margin: 0;
-  letter-spacing: 0.5rem; /* 자간을 넓혀 고급스러운 느낌 */
-  background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-transform: lowercase; /* 소문자로 통일하여 모던함 강조 */
-}
-
-/* 서브 타이틀 */
-.brand-subtitle {
-  font-size: 1rem;
-  color: #94a3b8;
-  margin-top: 10px;
-  margin-bottom: 40px;
-  font-weight: 400;
-  letter-spacing: 0.1rem;
-  text-transform: uppercase;
-}
-
-/* 장식용 라인 */
-.divider-line {
-  width: 1px;
-  height: 60px;
-  background: linear-gradient(to bottom, #334155, transparent);
-  margin: 0 auto 40px auto;
-}
-
-/* 입장 버튼 스타일 */
-.enter-btn {
-  background: transparent;
-  color: #fff;
-  border: 1px solid #e34a33; /* Vermilion 컬러 포인트 */
-  padding: 15px 50px;
-  font-size: 0.9rem;
-  letter-spacing: 0.15rem;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.4s ease;
-  border-radius: 0; /* 각진 버튼이 더 전문적인 느낌을 줌 */
-  position: relative;
-  overflow: hidden;
-}
-
-.enter-btn:hover {
-  background: #e34a33;
-  box-shadow: 0 0 20px rgba(227, 74, 51, 0.4); /* 호버 시 네온 글로우 효과 */
-  transform: translateY(-2px);
-}
-
-/* 애니메이션 효과 */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ---------------------------------------------------- */
-/* 대시보드 내부용 공통 스타일 (기존 스타일 리팩토링) */
-/* ---------------------------------------------------- */
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
-}
-
-/* 카드 스타일도 다크 모드에 맞춰 변경 */
-.card {
-  background: #1e293b;
+/* 2. 공통 입력 필드 (Base Input Style) */
+input {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: #0f172a;
   border: 1px solid #334155;
+  border-radius: 6px;
   color: #e2e8f0;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
 }
 
-.card-header h2, .card-header h3 {
-  margin: 0;
+input:focus {
+  outline: none;
+  border-color: #e34a33; /* Vermilion Focus */
+}
+
+/* 3. 공통 버튼 (Base Button Style) */
+button {
+  cursor: pointer;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  transition: 0.2s;
   font-weight: 500;
 }
 
-/* 상태 배지 */
-.badge {
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.open .badge { background-color: rgba(34, 197, 94, 0.2); color: #4ade80; }
-.closed .badge { background-color: rgba(239, 68, 68, 0.2); color: #f87171; }
-
-/* 입력 폼 스타일 */
-input {
-  background-color: #0f172a;
-  border: 1px solid #475569;
-  color: white;
-  padding: 12px;
-  border-radius: 4px;
-}
-input:focus {
-  outline: none;
-  border-color: #e34a33;
-}
-
-/* Primary Button (대시보드 내부용) */
 .primary-btn {
   background-color: #e34a33;
   color: white;
-  border-radius: 4px;
 }
 .primary-btn:hover {
   background-color: #c0392b;
@@ -149,64 +53,40 @@ input:focus {
   background-color: #475569;
   color: #e2e8f0;
 }
+.secondary-btn:hover {
+  background-color: #334155;
+}
 
-
-/* 1. 폼 컨테이너: CSS Grid로 변경하여 칼럼을 딱 맞춤 */
-.form-card {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 공간에 맞춰 자동 줄바꿈 및 너비 조절 */
-  gap: 24px; /* 입력 필드 사이 간격 */
-  align-items: end; /* 버튼과 입력창의 바닥 라인을 맞춤 */
-  background-color: #1e293b; /* 카드 배경색 유지 */
-  padding: 30px;
+/* 4. 공통 카드 디자인 */
+.card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
   border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* 2. 개별 입력 그룹: 라벨이 입력창 '위'로 오도록 강제 */
-.input-group {
+.card-header {
   display: flex;
-  flex-direction: column; /* 라벨을 무조건 입력창 위로 */
-  gap: 8px; /* 라벨과 입력창 사이 간격 */
-  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
 }
 
-/* 3. 라벨 스타일링 (고급스러운 회색 톤) */
-.input-group label {
-  color: #94a3b8;
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.05rem;
-}
-
-/* 4. 입력창 스타일링 (다크 테마 최적화) */
-input {
-  width: 100%;
-  padding: 12px 16px;
-  background-color: #0f172a; /* 아주 어두운 남색 배경 */
-  border: 1px solid #334155; /* 은은한 테두리 */
-  border-radius: 6px;
-  color: #e2e8f0; /* 글씨 색상 */
-  font-size: 0.95rem;
-  box-sizing: border-box; /* 패딩이 너비를 넘치지 않게 함 (중요) */
-  transition: border-color 0.2s;
-}
-
-input:focus {
-  outline: none;
-  border-color: #e34a33; /* 포커스 시 vermilion 포인트 컬러 */
-}
-
-/* 5. 등록 버튼 높이 및 스타일 맞춤 */
-.form-card button {
-  height: 45px; /* 입력창 높이와 시각적으로 맞춤 */
-  width: 100%; /* 모바일/좁은 화면에서는 꽉 차게, Grid에서는 칸에 맞게 */
-  margin-top: 0;
-  background-color: #e34a33;
-  color: white;
+.card-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
   font-weight: 600;
-  border: none;
-  border-radius: 6px;
 }
-.form-card button:hover {
-  background-color: #c0392b;
+
+/* 5. 상태 배지 (Badge) */
+.badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
+.open .badge { background-color: rgba(34, 197, 94, 0.2); color: #4ade80; }
+.closed .badge { background-color: rgba(239, 68, 68, 0.2); color: #f87171; }
