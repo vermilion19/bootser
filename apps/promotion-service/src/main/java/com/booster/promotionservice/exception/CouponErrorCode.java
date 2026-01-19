@@ -13,7 +13,7 @@ public enum CouponErrorCode implements ErrorCode {
 
     // 쿠폰 발급 관련
     COUPON_SOLD_OUT(400, "C-002", "쿠폰이 모두 소진되었습니다."),
-    DUPLICATE_COUPON_ISSUE(400, "C-003", "이미 발급받은 쿠폰입니다."),
+    DUPLICATE_COUPON_ISSUE(409, "C-003", "이미 발급받은 쿠폰입니다."),
     COUPON_NOT_AVAILABLE(400, "C-004", "쿠폰 발급 가능 기간이 아닙니다."),
 
     // 쿠폰 사용 관련
