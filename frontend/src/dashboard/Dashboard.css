@@ -115,3 +115,12 @@
     background-color: #334155;
     margin: 0 10px;
 }
+
+.danger-btn {
+    background-color: #ef4444; /* 붉은색 (Red-500) */
+    color: white;
+}
+
+.danger-btn:hover {
+    background-color: #dc2626; /* 더 진한 붉은색 (Red-600) */
+}

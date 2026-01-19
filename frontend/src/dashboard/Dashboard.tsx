@@ -80,6 +80,26 @@ function Dashboard() {
         fetchRestaurants();
     };
 
+    const handleDelete = async (id: number) => {
+        // 중요: 삭제 전 확인 절차 (실수 방지)
+        if (!window.confirm('Are you sure you want to delete this restaurant?')) return;
+
+        try {
+            const response = await fetch(`/restaurants/v1/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                fetchRestaurants(); // 삭제 성공 시 목록 새로고침
+            } else {
+                alert('Failed to delete restaurant.');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('An error occurred while deleting.');
+        }
+    };
+
     return (
         <div className="container">
             <div className="header-nav">
@@ -154,6 +174,7 @@ function Dashboard() {
                             <div className="divider" />
 
                             <button className="secondary-btn" onClick={() => handleUpdate(rest.id)}>Edit Name</button>
+                            <button className="danger-btn" onClick={() => handleDelete(rest.id)}>Delete</button>
                         </div>
                     </div>
                 ))}
