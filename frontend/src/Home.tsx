@@ -5,12 +5,15 @@ function Home() {
     const navigate = useNavigate();
 
     return (
-        <div className="home-container">
-            <h1>🚀 부스터 백엔드 어드민</h1>
-            <p>식당 관리 시스템에 오신 것을 환영합니다.</p>
-            <button className="primary-btn big-btn" onClick={() => navigate('/dashboard')}>
-                식당 관리 대시보드 입장
-            </button>
+        <div className="home-wrapper">
+            <div className="content-box">
+                <h1 className="brand-title">vermilion19</h1>
+                <p className="brand-subtitle">System Administration & Control Center</p>
+                <div className="divider-line"></div>
+                <button className="enter-btn" onClick={() => navigate('/dashboard')}>
+                    Dashboard Access
+                </button>
+            </div>
         </div>
     );
 }

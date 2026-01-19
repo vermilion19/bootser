@@ -15,7 +15,6 @@ function Dashboard() {
     const navigate = useNavigate();
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
 
-    // 주소는 입력 안 받지만 백엔드 전송용으로 빈 값 유지
     const [form, setForm] = useState({
         name: '',
         capacity: 0,
@@ -43,7 +42,7 @@ function Dashboard() {
     };
 
     const handleCreate = async () => {
-        if (!form.name) return alert('식당 이름을 입력해주세요');
+        if (!form.name) return alert('Please enter a restaurant name.');
 
         await fetch('/restaurants/v1', {
             method: 'POST',
@@ -61,15 +60,18 @@ function Dashboard() {
     };
 
     const handleTraffic = async (id: number, type: 'entry' | 'exit') => {
-        const size = prompt(`몇 명이 ${type === 'entry' ? '입장' : '퇴장'}하나요?`, '4');
+        const promptMsg = type === 'entry' ? 'How many people are entering?' : 'How many people are leaving?';
+        const size = prompt(promptMsg, '4');
         if (!size) return;
+
         await fetch(`/restaurants/v1/${id}/${type}?partySize=${size}`, { method: 'POST' });
         fetchRestaurants();
     };
 
     const handleUpdate = async (id: number) => {
-        const newName = prompt('새로운 식당 이름을 입력하세요');
+        const newName = prompt('Enter new restaurant name:');
         if (!newName) return;
+
         await fetch(`/restaurants/v1/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -81,43 +83,50 @@ function Dashboard() {
     return (
         <div className="container">
             <div className="header-nav">
-                <button className="secondary-btn" onClick={() => navigate('/')}>← 홈으로</button>
-                <h1>🍽️ 식당 관리자 대시보드</h1>
+                <button className="secondary-btn" onClick={() => navigate('/')}>← Back to Home</button>
+                <h1>Admin Dashboard</h1>
+            </div>
+
+            {/* 중요: 제목을 form-card 밖으로 빼야 Grid 정렬이 깨지지 않음 */}
+            <div className="section-header">
+                <h3>Register New Restaurant</h3>
             </div>
 
             <div className="card form-card">
-                <h3>새 식당 등록</h3>
-                <input
-                    placeholder="식당 이름"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-
-                {/* 주소 입력창 삭제됨 */}
-
+                {/* 1. 식당 이름 입력 그룹 */}
                 <div className="input-group">
-                    <label>수용 인원</label>
+                    <label>Restaurant Name</label>
+                    <input
+                        placeholder="e.g. Vermilion Dining"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    />
+                </div>
+
+                {/* 2. 수용 인원 입력 그룹 */}
+                <div className="input-group">
+                    <label>Capacity</label>
                     <input
                         type="number"
                         placeholder="0"
-                        // [수정] 값이 0이면 빈 문자열('')을 보여줘서 0을 없앰
                         value={form.capacity || ''}
                         onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })}
                     />
                 </div>
 
+                {/* 3. 웨이팅 제한 입력 그룹 */}
                 <div className="input-group">
-                    <label>최대 웨이팅</label>
+                    <label>Max Waiting</label>
                     <input
                         type="number"
                         placeholder="0"
-                        // [수정] 값이 0이면 빈 문자열('')을 보여줘서 0을 없앰
                         value={form.maxWaitingLimit || ''}
                         onChange={(e) => setForm({ ...form, maxWaitingLimit: Number(e.target.value) })}
                     />
                 </div>
 
-                <button className="primary-btn" onClick={handleCreate}>등록하기</button>
+                {/* 4. 등록 버튼 */}
+                <button className="primary-btn" onClick={handleCreate}>Register</button>
             </div>
 
             <div className="restaurant-list">
@@ -127,18 +136,24 @@ function Dashboard() {
                             <h2>{rest.name}</h2>
                             <span className="badge">{rest.status}</span>
                         </div>
-                        {/* 주소가 없어도 에러 안 나게 처리 */}
-                        <p>👥 인원: {rest.currentOccupancy} / {rest.capacity}</p>
-                        <p>⏳ 최대 대기: {rest.maxWaitingLimit} 팀</p>
+
+                        <div className="card-body">
+                            <p>Occupancy: {rest.currentOccupancy} / {rest.capacity}</p>
+                            <p>Max Waiting: {rest.maxWaitingLimit} Teams</p>
+                        </div>
 
                         <div className="actions">
-                            <button onClick={() => handleStatus(rest.id, 'open')} disabled={rest.status === 'OPEN'}>영업 시작</button>
-                            <button onClick={() => handleStatus(rest.id, 'close')} disabled={rest.status === 'CLOSED'}>영업 종료</button>
+                            <button onClick={() => handleStatus(rest.id, 'open')} disabled={rest.status === 'OPEN'}>Open</button>
+                            <button onClick={() => handleStatus(rest.id, 'close')} disabled={rest.status === 'CLOSED'}>Close</button>
+
                             <div className="divider" />
-                            <button onClick={() => handleTraffic(rest.id, 'entry')}>입장 (+)</button>
-                            <button onClick={() => handleTraffic(rest.id, 'exit')}>퇴장 (-)</button>
+
+                            <button onClick={() => handleTraffic(rest.id, 'entry')}>Entry (+)</button>
+                            <button onClick={() => handleTraffic(rest.id, 'exit')}>Exit (-)</button>
+
                             <div className="divider" />
-                            <button className="secondary-btn" onClick={() => handleUpdate(rest.id)}>이름 수정</button>
+
+                            <button className="secondary-btn" onClick={() => handleUpdate(rest.id)}>Edit Name</button>
                         </div>
                     </div>
                 ))}
