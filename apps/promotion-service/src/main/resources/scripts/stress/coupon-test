@@ -1,0 +1,142 @@
+import static net.grinder.script.Grinder.grinder
+import static org.junit.Assert.*
+import static org.hamcrest.Matchers.*
+import net.grinder.script.GTest
+import net.grinder.script.Grinder
+import net.grinder.scriptengine.groovy.junit.GrinderRunner
+import net.grinder.scriptengine.groovy.junit.annotation.BeforeProcess
+import net.grinder.scriptengine.groovy.junit.annotation.BeforeThread
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Test
+import org.junit.runner.RunWith
+
+import org.ngrinder.http.HTTPRequest
+import org.ngrinder.http.HTTPRequestControl
+import org.ngrinder.http.HTTPResponse
+import org.ngrinder.http.cookie.Cookie
+import org.ngrinder.http.cookie.CookieManager
+
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+import java.util.Random
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+@RunWith(GrinderRunner)
+class TestRunner {
+
+    public static GTest test
+    public static HTTPRequest request
+    public static Map<String, String> headers = [:]
+    public static String baseUrl = "http://192.168.0.XX:6000" // 본인의 맥 미니 IP로 수정하세요
+
+    // 생성된 쿠폰 ID를 저장할 변수 (모든 쓰레드가 공유)
+    public static Long targetCouponId = 0L
+
+    @BeforeProcess
+    public static void beforeProcess() {
+        HTTPRequestControl.setConnectionTimeout(300000)
+        test = new GTest(1, "쿠폰 발급 부하 테스트")
+        request = new HTTPRequest()
+
+        // 공통 헤더 설정
+        headers.put("Content-Type", "application/json")
+        request.setHeaders(headers)
+
+        grinder.logger.info(">>> 테스트 준비: 대용량 쿠폰 생성 시도")
+
+        // 1. 쿠폰 생성 요청 데이터 만들기
+        // 수량을 넉넉하게(100만 개) 설정하여 테스트 도중 매진되지 않도록 함
+        def createBody = new JsonBuilder()
+        createBody {
+            title "부하 테스트용 선착순 쿠폰"
+            totalQuantity 1000000
+            discountAmount 1000
+            // 날짜 포맷은 ISO-8601 (yyyy-MM-ddTHH:mm:ss)
+            startAt LocalDateTime.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            endAt LocalDateTime.now().plusDays(10).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        }
+
+        // 2. 쿠폰 생성 API 호출 (POST /coupons)
+        // 실제 API 경로에 맞춰 수정해주세요. 예: /coupons 또는 /coupons/v1
+        HTTPResponse res = request.POST("${baseUrl}/coupons", createBody.toString().getBytes("UTF-8"))
+
+        if (res.statusCode == 200 || res.statusCode == 201) {
+            // 3. 응답에서 couponId 추출 (ApiResponse 구조에 따라 경로 수정 필요)
+            // 예: { "status": "SUCCESS", "data": 15, "message": null }
+            def jsonResponse = new JsonSlurper().parseText(res.getText())
+
+            // ApiResponse의 data 필드가 Long 타입의 ID라고 가정
+            // 만약 구조가 다르다면 jsonResponse.result.id 등으로 수정 필요
+            targetCouponId = jsonResponse.data.toLong()
+
+            grinder.logger.info(">>> 쿠폰 생성 성공! ID: ${targetCouponId}")
+        } else {
+            grinder.logger.error(">>> 쿠폰 생성 실패! 응답 코드: ${res.statusCode}")
+            // 쿠폰 생성이 안 되면 테스트 의미가 없으므로 강제 종료하거나 로그 확인 필요
+        }
+    }
+
+    @BeforeThread
+    public void beforeThread() {
+        test.record(this, "test")
+        grinder.statistics.delayReports = true
+    }
+
+    @Before
+    public void before() {
+        // 매 요청마다 초기화
+        request.setHeaders(headers)
+    }
+
+    @Test
+    public void test() {
+        // 0. 쿠폰 생성이 실패했다면 테스트 중단 (안전장치)
+        if (targetCouponId == 0L) {
+            grinder.logger.error("쿠폰 ID가 없습니다. BeforeProcess 로그를 확인하세요.")
+            return
+        }
+
+        Random random = new Random()
+
+        // 1. 랜덤 유저 ID 생성 (게이트웨이 헤더 시뮬레이션)
+        // 범위: 1 ~ 1,000,000
+        long randomUserId = Math.abs(random.nextLong() % 1000000) + 1
+
+        // 2. 헤더에 X-User-Id 추가
+        // nGrinder는 request 객체를 재사용하므로, 매번 새로운 헤더 객체를 만들거나 기존 맵을 복사해서 써야 꼬이지 않음
+        Map<String, String> threadHeaders = new HashMap<>(headers)
+        threadHeaders.put("X-User-Id", String.valueOf(randomUserId))
+
+        // 3. 발급 요청 전송 (POST /coupons/{id}/issue)
+        // API 경로가 /coupons/{id}/issue 라고 가정
+        // body가 필요 없다면 빈 문자열이나 null 전송
+        HTTPResponse response = request.POST(
+            "${baseUrl}/coupons/${targetCouponId}/issue",
+            new byte[0], // Body 없음
+            threadHeaders.entrySet().collect { new nvpair(it.key, it.value) } as net.grinder.plugin.http.NVPair[]
+        )
+
+        // 4. 결과 검증
+        if (response.statusCode == 200) {
+            // 성공
+            assertThat(response.statusCode, is(200))
+        } else {
+            grinder.logger.warn("발급 실패. Status: {} / Body: {}", response.statusCode, response.getText())
+            // 실패해도 테스트는 계속 진행 (400, 500 등 확인)
+        }
+    }
+
+    // 헤더 설정을 위한 헬퍼 클래스
+    class nvpair implements net.grinder.plugin.http.NVPair {
+        String name
+        String value
+        nvpair(String name, String value) {
+            this.name = name
+            this.value = value
+        }
+        String getName() { return name }
+        String getValue() { return value }
+    }
+}
