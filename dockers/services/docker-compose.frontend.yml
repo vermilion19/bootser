@@ -5,7 +5,7 @@ services:
       context: ../../frontend
       dockerfile: Dockerfile
     container_name: booster-frontend
-    restart: always
+    restart: no
     ports:
       - "3300:80"
     healthcheck:
