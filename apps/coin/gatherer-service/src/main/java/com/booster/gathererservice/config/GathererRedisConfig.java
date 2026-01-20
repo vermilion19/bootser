@@ -1,4 +1,4 @@
-package com.booster.gathererservice.config.config;
+package com.booster.gathererservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

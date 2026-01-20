@@ -1,4 +1,4 @@
-package com.booster.gathererservice.config.dto;
+package com.booster.gathererservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

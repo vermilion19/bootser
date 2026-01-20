@@ -1,4 +1,4 @@
-package com.booster.gathererservice.config.application;
+package com.booster.gathererservice.application;
 
 
 import lombok.RequiredArgsConstructor;

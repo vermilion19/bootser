@@ -1,4 +1,4 @@
-package com.booster.gathererservice.config.application;
+package com.booster.gathererservice.infrastructure;
 
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;

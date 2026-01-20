@@ -1,6 +1,6 @@
-package com.booster.gathererservice.config.stress;
+package com.booster.gathererservice.stress;
 
-import com.booster.gathererservice.config.application.CoinPriceService;
+import com.booster.gathererservice.application.CoinPriceService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,9 +13,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Component

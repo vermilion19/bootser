@@ -1,6 +1,7 @@
-package com.booster.gathererservice.config.application;
+package com.booster.gathererservice.infrastructure;
 
-import com.booster.gathererservice.config.dto.TradeDto;
+import com.booster.gathererservice.application.CoinPriceService;
+import com.booster.gathererservice.dto.TradeDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
