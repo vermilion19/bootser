@@ -155,3 +155,145 @@
         font-size: 2rem;
     }
 }
+
+/* ========================================
+   테이블 스타일 (코인 목록 페이지)
+   ======================================== */
+.coin-table-wrapper {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.coin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+}
+
+.coin-table thead {
+    background-color: #0f172a;
+}
+
+.coin-table th {
+    padding: 16px 20px;
+    text-align: left;
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #334155;
+}
+
+.coin-table th:nth-child(2),
+.coin-table th:nth-child(3),
+.coin-table th:nth-child(4) {
+    text-align: right;
+}
+
+.coin-table tbody tr {
+    border-bottom: 1px solid #334155;
+    transition: background-color 0.2s ease;
+}
+
+.coin-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.coin-row {
+    cursor: pointer;
+}
+
+.coin-row:hover {
+    background-color: #334155;
+}
+
+.coin-table td {
+    padding: 20px;
+    vertical-align: middle;
+}
+
+/* 코인명 셀 */
+.coin-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.coin-name-cell .coin-symbol {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.coin-korean-name {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* 가격 셀 */
+.price-cell {
+    text-align: right;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.price-cell .currency {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-left: 4px;
+}
+
+/* 변동가 셀 */
+.change-cell {
+    text-align: right;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* 등락률 셀 */
+.rate-cell {
+    text-align: right;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* 색상 클래스 */
+.rise {
+    color: #ef4444 !important;
+}
+
+.fall {
+    color: #3b82f6 !important;
+}
+
+.even {
+    color: #94a3b8 !important;
+}
+
+/* 모바일 대응 - 테이블 */
+@media (max-width: 768px) {
+    .coin-table th,
+    .coin-table td {
+        padding: 12px 10px;
+    }
+
+    .coin-table th:nth-child(3) {
+        display: none;
+    }
+
+    .coin-table td:nth-child(3) {
+        display: none;
+    }
+
+    .price-cell {
+        font-size: 0.95rem;
+    }
+
+    .coin-name-cell .coin-symbol {
+        font-size: 1rem;
+    }
+}
