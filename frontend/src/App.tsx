@@ -3,6 +3,7 @@ import Home from './home/Home.tsx';
 import Dashboard from './dashboard/Dashboard.tsx';
 import './App.css';
 import Coin from "./coin/Coin.tsx";
+import Investment from "./investment/Investment.tsx";
 
 function App() {
     return (
@@ -14,6 +15,7 @@ function App() {
                 {/* 주소가 http://localhost:5173/dashboard 일 때 Dashboard 컴포넌트 보여줌 */}
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/coin" element={<Coin />} />
+                <Route path="/investment" element={<Investment />} />
             </Routes>
         </BrowserRouter>
     );

@@ -17,6 +17,11 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
         secure: false,
+      },
+      '/investment/v1': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false,
       }
     },
   },

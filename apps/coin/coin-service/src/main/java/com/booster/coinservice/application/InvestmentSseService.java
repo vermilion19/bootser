@@ -3,6 +3,8 @@ package com.booster.coinservice.application;
 import com.booster.coinservice.application.dto.WalletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -68,6 +70,18 @@ public class InvestmentSseService {
 
     // 4. 이벤트 트리거 (매수/매도 체결 시 즉시 갱신용)
     public void notifyUser(String userId) {
+        SseEmitter emitter = userEmitters.get(userId);
+        if (emitter != null) {
+            sendWalletUpdate(userId, emitter);
+        }
+    }
+
+    @Async // (선택) 알림 발송은 비동기로 처리해서 주문 로직에 영향 안 주기
+    @EventListener
+    public void handleWalletUpdate(WalletUpdatedEvent event) {
+        String userId = event.getUserId();
+
+        // 기존에 있는 알림 전송 로직 재사용
         SseEmitter emitter = userEmitters.get(userId);
         if (emitter != null) {
             sendWalletUpdate(userId, emitter);

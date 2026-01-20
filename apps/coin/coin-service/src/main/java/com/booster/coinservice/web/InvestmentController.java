@@ -44,7 +44,6 @@ public class InvestmentController {
         investmentService.buyMarket(
                 request.getUserId(),
                 request.getCoinCode(),
-                request.getPrice(), // 현재가 (프론트에서 보낸 가격을 믿거나, 서버에서 다시 조회하거나)
                 request.getAmount() // 구매 수량
         );
         return ResponseEntity.ok("시장가 매수 체결 완료");

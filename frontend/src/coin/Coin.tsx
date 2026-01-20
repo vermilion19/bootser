@@ -184,8 +184,14 @@ function Coin() {
     return (
         <div className="coin-container">
             <div className="header-nav">
-                <button className="secondary-btn" onClick={() => navigate('/')}>← Home</button>
+                {/* 버튼들을 그룹으로 묶어서 왼쪽 기둥에 배치 */}
+                <div className="nav-group">
+                    <button className="secondary-btn" onClick={() => navigate('/')}>← Home</button>
+                    <button className="primary-btn" onClick={() => navigate('/investment')}>My Wallet</button>
+                </div>
+
                 <h1>Crypto Live Dashboard</h1>
+
                 <span className="status-badge">{connectionStatus}</span>
             </div>
 

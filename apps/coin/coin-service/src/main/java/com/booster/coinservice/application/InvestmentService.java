@@ -10,6 +10,7 @@ import com.booster.coinservice.domain.investmentorder.OrderType;
 import com.booster.coinservice.domain.wallet.InvestmentWallet;
 import com.booster.coinservice.domain.wallet.InvestmentWalletRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class InvestmentService {
     private final CoinAssetRepository assetRepository;
     private final InvestmentOrderRepository orderRepository;
     private final StringRedisTemplate redisTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 1. 초기화 (지갑 생성)
     @Transactional
@@ -40,9 +42,16 @@ public class InvestmentService {
 
     // 2. 시장가 매수 (즉시 체결)
     @Transactional
-    public void buyMarket(String userId, String coinCode, BigDecimal currentPrice, BigDecimal amountToBuy) {
+    public void buyMarket(String userId, String coinCode, BigDecimal amountToBuy) {
         InvestmentWallet wallet = walletRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("지갑이 없습니다."));
+
+        BigDecimal currentPrice = getCurrentPriceFromRedis(coinCode);
+
+        // 가격 데이터가 없거나 0원인 경우 방어 로직
+        if (currentPrice == null || currentPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("현재 가격 정보를 불러올 수 없어 주문을 체결할 수 없습니다.");
+        }
 
         BigDecimal totalPrice = currentPrice.multiply(amountToBuy);
 
@@ -71,6 +80,7 @@ public class InvestmentService {
                 .build();
         order.setFilledAt(LocalDateTime.now());
         orderRepository.save(order);
+        eventPublisher.publishEvent(new WalletUpdatedEvent(userId));
     }
 
     // 3. 지정가 매수 예약 (대기 주문)
