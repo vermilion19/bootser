@@ -1,10 +1,10 @@
 services:
-  frontend:
-    image: booster/frontend
+  user-web:
+    image: booster/user-web
     build:
-      context: ../../frontend
+      context: ../../frontends/user-web
       dockerfile: Dockerfile
-    container_name: booster-frontend
+    container_name: booster-user-web
     restart: no
     ports:
       - "3300:80"

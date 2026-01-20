@@ -1,0 +1,11 @@
+{
+  "name": "booster",
+  "private": true,
+  "workspaces": [
+    "frontends/*"
+  ],
+  "scripts": {
+    "dev:user-web": "npm run dev -w @booster/user-web",
+    "build:user-web": "npm run build -w @booster/user-web"
+  }
+}
