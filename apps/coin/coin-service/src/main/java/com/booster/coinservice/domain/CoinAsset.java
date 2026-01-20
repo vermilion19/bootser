@@ -34,7 +34,7 @@ public class CoinAsset extends BaseEntity {
         this.averagePrice = BigDecimal.ZERO;
     }
 
-    public void updateQuantity(BigDecimal amount, BigDecimal price) {
+    public void addQuantity(BigDecimal amount, BigDecimal price) {
         if (this.quantity.compareTo(BigDecimal.ZERO) == 0) {
             this.quantity = amount;
             this.averagePrice = price;
