@@ -2,11 +2,14 @@ package com.booster.coinservice.web;
 
 
 import com.booster.coinservice.application.InvestmentService;
+import com.booster.coinservice.application.InvestmentSseService;
 import com.booster.coinservice.application.dto.WalletResponse;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.math.BigDecimal;
 
@@ -16,6 +19,7 @@ import java.math.BigDecimal;
 public class InvestmentController {
 
     private final InvestmentService investmentService;
+    private final InvestmentSseService investmentSseService;
 
     // 1. 초기 지갑 생성 (회원가입 직후 또는 모의투자 시작 시 호출)
     // POST /api/v1/investment/wallet
@@ -59,6 +63,11 @@ public class InvestmentController {
         return ResponseEntity.ok("지정가 매수 주문 등록 완료");
     }
 
+    @GetMapping(value = "/stream/private", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamMyWallet(@RequestParam String userId) {
+        return investmentSseService.subscribePrivate(userId);
+    }
+
     // --- 요청 DTO (Inner Class or 별도 파일) ---
     @Data
     public static class UserIdRequest {
@@ -72,4 +81,7 @@ public class InvestmentController {
         private BigDecimal price; // 시장가일 땐 현재가, 지정가일 땐 희망가격
         private BigDecimal amount; // 구매 수량
     }
+
+
+
 }
