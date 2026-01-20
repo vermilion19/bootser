@@ -1,7 +1,10 @@
-package com.booster.gathererservice.config.stres;
+package com.booster.gathererservice.config.stress;
 
+import com.booster.gathererservice.config.application.CoinPriceService;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -13,9 +16,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Component
@@ -25,7 +25,8 @@ public class StressTestRunner implements CommandLineRunner {
 
     private final StringRedisTemplate redisTemplate;
     private final ChannelTopic coinTopic;
-    private final ObjectMapper objectMapper; // Jackson 라이브러리 주입!
+    private final ObjectMapper objectMapper;
+    private final CoinPriceService coinPriceService;
 
     @Override
     public void run(String... args) {
@@ -36,18 +37,20 @@ public class StressTestRunner implements CommandLineRunner {
                 try {
                     // 1. 자바 객체 생성 (Heap 메모리 사용)
                     TradeDto trade = new TradeDto(
-                            UUID.randomUUID().toString(),
-                            "trade",
-                            List.of("KRW-BTC"),
-                            100000000.0,
-                            System.currentTimeMillis()
+                            "trade",           // type
+                            "KRW-BTC",         // code (이제 String임)
+                            100000000.0,       // tradePrice (필드명은 tradePrice지만 JSON은 trade_price로 나감)
+                            System.currentTimeMillis() // timestamp
                     );
 
-                    // 2. [핵심] Jackson에게 일을 시킴 (여기서 CPU가 튈 겁니다)
-                    String payload = objectMapper.writeValueAsString(trade);
+                    // 2. 가격 저장 서비스 호출 (모의투자용)
+                    // (주의: DTO의 필드명이 tradePrice로 바뀌었으니 getter도 getTradePrice()로 바뀜)
+                    coinPriceService.saveCurrentPrice(trade.getCode(), trade.getTradePrice());
 
-                    // 3. Redis 전송
+                    // 3. JSON 변환 및 전송
+                    String payload = objectMapper.writeValueAsString(trade);
                     redisTemplate.convertAndSend(coinTopic.getTopic(), payload);
+
 
                     // 속도가 너무 빠르면 조절 (선택)
                     // Thread.sleep(1);
@@ -64,11 +67,15 @@ public class StressTestRunner implements CommandLineRunner {
     // 테스트용 DTO (내부 클래스)
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor // 기본 생성자 추가 (습관적으로 넣는 게 좋습니다)
     static class TradeDto {
-        private String ticket;
-        private String type;
-        private List<String> codes;
-        private Double trade_price;
+        private String type;     // "trade"
+        private String code;     // "KRW-BTC" (List가 아니라 String이어야 함)
+
+        // [중요] Jackson이 JSON으로 만들 때 "trade_price"로 변환하도록 설정
+        @JsonProperty("trade_price")
+        private Double tradePrice;
+
         private Long timestamp;
     }
 

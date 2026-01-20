@@ -1,5 +1,6 @@
-package com.booster.gathererservice.config;
+package com.booster.gathererservice.config.application;
 
+import com.booster.gathererservice.config.dto.TradeDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -10,6 +11,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -21,6 +23,8 @@ public class UpbitWebSocketHandler extends TextWebSocketHandler {
 
     private final StringRedisTemplate redisTemplate;
     private final ChannelTopic coinTopic;
+    private final ObjectMapper objectMapper;
+    private final CoinPriceService coinPriceService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -44,11 +48,23 @@ public class UpbitWebSocketHandler extends TextWebSocketHandler {
      */
     @Override
     protected void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
-        // 1. 바이너리 데이터를 UTF-8 문자열로 변환
-        // message.getPayload()는 ByteBuffer를 반환합니다.
-        String payload = StandardCharsets.UTF_8.decode(message.getPayload()).toString();
-        // 2. Redis로 바이패스
-        redisTemplate.convertAndSend(coinTopic.getTopic(), payload);
+        try {
+            // 1. 바이너리 -> 문자열 변환
+            String jsonPayload = StandardCharsets.UTF_8.decode(message.getPayload()).toString();
+
+            // 2. [추가된 로직] JSON 파싱 및 현재가 Redis 저장 (Key-Value)
+            TradeDto tradeDto = objectMapper.readValue(jsonPayload, TradeDto.class);
+            if ("trade".equals(tradeDto.getType())) {
+                // 여기서 Redis에 가격을 저장합니다! (coin-api가 조회할 수 있게)
+                coinPriceService.saveCurrentPrice(tradeDto.getCode(), tradeDto.getTradePrice());
+            }
+
+            // 3. Pub/Sub으로 스트리밍 전송 (기존 로직)
+            redisTemplate.convertAndSend(coinTopic.getTopic(), jsonPayload);
+
+        } catch (Exception e) {
+            log.error("메시지 처리 중 오류", e);
+        }
     }
 
     // 혹시라도 Text로 올 경우를 대비해 남겨둡니다.
