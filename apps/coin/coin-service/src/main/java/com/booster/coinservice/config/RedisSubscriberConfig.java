@@ -1,6 +1,6 @@
 package com.booster.coinservice.config;
 
-import com.booster.coinservice.CoinSseService;
+import com.booster.coinservice.application.CoinSseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

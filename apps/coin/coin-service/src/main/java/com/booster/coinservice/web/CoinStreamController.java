@@ -1,5 +1,6 @@
-package com.booster.coinservice;
+package com.booster.coinservice.web;
 
+import com.booster.coinservice.application.CoinSseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
