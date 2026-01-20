@@ -32,7 +32,7 @@
     </appender>
 
     <!-- 로컬 프로파일: 콘솔만 -->
-    <springProfile name="local,home,out">
+    <springProfile name="local,home,out,stress">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
         </root>
