@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     // 테스트 필수 의존성
+    implementation project(':libs:core-web')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation project(':libs:storage-redis')

@@ -12,6 +12,11 @@ export default defineConfig({
         target: 'http://localhost:6000',
         changeOrigin: true,
         secure: false,
+      },
+      '/coin/v1': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false,
       }
     },
   },

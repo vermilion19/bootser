@@ -47,7 +47,6 @@ public class UpbitWebSocketHandler extends TextWebSocketHandler {
         // 1. 바이너리 데이터를 UTF-8 문자열로 변환
         // message.getPayload()는 ByteBuffer를 반환합니다.
         String payload = StandardCharsets.UTF_8.decode(message.getPayload()).toString();
-        log.info("payload : {}",payload);
         // 2. Redis로 바이패스
         redisTemplate.convertAndSend(coinTopic.getTopic(), payload);
     }

@@ -13,6 +13,9 @@ function Home() {
                 <button className="enter-btn" onClick={() => navigate('/dashboard')}>
                     Dashboard Access
                 </button>
+                <button className="enter-btn" onClick={() => navigate('/coin')}>
+                    Coin Trade
+                </button>
             </div>
         </div>
     );

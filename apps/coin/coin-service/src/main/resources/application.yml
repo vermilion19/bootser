@@ -1,3 +1,6 @@
 spring:
   application:
     name: coin-service
+
+server:
+  port: 8081
