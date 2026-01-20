@@ -28,4 +28,15 @@ public class CoinPriceService {
         // (선택) 디버깅 로그 - 너무 많이 찍히면 주석 처리
         // log.debug("Saved {} -> {}", key, price);
     }
+
+    /**
+     * 전체 거래 데이터를 Redis에 저장 (SSE 초기 데이터 전송용)
+     */
+    public void saveLatestTradeData(String code, String jsonPayload) {
+        if (code == null || jsonPayload == null) return;
+
+        // Key: coin:data:KRW-BTC
+        String key = "coin:data:" + code;
+        redisTemplate.opsForValue().set(key, jsonPayload);
+    }
 }

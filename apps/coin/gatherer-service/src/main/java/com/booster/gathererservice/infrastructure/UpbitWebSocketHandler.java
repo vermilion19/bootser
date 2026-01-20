@@ -58,6 +58,8 @@ public class UpbitWebSocketHandler extends TextWebSocketHandler {
             if ("trade".equals(tradeDto.getType())) {
                 // 여기서 Redis에 가격을 저장합니다! (coin-api가 조회할 수 있게)
                 coinPriceService.saveCurrentPrice(tradeDto.getCode(), tradeDto.getTradePrice());
+                // 전체 JSON도 저장 (SSE 초기 데이터 전송용)
+                coinPriceService.saveLatestTradeData(tradeDto.getCode(), jsonPayload);
             }
 
             // 3. Pub/Sub으로 스트리밍 전송 (기존 로직)

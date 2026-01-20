@@ -1,22 +1,30 @@
 package com.booster.coinservice.application;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CoinSseService {
+
+    private final StringRedisTemplate redisTemplate;
 
     // 접속한 클라이언트 관리 (Thread-Safe한 Map 필수)
     // Key: Client ID, Value: SseEmitter
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
+    // 관리할 코인 목록
+    private static final List<String> TARGET_CODES = List.of("KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-DOGE");
 
     // 1. 클라이언트 접속 처리 (SSE 연결 생성)
     public SseEmitter subscribe(String clientId) {
@@ -34,12 +42,36 @@ public class CoinSseService {
         // 접속 확인용 더미 데이터 전송 (503 에러 방지용)
         try {
             emitter.send(SseEmitter.event().name("connect").data("connected!"));
+
+            // [핵심] Redis에서 각 코인의 최신 데이터를 조회해서 즉시 전송
+            sendInitialData(emitter);
+
         } catch (IOException e) {
             emitters.remove(clientId);
         }
 
         log.info("### 클라이언트 접속: {}, 현재 접속자 수: {}", clientId, emitters.size());
         return emitter;
+    }
+
+    /**
+     * SSE 연결 직후 Redis에 캐싱된 최신 데이터를 전송
+     */
+    private void sendInitialData(SseEmitter emitter) {
+        for (String code : TARGET_CODES) {
+            try {
+                String key = "coin:data:" + code;
+                String cachedData = redisTemplate.opsForValue().get(key);
+
+                if (cachedData != null) {
+                    emitter.send(SseEmitter.event()
+                            .name("trade")
+                            .data(cachedData));
+                }
+            } catch (IOException e) {
+                log.warn("초기 데이터 전송 실패: {}", code, e);
+            }
+        }
     }
 
     // 2. 데이터 브로드캐스팅 (Redis -> 이 메서드 호출)
