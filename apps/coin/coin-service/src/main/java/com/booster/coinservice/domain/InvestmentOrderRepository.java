@@ -1,6 +1,8 @@
 package com.booster.coinservice.domain;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,6 +19,7 @@ public interface InvestmentOrderRepository extends JpaRepository<InvestmentOrder
      * CREATE INDEX idx_order_matching
      * ON investment_order (coin_code, status, order_type, price);
      */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM InvestmentOrder o " +
             "WHERE o.coinCode = :coinCode " +
             "AND o.status = 'PENDING' " +
@@ -30,4 +33,5 @@ public interface InvestmentOrderRepository extends JpaRepository<InvestmentOrder
 
     // 특정 사용자의 주문 내역 조회 (최신순)
     List<InvestmentOrder> findByUserIdOrderByCreatedAtDesc(String userId);
+
 }
