@@ -1,5 +1,6 @@
 package com.booster.massivesseservice.controller;
 
+import com.booster.massivesseservice.broadcaster.EventBroadcaster;
 import com.booster.massivesseservice.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -12,6 +13,7 @@ import reactor.core.publisher.Flux;
 public class PushController {
 
     private final NotificationService service;
+    private final EventBroadcaster broadcaster;
 
     // 1. 연결 요청 (구독)
     // curl -N http://localhost:8080/sse/connect/user1
@@ -22,7 +24,7 @@ public class PushController {
 
     @PostMapping("/broadcast")
     public String broadcast(@RequestParam String message) {
-        service.broadcast(message);
+        broadcaster.broadcast(message);
         return "Broadcasted!";
     }
 

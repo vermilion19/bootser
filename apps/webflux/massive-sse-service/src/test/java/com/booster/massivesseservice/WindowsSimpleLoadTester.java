@@ -56,6 +56,7 @@ public class WindowsSimpleLoadTester {
             while ((line = reader.readLine()) != null) {
                 // 메시지 수신 대기 중...
                 // (확인용) 첫 번째 유저만 메시지를 출력해서 제대로 동작하는지 보기
+//                System.out.println("[User-" + userId + " Received]: " + line);
                 if (userId.equals("user_1")) {
                     System.out.println("[User-1 Received]: " + line);
                 }
