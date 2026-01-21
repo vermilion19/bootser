@@ -1,0 +1,12 @@
+environment:
+  - JAVA_OPTS=
+    -Dcom.sun.management.jmxremote=true
+    -Dcom.sun.management.jmxremote.local.only=false
+    -Dcom.sun.management.jmxremote.authenticate=false
+    -Dcom.sun.management.jmxremote.ssl=false
+    -Dcom.sun.management.jmxremote.rmi.port=9090
+    -Dcom.sun.management.jmxremote.port=9090
+    -Djava.rmi.server.hostname=localhost  # 혹은 맥미니 IP
+ports:
+  - "8080:8080"
+  - "9090:9090" # JMX 포트도 열어줘야 함
