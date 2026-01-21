@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: mini-zuul-service
+
+mini-zuul:
+  port: 8888
