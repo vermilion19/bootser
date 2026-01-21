@@ -39,10 +39,17 @@ public class NotificationService {
             Sinks.EmitResult result = sink.tryEmitNext(message);
 
             if (result.isFailure()) {
-                log.warn("Failed to push to {}: {}", userId, result);
+                if (result == Sinks.EmitResult.FAIL_OVERFLOW) {
+                    log.warn("🔥 Slow Consumer Detected! (Buffer Full) User: {}", userId);
+                    // 필요하다면 여기서만 별도의 알림을 보내거나 메트릭을 수집할 수 있음
+                } else if (result == Sinks.EmitResult.FAIL_CANCELLED) {
+                    log.debug("User left. User: {}", userId); // 이건 경고(Warn) 감도 아님
+                } else {
+                    log.warn("Push Failed ({}) User: {}", result, userId);
+                }
+
                 registry.removeConnection(userId);
             }
         });
-
     }
 }
