@@ -2,10 +2,13 @@ package com.booster.minizuulservice;
 
 import com.booster.minizuulservice.server.NettyServer;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+
+import java.util.Arrays;
 
 @RequiredArgsConstructor
 @ConfigurationPropertiesScan
@@ -19,8 +22,8 @@ public class MiniZuulServiceApplication implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
-        System.out.println(">>> Netty Server Starting...");
+    public void run(String @NonNull ... args){
+        System.out.println(">>> Netty Server Starting..." + Arrays.toString(args));
         nettyServer.start();
     }
 }

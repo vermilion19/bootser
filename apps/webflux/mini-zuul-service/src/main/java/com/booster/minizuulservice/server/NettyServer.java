@@ -19,8 +19,10 @@ import org.springframework.stereotype.Component;
 public class NettyServer {
 
     private final NettyProperties nettyProperties;
+    private final NettyChannelInitializer nettyChannelInitializer;
 
     public void start() {
+        log.info("Netty Server started on port: {}", nettyProperties.port());
 
         try (EventLoopGroup bossGroup = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
              EventLoopGroup workerGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory())) {
@@ -28,12 +30,7 @@ public class NettyServer {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) {
-                            // TODO: 여기에 파이프라인 핸들러 추가 예정
-                        }
-                    });
+                    .childHandler(nettyChannelInitializer);
             ChannelFuture future = b.bind(nettyProperties.port()).sync();
 
             future.channel().closeFuture().sync();
