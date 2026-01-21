@@ -28,15 +28,19 @@ SSE 연결 시 클라이언트가 즉시 최신 코인 데이터를 받을 수 �
 
 #### `CoinPriceService.java`
 ```java
+// SSE 초기 데이터 TTL (gatherer-service 장애 시 오래된 데이터 자동 만료)
+private static final Duration TRADE_DATA_TTL = Duration.ofMinutes(1);
+
 /**
  * 전체 거래 데이터를 Redis에 저장 (SSE 초기 데이터 전송용)
+ * TTL 1분: gatherer-service가 정상 동작하면 계속 갱신되고, 장애 시 자동 만료
  */
 public void saveLatestTradeData(String code, String jsonPayload) {
     if (code == null || jsonPayload == null) return;
 
     // Key: coin:data:KRW-BTC
     String key = "coin:data:" + code;
-    redisTemplate.opsForValue().set(key, jsonPayload);
+    redisTemplate.opsForValue().set(key, jsonPayload, TRADE_DATA_TTL);
 }
 ```
 
@@ -94,10 +98,10 @@ private void sendInitialData(SseEmitter emitter) {
 
 ## Redis 키 구조
 
-| 키 패턴 | 용도 | 예시 값 |
-|---------|------|---------|
-| `coin:price:{CODE}` | 현재가 (기존) | `"100000000"` |
-| `coin:data:{CODE}` | 전체 거래 JSON (신규) | `{"type":"trade","code":"KRW-BTC","trade_price":100000000,...}` |
+| 키 패턴 | 용도 | TTL | 예시 값 |
+|---------|------|-----|---------|
+| `coin:price:{CODE}` | 현재가 (기존) | 없음 | `"100000000"` |
+| `coin:data:{CODE}` | 전체 거래 JSON (신규) | **1분** | `{"type":"trade",...}` |
 
 ## 데이터 흐름도
 
@@ -164,4 +168,6 @@ private void sendInitialData(SseEmitter emitter) {
 
 - gatherer-service가 한 번이라도 실행되어야 Redis에 초기 데이터가 캐싱됨
 - Redis 재시작 시 캐시 데이터 유실 (gatherer-service가 다시 채움)
-- TTL 미설정으로 영구 저장 (필요시 TTL 추가 고려)
+- `coin:data:*` 키는 TTL 1분 설정됨
+  - gatherer-service 정상: 체결마다 갱신되어 만료되지 않음
+  - gatherer-service 장애: 1분 후 자동 만료되어 오래된 데이터 방지
