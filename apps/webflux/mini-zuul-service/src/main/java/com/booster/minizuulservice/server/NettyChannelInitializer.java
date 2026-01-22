@@ -23,7 +23,7 @@ public class NettyChannelInitializer extends ChannelInitializer<SocketChannel> {
         // 2. HTTP 메시지 집계: 헤더와 바디 조각들을 하나의 FullHttpRequest로 합침 (최대 512KB)
         p.addLast(new HttpObjectAggregator(512 * 1024));
 
-        p.addLast(new SimpleLogHandler());
+        p.addLast(new com.booster.minizuulservice.server.handler.ProxyFrontendHandler("localhost", 8080));
 
     }
 }
