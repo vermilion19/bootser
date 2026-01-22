@@ -2,45 +2,104 @@ package com.booster.logstreamservice.config;
 
 import com.booster.logstreamservice.event.LogEvent;
 import com.booster.logstreamservice.handler.LogEventHandler;
+import com.lmax.disruptor.BlockingWaitStrategy;
+import com.lmax.disruptor.BusySpinWaitStrategy;
+import com.lmax.disruptor.WaitStrategy;
+import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.lmax.disruptor.util.DaemonThreadFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.ThreadFactory;
 
+@Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class DisruptorConfig {
 
-    // RingBuffer 크기 (반드시 2의 제곱수여야 함)
-    // 1024 * 1024 = 1,048,576건 저장 가능
-    private static final int BUFFER_SIZE = 1024 * 1024;
+    private final LogStreamProperties properties;
 
     @Bean
     public Disruptor<LogEvent> disruptor(LogEventHandler logEventHandler) {
-        // 데몬 쓰레드 팩토리 (JVM 종료 시 같이 종료됨)
         ThreadFactory threadFactory = DaemonThreadFactory.INSTANCE;
 
-        // Disruptor 생성
-        // ProducerType.MULTI: 여러 HTTP 쓰레드가 동시에 데이터를 넣을 것이므로 MULTI로 설정
-        // WaitStrategy:
-        //   - BlockingWaitStrategy (CPU 효율 좋음, 지연 조금 있음)
-        //   - BusySpinWaitStrategy (CPU 100% 사용, 지연 최소) -> 고성능 서버용
+        // [P2] 설정에서 버퍼 크기와 WaitStrategy 읽기
+        int bufferSize = properties.disruptor().bufferSize();
+        WaitStrategy waitStrategy = createWaitStrategy(properties.disruptor().waitStrategy());
+
         Disruptor<LogEvent> disruptor = new Disruptor<>(
                 LogEvent.FACTORY,
-                BUFFER_SIZE,
+                bufferSize,
                 threadFactory,
                 ProducerType.MULTI,
-                new com.lmax.disruptor.BlockingWaitStrategy()
+                waitStrategy
         );
 
-        // 핸들러(소비자) 등록
         disruptor.handleEventsWith(logEventHandler);
-
-        // 시작
         disruptor.start();
+
+        log.info("Disruptor started: bufferSize={}, waitStrategy={}",
+                bufferSize, properties.disruptor().waitStrategy());
+
         return disruptor;
     }
 
+    private WaitStrategy createWaitStrategy(String strategy) {
+        return switch (strategy.toUpperCase()) {
+            case "YIELDING" -> new YieldingWaitStrategy();
+            case "BUSY_SPIN" -> new BusySpinWaitStrategy();
+            default -> new BlockingWaitStrategy();
+        };
+    }
+
+    @Bean
+    public DisruptorLifecycle disruptorLifecycle(Disruptor<LogEvent> disruptor, LogEventHandler logEventHandler) {
+        return new DisruptorLifecycle(disruptor, logEventHandler);
+    }
+
+    @RequiredArgsConstructor
+    public static class DisruptorLifecycle implements SmartLifecycle {
+
+        private final Disruptor<LogEvent> disruptor;
+        private final LogEventHandler logEventHandler;
+        private boolean running = false;
+
+        @Override
+        public void start() {
+            this.running = true;
+        }
+
+        @Override
+        public void stop() {
+            if (this.running) {
+                // [P3] System.out.println → log.info
+                log.info("Graceful Shutdown Initiated: Flushing remaining logs...");
+
+                // [P1] Disruptor 종료 (기존 이벤트 처리 완료 대기)
+                disruptor.shutdown();
+
+                // 마지막 버퍼 플러시
+                logEventHandler.forceFlush();
+
+                log.info("Graceful Shutdown Completed. All logs saved.");
+                this.running = false;
+            }
+        }
+
+        @Override
+        public boolean isRunning() {
+            return running;
+        }
+
+        @Override
+        public int getPhase() {
+            // 다른 빈보다 먼저 종료되도록 (높은 값 = 먼저 종료)
+            return Integer.MAX_VALUE;
+        }
+    }
 }

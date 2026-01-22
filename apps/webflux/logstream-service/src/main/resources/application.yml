@@ -1,3 +1,11 @@
 spring:
   application:
-    name: log-gather-service
+    name: logstream-service
+
+logstream:
+  disruptor:
+    buffer-size: 1048576      # 1M (2^20) - RingBuffer 슬롯 수
+    wait-strategy: BLOCKING   # BLOCKING, YIELDING, BUSY_SPIN
+  file:
+    path: access_logs.txt
+    buffer-size: 4194304      # 4MB - Direct ByteBuffer 크기

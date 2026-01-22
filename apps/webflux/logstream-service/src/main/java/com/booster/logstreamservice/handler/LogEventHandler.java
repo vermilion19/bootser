@@ -33,4 +33,9 @@ public class LogEventHandler implements EventHandler<LogEvent> {
             log.info("Processed {} logs. Last Sequence: {}", count, sequence);
         }
     }
+
+    public void forceFlush() {
+        log.info("Force flushing remaining data in buffer...");
+        logFileWriter.flush(); // 버퍼에 남은거 다 파일로 내리기
+    }
 }

@@ -1,34 +1,50 @@
 package com.booster.logstreamservice.service;
 
 import com.booster.logstreamservice.event.LogEvent;
+import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LogProducer {
 
     private final Disruptor<LogEvent> disruptor;
 
-    public void publish(String payload) {
+    // [P3] UUID.randomUUID() 대신 AtomicLong 사용 (성능 향상)
+    private final AtomicLong idGenerator = new AtomicLong(System.currentTimeMillis());
+
+    /**
+     * 로그를 Disruptor RingBuffer에 발행
+     *
+     * @param payload 로그 데이터
+     * @return 발행 성공 여부 (버퍼 가득 차면 false)
+     */
+    public boolean publish(String payload) {
         RingBuffer<LogEvent> ringBuffer = disruptor.getRingBuffer();
 
-        // 1. 데이터를 넣을 공간(Sequence) 확보
-        long sequence = ringBuffer.next();
+        // [P0] tryNext: 버퍼가 가득 차면 InsufficientCapacityException 발생
+        long sequence;
         try {
-            // 2. 해당 공간의 객체 가져오기
-            LogEvent event = ringBuffer.get(sequence);
+            sequence = ringBuffer.tryNext();
+        } catch (InsufficientCapacityException e) {
+            log.warn("Disruptor RingBuffer full, dropping log. Consider increasing buffer size.");
+            return false;
+        }
 
-            // 3. 데이터 채우기 (객체 생성 X, 값만 복사)
-            event.set(UUID.randomUUID().toString(), payload, Instant.now().toEpochMilli());
+        try {
+            LogEvent event = ringBuffer.get(sequence);
+            // [P3] AtomicLong으로 ID 생성 (UUID보다 빠름)
+            event.set(String.valueOf(idGenerator.incrementAndGet()), payload, System.currentTimeMillis());
         } finally {
-            // 4. 발행 (이제 소비자가 이 데이터를 볼 수 있음)
             ringBuffer.publish(sequence);
         }
+        return true;
     }
 }

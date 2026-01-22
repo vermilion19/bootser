@@ -1,11 +1,14 @@
 package com.booster.logstreamservice.handler;
 
+import com.booster.logstreamservice.config.LogStreamProperties;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -13,29 +16,34 @@ import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class LogFileWriter {
 
-    private static final String FILE_PATH = "access_logs.txt";
-    // 4MB 버퍼 (일반적으로 OS Page Size인 4KB의 배수로 잡는 것이 유리함)
-    private static final int BUFFER_SIZE = 1024 * 1024 * 4;
+    private final LogStreamProperties properties;
 
+    // [P1] RandomAccessFile 참조 보관 (핸들 누수 방지)
+    private RandomAccessFile raf;
     private FileChannel fileChannel;
     private ByteBuffer buffer;
+    private int bufferSize;
 
     @PostConstruct
     public void init() {
         try {
-            File file = new File(FILE_PATH);
-            // "rw": 읽기/쓰기 모드로 파일 열기
-            RandomAccessFile raf = new RandomAccessFile(file, "rw");
+            String filePath = properties.file().path();
+            this.bufferSize = properties.file().bufferSize();
+
+            File file = new File(filePath);
+            // [P1] raf 필드로 보관
+            this.raf = new RandomAccessFile(file, "rw");
             this.fileChannel = raf.getChannel();
 
             // 파일 끝으로 이동 (Append 모드)
             this.fileChannel.position(this.fileChannel.size());
 
             // Direct Buffer 할당 (OS 네이티브 메모리 사용)
-            this.buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-            log.info("LogFileWriter initialized using Direct Buffer ({} bytes)", BUFFER_SIZE);
+            this.buffer = ByteBuffer.allocateDirect(bufferSize);
+            log.info("LogFileWriter initialized: path={}, bufferSize={} bytes", filePath, bufferSize);
 
         } catch (Exception e) {
             log.error("Failed to initialize LogFileWriter", e);
@@ -46,10 +54,30 @@ public class LogFileWriter {
     public void write(String logData) {
         byte[] bytes = (logData + "\n").getBytes(StandardCharsets.UTF_8);
 
+        // [P0] 버퍼보다 큰 로그는 직접 쓰기
+        if (bytes.length > bufferSize) {
+            flush();  // 기존 버퍼 플러시
+            writeDirect(bytes);
+            return;
+        }
+
+        // 일반 로그는 버퍼에 추가
         if (buffer.remaining() < bytes.length) {
             flush();
         }
         buffer.put(bytes);
+    }
+
+    /**
+     * [P0] 대용량 로그 직접 쓰기 (버퍼 우회)
+     */
+    private void writeDirect(byte[] bytes) {
+        try {
+            fileChannel.write(ByteBuffer.wrap(bytes));
+            log.debug("Large log written directly: {} bytes", bytes.length);
+        } catch (IOException e) {
+            log.error("Failed to write large log directly", e);
+        }
     }
 
     public void flush() {
@@ -57,11 +85,9 @@ public class LogFileWriter {
             buffer.flip(); // 읽기 모드로 전환
             try {
                 fileChannel.write(buffer);
-                // force(false): OS Page Cache까지만 기록 (디스크 물리 동기화는 OS에 위임 -> 속도 극대화)
-                // force(true): 디스크 물리 기록까지 대기 -> 속도 느림, 안전성 높음
-                // 로그 시스템은 보통 false로 충분함
+                // force(false): 처리량 우선 (의도적으로 비활성화)
                 // fileChannel.force(false);
-            }catch (Exception e) {
+            } catch (Exception e) {
                 log.error("Failed to write to file", e);
             } finally {
                 buffer.clear();
@@ -71,11 +97,19 @@ public class LogFileWriter {
 
     @PreDestroy
     public void cleanup() {
-        flush(); // 남은 데이터 저장
+        log.info("LogFileWriter cleanup: flushing remaining data...");
+        flush();
         try {
-            if (fileChannel != null) fileChannel.close();
+            if (fileChannel != null) {
+                fileChannel.close();
+            }
+            // [P1] RandomAccessFile 명시적 닫기
+            if (raf != null) {
+                raf.close();
+            }
+            log.info("LogFileWriter cleanup completed");
         } catch (Exception e) {
-            // ignore
+            log.error("Failed to close file resources", e);
         }
     }
 }
