@@ -30,8 +30,8 @@ public class ProxyBackendHandler extends ChannelInboundHandlerAdapter {
                 log.info("<<< Forwarded to Client Success");
                 recordAccessLog(ctx);
                 // 다음 데이터 읽기 (Flow Control)
-//                ctx.channel().read();
-                inboundChannel.close();
+                ctx.channel().read();
+//                inboundChannel.close(); // 테스트용
             } else {
                 log.error("<<< Forwarding to Client Failed", future.cause());
                 future.channel().close();

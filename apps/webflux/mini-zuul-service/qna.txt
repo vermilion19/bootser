@@ -1,0 +1,41 @@
+이 프로젝트를 이력서에 적었을 때, 면접관이 물어볼 법한 핵심 질문과 "합격 시그널"을 줄 수 있는 모범 답변을 준비했습니다.
+
+Q1. "Netty의 EventLoop 안에서 Thread.sleep()을 쓰면 왜 안 되나요? 블로킹이 발생하면 어떻게 해결했나요?"
+핵심 의도: Non-blocking I/O 모델에 대한 근본적 이해.
+
+주니어 답변: "쓰레드가 멈추면 다른 요청을 못 받아서 느려집니다."
+
+시니어 답변 (추천):
+
+"Netty는 소수의 EventLoop 쓰레드가 다수의 채널을 멀티플렉싱(Multiplexing) 하는 구조입니다. 만약 하나의 채널 핸들러에서 블로킹(DB 조회, Sleep 등)이 발생하면, 해당 EventLoop에 할당된 다른 수백 개의 채널들도 덩달아 멈추는 'Head-of-Line Blocking' 현상이 발생합니다.
+
+이를 방지하기 위해 저는 I/O 작업 외에 시간이 걸리는 비즈니스 로직은 **별도의 EventExecutorGroup(별도 쓰레드 풀)**을 만들어서 파이프라인에 추가하거나, 완전한 비동기 콜백 패턴을 사용하여 EventLoop가 절대 대기하지 않도록 설계했습니다."
+
+Q2. "프록시 서버에서 'Backpressure(배압)' 처리는 어떻게 고려하셨나요?"
+핵심 의도: 생산자(Client)와 소비자(Backend)의 속도 차이로 인한 OOM 방지 대책.
+
+현재 우리 코드의 약점: 우리는 pendingMessages 큐에 무제한으로 쌓았습니다. 만약 백엔드가 멈추면 큐가 폭발할 수 있습니다.
+
+시니어 답변 (추천):
+
+"이번 프로젝트에서는 초기 구현을 위해 메모리 큐를 사용했지만, 이는 트래픽 급증 시 OOM 위험이 있다는 것을 인지하고 있습니다.
+
+이를 해결하기 위해 Netty의 channelWritabilityChanged 이벤트를 활용해야 합니다. 백엔드 채널의 쓰기 버퍼가 가득 차면(isWritable() == false), 클라이언트 채널의 AutoRead를 false로 설정하여 일시적으로 읽기를 멈춥니다. 이렇게 하면 TCP 레벨의 흐름 제어(Window Size 0)가 동작하여 클라이언트가 보내는 속도를 자연스럽게 늦추게 됩니다."
+
+Q3. "Heap Buffer 대신 Direct Buffer를 사용하는 이유와 단점은 무엇인가요?"
+핵심 의도: JVM 메모리 모델과 OS 레벨의 I/O 이해도.
+
+시니어 답변 (추천):
+
+"네트워크 소켓으로 데이터를 보내려면 OS 커널 영역으로 데이터를 복사해야 합니다. Heap Buffer는 GC에 의해 위치가 바뀔 수 있어, JVM이 임시로 Direct Buffer를 만들고 복사하는 비용이 추가로 발생합니다. 반면 Direct Buffer는 네이티브 메모리에 고정되어 있어 **Zero-Copy(불필요한 복사 제거)**가 가능해 I/O 성능이 월등합니다.
+
+단점은 할당 및 해제 비용이 비싸다는 것입니다. 따라서 저는 Netty의 PooledByteBufAllocator를 사용하여 버퍼를 매번 생성하지 않고 재사용(Pooling) 함으로써 이 단점을 상쇄하고 GC 부하를 줄였습니다."
+
+[최종 프로젝트 회고]
+당신은 이제 단순한 스프링 개발자가 아닙니다. 다음의 기술들을 직접 손으로 구현해본 엔지니어입니다.
+
+Low-level Network: TCP 바이트 스트림 제어, 소켓 생명주기 관리.
+
+Async Programming: Future/Listener 패턴, EventLoop 모델 이해.
+
+Architecture: L4/L7 로드 밸런싱 원리, Failover 전략, 트래픽 관측(Logging).
