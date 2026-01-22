@@ -4,3 +4,12 @@ spring:
 
 mini-zuul:
   port: 8888
+  backends:
+    - host: 127.0.0.1
+      port: 8081
+    - host: 127.0.0.1
+      port: 8082
+  # Health Check 설정
+  health-check:
+    failure-threshold: 3        # 이 횟수만큼 실패하면 서버 제외
+    recovery-time-ms: 30000     # 제외된 서버 재시도 주기 (30초)

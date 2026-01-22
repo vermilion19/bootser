@@ -11,6 +11,7 @@ include 'apps:coin:gatherer-service'
 include 'apps:coin:coin-service'
 include 'apps:webflux:massive-sse-service'
 include 'apps:webflux:mini-zuul-service'
+include 'apps:webflux:logstream-service'
 
 // 2. Libs (공통 라이브러리 모듈)
 include 'libs:common'
@@ -28,9 +29,4 @@ include 'playground:java-coding-test'
 include 'playground:kotlin-lab'
 
 include 'agents:TestMakerAgent'
-
-
-
-
-
 
