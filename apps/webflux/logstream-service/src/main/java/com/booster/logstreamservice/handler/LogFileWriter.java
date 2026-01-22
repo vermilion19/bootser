@@ -43,7 +43,7 @@ public class LogFileWriter {
 
             // Direct Buffer 할당 (OS 네이티브 메모리 사용)
             this.buffer = ByteBuffer.allocateDirect(bufferSize);
-            log.info("LogFileWriter initialized: path={}, bufferSize={} bytes", filePath, bufferSize);
+//            log.info("LogFileWriter initialized: path={}, bufferSize={} bytes", filePath, bufferSize);
 
         } catch (Exception e) {
             log.error("Failed to initialize LogFileWriter", e);
@@ -74,7 +74,7 @@ public class LogFileWriter {
     private void writeDirect(byte[] bytes) {
         try {
             fileChannel.write(ByteBuffer.wrap(bytes));
-            log.debug("Large log written directly: {} bytes", bytes.length);
+//            log.debug("Large log written directly: {} bytes", bytes.length);
         } catch (IOException e) {
             log.error("Failed to write large log directly", e);
         }
@@ -107,7 +107,7 @@ public class LogFileWriter {
             if (raf != null) {
                 raf.close();
             }
-            log.info("LogFileWriter cleanup completed");
+//            log.info("LogFileWriter cleanup completed");
         } catch (Exception e) {
             log.error("Failed to close file resources", e);
         }

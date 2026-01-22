@@ -29,13 +29,13 @@ public class LogEventHandler implements EventHandler<LogEvent> {
         }
 
         // (옵션) 진행 상황 로깅 (매번 찍으면 느리므로 10만건마다)
-        if (++count % 100000 == 0) {
-            log.info("Processed {} logs. Last Sequence: {}", count, sequence);
-        }
+//        if (++count % 100000 == 0) {
+//            log.info("Processed {} logs. Last Sequence: {}", count, sequence);
+//        }
     }
 
     public void forceFlush() {
-        log.info("Force flushing remaining data in buffer...");
+//        log.info("Force flushing remaining data in buffer...");
         logFileWriter.flush(); // 버퍼에 남은거 다 파일로 내리기
     }
 }
