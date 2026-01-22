@@ -1,5 +1,6 @@
 package com.booster.minizuulservice.server.handler;
 
+import com.booster.minizuulservice.server.ProxyAttributes;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -27,13 +28,35 @@ public class ProxyBackendHandler extends ChannelInboundHandlerAdapter {
         inboundChannel.writeAndFlush(msg).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
                 log.info("<<< Forwarded to Client Success");
+                recordAccessLog(ctx);
                 // 다음 데이터 읽기 (Flow Control)
-                ctx.channel().read();
+//                ctx.channel().read();
+                inboundChannel.close();
             } else {
                 log.error("<<< Forwarding to Client Failed", future.cause());
                 future.channel().close();
             }
         });
+    }
+
+    private void recordAccessLog(ChannelHandlerContext backendCtx) {
+        // inboundChannel(클라이언트 연결)에 붙여둔 포스트잇을 떼어봅니다.
+        Long startTime = inboundChannel.attr(ProxyAttributes.START_TIME).get();
+        String uri = inboundChannel.attr(ProxyAttributes.REQUEST_URI).get();
+
+        if (startTime != null) {
+            long durationNs = System.nanoTime() - startTime;
+            double durationMs = durationNs / 1_000_000.0; // 밀리초 변환
+
+            // [Access Log Format]
+            // [Client IP] -> [Target Backend] : URI (Time ms)
+            log.info("ACCESS_LOG: [{}] -> [{}] : {} (Took {} ms)",
+                    inboundChannel.remoteAddress(),
+                    backendCtx.channel().remoteAddress(),
+                    uri,
+                    String.format("%.2f", durationMs)
+            );
+        }
     }
 
     @Override

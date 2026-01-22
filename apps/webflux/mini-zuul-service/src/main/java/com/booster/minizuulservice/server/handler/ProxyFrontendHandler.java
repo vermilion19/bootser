@@ -1,6 +1,7 @@
 package com.booster.minizuulservice.server.handler;
 
 import com.booster.minizuulservice.server.LoadBalancer;
+import com.booster.minizuulservice.server.ProxyAttributes;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -90,6 +91,13 @@ public class ProxyFrontendHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof FullHttpRequest) {
             FullHttpRequest request = (FullHttpRequest) msg;
+
+            // [추가] 1. 요청 시작 시간 기록 (나노초 단위가 정밀함)
+            ctx.channel().attr(ProxyAttributes.START_TIME).set(System.nanoTime());
+
+            // [추가] 2. 요청 URI 기록
+            ctx.channel().attr(ProxyAttributes.REQUEST_URI).set(request.uri());
+
             request.headers().set("X-Forwarded-For", "Mini-Zuul-Failover-Proxy");
             request.retain();
         }
