@@ -27,7 +27,7 @@ public class NettyChannelInitializer extends ChannelInitializer<SocketChannel> {
         p.addLast(new HttpObjectAggregator(512 * 1024));
         InetSocketAddress nextTarget = loadBalancer.getNextServer();
 //        p.addLast(new com.booster.minizuulservice.server.handler.ProxyFrontendHandler("localhost", 8080));
-        p.addLast(new ProxyFrontendHandler(nextTarget.getHostString(), nextTarget.getPort()));
+        p.addLast(new ProxyFrontendHandler(loadBalancer));
 
     }
 }
