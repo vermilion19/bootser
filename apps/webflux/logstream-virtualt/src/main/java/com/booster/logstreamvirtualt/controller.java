@@ -13,10 +13,9 @@ public class controller {
     private final BlockingQueueService blockingQueueService;
 
     @PostMapping("/logs")
-    public String receiveLog(@RequestBody String payload) {
+    public void receiveLog(@RequestBody String payload) {
         // 가상 스레드가 큐에 넣음 (BlockingQueue.offer는 짧은 시간의 Lock 발생)
         blockingQueueService.produce(payload);
-        return "ok";
     }
 
 }

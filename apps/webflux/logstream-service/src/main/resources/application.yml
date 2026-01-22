@@ -9,3 +9,6 @@ logstream:
   file:
     path: access_logs.txt
     buffer-size: 4194304      # 4MB - Direct ByteBuffer 크기
+
+server:
+  port: 8081
