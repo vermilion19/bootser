@@ -6,6 +6,11 @@ server:
   shutdown: graceful
 
 spring:
+  lifecycle:
+    # 셧다운 단계별 타임아웃 설정 (기본값: 30초)
+    # 웹소켓 연결이 남아있어도 10초 뒤에는 강제로 프로세스를 죽입니다.
+    timeout-per-shutdown-phase: 10s
+
   application:
     name: chatting-service
   # Redis 설정

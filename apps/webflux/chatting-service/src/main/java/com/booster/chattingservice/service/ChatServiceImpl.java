@@ -1,6 +1,7 @@
 package com.booster.chattingservice.service;
 
 import com.booster.chattingservice.dto.ChatMessage;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
@@ -79,4 +80,28 @@ public class ChatServiceImpl implements ChatService {
         });
     }
 
+    @PreDestroy
+    public void cleanup() {
+        log.info("Server is shutting down. Closing {} connections...", localConnections.size());
+
+        // 1. 모든 연결된 사용자에게 종료 신호 보내기 (선택사항)
+        // 클라이언트가 이 메시지를 받고 알아서 재접속 로직을 수행하게 유도
+        ChatMessage byeMessage = new ChatMessage(
+                ChatMessage.Type.TALK,
+                "SYSTEM",
+                "SYSTEM",
+                "서버 종료로 인해 연결이 끊어집니다."
+        );
+
+        localConnections.values().forEach(sink -> {
+            // 메시지 전송 시도
+            sink.tryEmitNext(byeMessage);
+            // 스트림 종료 신호 (이게 핵심) -> WebSocketSession이 닫힘
+            sink.tryEmitComplete();
+        });
+
+        // 2. 맵 비우기
+        localConnections.clear();
+        log.info("All connections closed.");
+    }
 }
