@@ -21,8 +21,6 @@ Git 변경사항을 분석하여 적절한 커밋 메시지를 생성하고 커�
 <type>(<scope>): <subject>
 
 <body>
-
-Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Type 종류
