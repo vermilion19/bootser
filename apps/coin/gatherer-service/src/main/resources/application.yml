@@ -2,7 +2,10 @@ spring:
   application:
     name: gatherer-service
 
+
 logging:
   level:
     root: INFO
     com.booster: INFO
+server:
+  port: 8088
