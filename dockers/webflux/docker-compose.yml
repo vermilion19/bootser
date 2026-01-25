@@ -1,12 +1,66 @@
-environment:
-  - JAVA_OPTS=
-    -Dcom.sun.management.jmxremote=true
-    -Dcom.sun.management.jmxremote.local.only=false
-    -Dcom.sun.management.jmxremote.authenticate=false
-    -Dcom.sun.management.jmxremote.ssl=false
-    -Dcom.sun.management.jmxremote.rmi.port=9090
-    -Dcom.sun.management.jmxremote.port=9090
-    -Djava.rmi.server.hostname=localhost  # 혹은 맥미니 IP
-ports:
-  - "8080:8080"
-  - "9090:9090" # JMX 포트도 열어줘야 함
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: webflux-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - webflux-network
+
+  chatting-service:
+    build:
+      context: ../../apps/webflux/chatting-service
+      dockerfile: Dockerfile
+    container_name: chatting-service
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      - redis
+    ulimits:
+      nofile:
+        soft: 200000
+        hard: 200000
+    networks:
+      - webflux-network
+
+  logstream-service:
+    build:
+      context: ../../apps/webflux/logstream-service
+      dockerfile: Dockerfile
+    container_name: logstream-service
+    ports:
+      - "8083:8081"
+    volumes:
+      - logstream-data:/app/logs
+    networks:
+      - webflux-network
+  attacker:
+    build:
+      context: ../../apps/webflux/chatting-service
+      dockerfile: Dockerfile.attacker
+    depends_on:
+      - chatting-service
+    environment:
+      - TARGET_URL=ws://chatting-service:8080/ws/chat
+      - CONN_COUNT=25000
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          memory: 2G
+    ulimits:
+      nofile:
+        soft: 60000
+        hard: 60000
+    networks:
+      - webflux-network
+
+networks:
+  webflux-network:
+    driver: bridge
+
+volumes:
+  logstream-data:

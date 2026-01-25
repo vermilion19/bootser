@@ -8,7 +8,19 @@
       "Bash(cmd.exe /c \"gradlew.bat :apps:promotion-service:test --tests CouponControllerTest\")",
       "Bash(npm install)",
       "Bash(npm run dev:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker exec:*)",
+      "Bash(find:*)",
+      "Bash(for i in 1 2 3 4)",
+      "Bash(do echo \"=== attacker-$i ===\")",
+      "Bash(done)",
+      "Bash(docker inspect:*)",
+      "Bash(docker network inspect:*)",
+      "Bash(curl:*)",
+      "Bash(docker run:*)"
     ]
   }
 }

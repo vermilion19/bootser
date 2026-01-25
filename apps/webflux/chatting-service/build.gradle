@@ -16,3 +16,18 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// Attacker용 별도 JAR 생성
+tasks.register('attackerJar', Jar) {
+    archiveBaseName = 'attacker'
+    archiveVersion = ''
+    manifest {
+        attributes 'Main-Class': 'com.booster.chattingservice.test.SimpleLoadTester'
+    }
+    from sourceSets.main.output
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
