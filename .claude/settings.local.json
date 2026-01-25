@@ -20,7 +20,9 @@
       "Bash(docker inspect:*)",
       "Bash(docker network inspect:*)",
       "Bash(curl:*)",
-      "Bash(docker run:*)"
+      "Bash(docker run:*)",
+      "Bash(python3:*)",
+      "Bash(docker-compose up:*)"
     ]
   }
 }
