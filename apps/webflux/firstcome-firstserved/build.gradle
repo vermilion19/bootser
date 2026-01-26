@@ -15,8 +15,9 @@ dependencies {
 
     // 테스트 필수 의존성
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webflux-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
+    testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'io.projectreactor.tools:blockhound:1.0.9.RELEASE'
 
 }
