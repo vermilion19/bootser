@@ -1,9 +1,9 @@
 package com.booster.firstcomefirstserved.order.application;
 
-import com.booster.firstcomefirstserved.common.error.BusinessException;
-import com.booster.firstcomefirstserved.common.error.ErrorCode;
+import com.booster.core.webflux.exception.CoreException;
 import com.booster.firstcomefirstserved.order.domain.OrderStatus;
-import com.booster.firstcomefirstserved.order.infrastructure.RedisStockAdapter;
+import com.booster.firstcomefirstserved.order.domain.exception.OrderErrorCode;
+import com.booster.firstcomefirstserved.order.infrastructure.adapter.RedisStockAdapter;
 import com.booster.firstcomefirstserved.order.web.dto.OrderRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +25,8 @@ class OrderServiceTest {
 
     @Mock
     private RedisStockAdapter redisStockAdapter;
+    @Mock
+    private OrderEventPublisher eventPublisher;
 
     @InjectMocks
     private OrderService orderService;
@@ -34,7 +36,7 @@ class OrderServiceTest {
     void processOrder_success() {
         OrderRequest request = new OrderRequest(10L, 100L, 1);
 
-        given(redisStockAdapter.decreaseStock(anyLong(), anyInt())).willReturn(Mono.just(true));
+        given(redisStockAdapter.decrease(anyLong(), anyInt())).willReturn(Mono.just(true));
 
         StepVerifier.create(orderService.processOrder(request))
                 .assertNext(response -> {
@@ -51,14 +53,14 @@ class OrderServiceTest {
         OrderRequest request = new OrderRequest(1L, 100L, 1);
 
         // Mocking: Redis 어댑터가 "실패(false)"를 리턴한다고 가정
-        given(redisStockAdapter.decreaseStock(anyLong(), anyInt()))
+        given(redisStockAdapter.decrease(anyLong(), anyInt()))
                 .willReturn(Mono.just(false));
 
         // When & Then
         StepVerifier.create(orderService.processOrder(request))
                 .expectErrorMatches(throwable ->
-                        throwable instanceof BusinessException &&
-                                ((BusinessException) throwable).getErrorCode() == ErrorCode.SOLD_OUT
+                        throwable instanceof CoreException &&
+                                ((CoreException) throwable).getErrorCode() == OrderErrorCode.SOLD_OUT
                 )
                 .verify();
     }

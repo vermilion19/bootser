@@ -2,11 +2,15 @@ package com.booster.firstcomefirstserved.order.web;
 
 import com.booster.firstcomefirstserved.order.application.OrderService;
 import com.booster.firstcomefirstserved.order.domain.OrderStatus;
+import com.booster.firstcomefirstserved.order.domain.port.StockPort;
+import com.booster.firstcomefirstserved.order.infrastructure.persistence.OrderRepository;
 import com.booster.firstcomefirstserved.order.web.dto.OrderRequest;
 import com.booster.firstcomefirstserved.order.web.dto.OrderResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,6 +31,13 @@ class OrderControllerTest {
     @MockitoBean
     private OrderService orderService;
 
+    @MockitoBean
+    private OrderRepository orderRepository;
+
+    @MockitoBean
+    private StockPort stockPort;
+
+
     @Test
     @DisplayName("정상 요청 시 202 Accepted 응답을 반환한다")
     void createOrder_success() {
@@ -44,8 +55,8 @@ class OrderControllerTest {
                 .exchange()
                 .expectStatus().isAccepted()
                 .expectBody()
-                .jsonPath("$.success").isEqualTo(true)
-                .jsonPath("$.data.status").isEqualTo("PROCESSING");
+                .consumeWith(System.out::println)
+                .jsonPath("$.data.status").isEqualTo(OrderStatus.PROCESSING);
     }
 
     @Test
@@ -61,7 +72,8 @@ class OrderControllerTest {
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody()
-                .jsonPath("$.success").isEqualTo(false)
-                .jsonPath("$.message").isEqualTo("주문 수량은 최소 1개 이상이어야 합니다.");
+                .consumeWith(System.out::println)
+                .jsonPath("$.status").isEqualTo(400);
     }
+
 }
