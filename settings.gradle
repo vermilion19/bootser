@@ -14,6 +14,7 @@ include 'apps:webflux:mini-zuul-service'
 include 'apps:webflux:logstream-service'
 include 'apps:webflux:logstream-virtualt'
 include 'apps:webflux:chatting-service'
+include 'apps:webflux:chatting-service-vt'
 
 // 2. Libs (공통 라이브러리 모듈)
 include 'libs:common'
@@ -31,6 +32,7 @@ include 'playground:java-coding-test'
 include 'playground:kotlin-lab'
 
 include 'agents:TestMakerAgent'
+
 
 
 
