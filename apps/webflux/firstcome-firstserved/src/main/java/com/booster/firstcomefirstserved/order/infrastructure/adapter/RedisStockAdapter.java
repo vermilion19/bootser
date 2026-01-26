@@ -1,5 +1,6 @@
-package com.booster.firstcomefirstserved.order.infrastructure;
+package com.booster.firstcomefirstserved.order.infrastructure.adapter;
 
+import com.booster.firstcomefirstserved.order.domain.port.StockPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -9,34 +10,42 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+/**
+ * Redis 기반 재고 관리 어댑터
+ * - Lua Script를 사용한 원자적 재고 차감
+ */
 @Component
 @RequiredArgsConstructor
-public class RedisStockAdapter {
+public class RedisStockAdapter implements StockPort {
 
     private final ReactiveRedisTemplate<String, String> redisTemplate;
-    // Lua Script 로드
+
     private final RedisScript<Long> decreaseStockScript = RedisScript.of(
             new ClassPathResource("scripts/decrease_stock.lua"), Long.class
     );
 
+    private static final String KEY_PREFIX = "item:stock:";
 
-    /**
-     * 재고 차감 시도 (Atomic)
-     * @param itemId 상품 ID
-     * @param quantity 차감 수량
-     * @return true: 차감 성공, false: 재고 부족
-     */
-    public Mono<Boolean> decreaseStock(Long itemId, int quantity) {
-        String key = "item:stock:" + itemId;
+    @Override
+    public Mono<Boolean> decrease(Long itemId, int quantity) {
+        String key = KEY_PREFIX + itemId;
 
         return redisTemplate.execute(decreaseStockScript, List.of(key), List.of(String.valueOf(quantity)))
                 .next()
                 .map(result -> result >= 0);
     }
 
-    public Mono<Boolean> setStock(Long itemId, int quantity) {
-        String key = "item:stock:" + itemId;
+    @Override
+    public Mono<Boolean> set(Long itemId, int quantity) {
+        String key = KEY_PREFIX + itemId;
         return redisTemplate.opsForValue().set(key, String.valueOf(quantity));
     }
 
+    @Override
+    public Mono<Long> get(Long itemId) {
+        String key = KEY_PREFIX + itemId;
+        return redisTemplate.opsForValue().get(key)
+                .map(Long::parseLong)
+                .defaultIfEmpty(0L);
+    }
 }

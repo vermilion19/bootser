@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS "product_order" (
                                       order_id VARCHAR(36),
                                       user_id BIGINT,
                                       item_id BIGINT,
+                                      quantity INT DEFAULT 1,
                                       status VARCHAR(50),
                                       created_at TIMESTAMP
 );
