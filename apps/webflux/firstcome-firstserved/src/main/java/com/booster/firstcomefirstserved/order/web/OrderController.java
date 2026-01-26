@@ -2,16 +2,14 @@ package com.booster.firstcomefirstserved.order.web;
 
 import com.booster.firstcomefirstserved.common.response.ApiResponse;
 import com.booster.firstcomefirstserved.order.application.OrderService;
+import com.booster.firstcomefirstserved.order.infrastructure.repository.OrderRepository;
 import com.booster.firstcomefirstserved.order.web.dto.OrderRequest;
 import com.booster.firstcomefirstserved.order.web.dto.OrderResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -19,6 +17,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderService orderService;
+    private final OrderRepository orderRepository;
 
     @PostMapping
     public Mono<ResponseEntity<ApiResponse<OrderResponse>>> createOrder(@Valid @RequestBody Mono<OrderRequest> requestMono) {
@@ -30,4 +29,8 @@ public class OrderController {
                 );
     }
 
+    @GetMapping("/count")
+    public Mono<Long> getOrderCount() {
+        return orderRepository.count();
+    }
 }
