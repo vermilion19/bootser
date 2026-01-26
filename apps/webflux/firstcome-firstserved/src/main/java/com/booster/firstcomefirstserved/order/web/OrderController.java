@@ -2,6 +2,7 @@ package com.booster.firstcomefirstserved.order.web;
 
 import com.booster.core.webflux.response.ApiResponse;
 import com.booster.firstcomefirstserved.order.application.OrderService;
+import com.booster.firstcomefirstserved.order.common.aop.Idempotent;
 import com.booster.firstcomefirstserved.order.domain.port.StockPort;
 import com.booster.firstcomefirstserved.order.infrastructure.persistence.OrderRepository;
 import com.booster.firstcomefirstserved.order.web.dto.OrderRequest;
@@ -29,7 +30,9 @@ public class OrderController {
      * flatMap 사용 이유: requestMono.flatMap()에서 orderService.processOrder()가 Mono를 반환
      */
     @PostMapping
+    @Idempotent(ttlSeconds = 300)
     public Mono<ResponseEntity<ApiResponse<OrderResponse>>> createOrder(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody Mono<OrderRequest> requestMono
     ) {
         // requestMono: Mono<OrderRequest>

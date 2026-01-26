@@ -8,6 +8,7 @@ dependencies {
     implementation project(':libs:core-webflux')
     implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+    implementation 'org.springframework.boot:spring-boot-starter-aop:4.0.0-M2'
 
     // runtimeOnly 'io.asyncer:r2dbc-mysql:1.1.0'
     runtimeOnly 'io.r2dbc:r2dbc-h2'
