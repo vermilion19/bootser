@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: firstcome-firstserved
+  r2dbc:
+    # 핵심: r2dbc:h2:mem:///{데이터베이스이름}
+    # DB_CLOSE_DELAY=-1: 애플리케이션이 실행되는 동안 DB 연결이 끊겨도 데이터 유지
+    url: r2dbc:h2:mem:///testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    pool:
+      initial-size: 5
+      max-size: 10
+
+  # H2 콘솔 사용 설정 (WebFlux에서는 일반적인 방법으로는 안 되지만 일단 설정해둠)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+logging:
+  level:
+    org.springframework.r2dbc: DEBUG # 쿼리 나가는거 확인용
