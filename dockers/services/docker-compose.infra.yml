@@ -1,8 +1,17 @@
+networks:
+  booster-network:
+    name: booster-network
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: booster-postgres
-    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -24,7 +33,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: booster-redis
-    restart: always
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
@@ -42,8 +50,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: booster-zookeeper
-    restart: always
-    stop_grace_period: 2m  # 안전한 종료를 위한 대기 시간 추가
+    stop_grace_period: 2m
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -55,8 +62,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: booster-kafka
-    restart: always
-    stop_grace_period: 2m  # 안전한 종료를 위한 대기 시간 추가
+    stop_grace_period: 2m
     depends_on:
       - zookeeper
     ports:
@@ -84,7 +90,6 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: booster-kafka-ui
-    restart: always
     depends_on:
       kafka:
         condition: service_healthy
@@ -96,13 +101,3 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     networks:
       - booster-network
-
-networks:
-  booster-network:
-    name: booster-network
-    driver: bridge
-
-volumes:
-  postgres-data:
-  redis-data:
-  kafka-data:

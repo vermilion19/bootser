@@ -9,7 +9,6 @@ services:
   jenkins:
     image: jenkins/jenkins:lts-jdk21
     container_name: booster-jenkins
-    restart: unless-stopped
     user: root
     privileged: true
     ports:

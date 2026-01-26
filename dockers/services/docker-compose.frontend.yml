@@ -1,3 +1,8 @@
+networks:
+  booster-network:
+    external: true
+    name: booster-network
+
 services:
   user-web:
     image: booster/user-web
@@ -5,7 +10,6 @@ services:
       context: ../../frontends/user-web
       dockerfile: Dockerfile
     container_name: booster-user-web
-    restart: no
     ports:
       - "3300:80"
     healthcheck:
@@ -16,8 +20,3 @@ services:
       start_period: 10s
     networks:
       - booster-network
-
-networks:
-  booster-network:
-    external: true
-    name: booster-network

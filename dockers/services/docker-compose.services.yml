@@ -1,3 +1,8 @@
+networks:
+  booster-network:
+    external: true
+    name: booster-network
+
 services:
   discovery-service:
     image: booster/discovery-service
@@ -59,9 +64,9 @@ services:
       discovery-service:
         condition: service_healthy
     expose:
-      - "8080"
+      - "8081"
     environment:
-      SERVER_PORT: 8080
+      SERVER_PORT: 8081
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/restaurant_service_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -71,7 +76,7 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -90,9 +95,9 @@ services:
       restaurant-service:
         condition: service_healthy
     expose:
-      - "8080"
+      - "8082"
     environment:
-      SERVER_PORT: 8080
+      SERVER_PORT: 8082
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/waiting_service_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -103,7 +108,7 @@ services:
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
       APP_FEIGN_RESTAURANT_URL: http://gateway-service:6000
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -122,9 +127,9 @@ services:
       restaurant-service:
         condition: service_healthy
     expose:
-      - "8080"
+      - "8083"
     environment:
-      SERVER_PORT: 8080
+      SERVER_PORT: 8083
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/promotion_service_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -134,7 +139,7 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -155,9 +160,9 @@ services:
       promotion-service:
         condition: service_healthy
     expose:
-      - "8080"
+      - "8084"
     environment:
-      SERVER_PORT: 8080
+      SERVER_PORT: 8084
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/noti_service_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -179,9 +184,9 @@ services:
       notification-service:
         condition: service_started
     expose:
-      - "8080"
+      - "8085"
     environment:
-      SERVER_PORT: 8080
+      SERVER_PORT: 8085
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_service_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -190,15 +195,10 @@ services:
       APP_JWT_SECRET: ${JWT_SECRET}
       JAVA_TOOL_OPTIONS: "-Djava.security.egd=file:/dev/./urandom"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
       interval: 10s
       timeout: 10s
       retries: 10
       start_period: 180s
     networks:
       - booster-network
-
-networks:
-  booster-network:
-    external: true
-    name: booster-network
