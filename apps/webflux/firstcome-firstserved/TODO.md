@@ -9,9 +9,9 @@
 ## 1순위: 데이터 정합성 ⭐⭐⭐
 
 ### 1.1 Idempotency Key 구현
-- [ ] `IdempotencyKeyFilter` 또는 AOP 구현
-- [ ] Redis에 Idempotency Key 저장 (TTL 설정)
-- [ ] 중복 요청 시 기존 응답 반환
+- [x] `IdempotencyKeyFilter` 또는 AOP 구현
+- [x] Redis에 Idempotency Key 저장 (TTL 설정)
+- [x] 중복 요청 시 기존 응답 반환
 - [ ] 테스트 코드 작성
 
 **목적**: 네트워크 타임아웃 등으로 인한 중복 주문 방지

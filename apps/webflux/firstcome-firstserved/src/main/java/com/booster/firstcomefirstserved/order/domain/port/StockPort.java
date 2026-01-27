@@ -26,4 +26,6 @@ public interface StockPort {
      * 현재 재고 조회
      */
     Mono<Long> get(Long itemId);
+
+    Mono<Long> increase(Long itemId, int quantity);
 }

@@ -48,4 +48,9 @@ public class RedisStockAdapter implements StockPort {
                 .map(Long::parseLong)
                 .defaultIfEmpty(0L);
     }
+
+    @Override
+    public Mono<Long> increase(Long itemId, int quantity) {
+        return redisTemplate.opsForValue().increment(KEY_PREFIX + itemId, quantity);
+    }
 }
