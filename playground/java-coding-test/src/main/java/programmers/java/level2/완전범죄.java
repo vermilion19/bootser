@@ -25,8 +25,8 @@ public class 완전범죄 {
     class Solution {
         public int solution(int[][] info, int n, int m) {
             // A가 가질 수 있는 최대 흔적은 n-1까지입니다.
-            int INF = 1000000; // 충분히 큰 값
             int[] dp = new int[n];
+            int INF = 1000000; // 충분히 큰 값
             Arrays.fill(dp, INF);
             dp[0] = 0;
 
