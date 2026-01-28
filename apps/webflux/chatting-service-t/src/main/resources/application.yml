@@ -1,0 +1,35 @@
+server:
+  port: 8082
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+
+spring:
+  application:
+    name: chatting-service-t
+
+  # Virtual Thread 비활성화 (전통적인 플랫폼 스레드 사용)
+  threads:
+    virtual:
+      enabled: false
+
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+
+  # Redis 설정
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 1000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+
+logging:
+  level:
+    root: INFO

@@ -22,7 +22,8 @@
       "Bash(curl:*)",
       "Bash(docker run:*)",
       "Bash(python3:*)",
-      "Bash(docker-compose up:*)"
+      "Bash(docker-compose up:*)",
+      "Bash(gradlew.bat :apps:webflux:chatting-service-t:build:*)"
     ]
   }
 }
