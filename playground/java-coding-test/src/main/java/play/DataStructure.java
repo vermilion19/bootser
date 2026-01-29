@@ -1,4 +1,10 @@
 package play;
 
-public class Datastructure {
+
+import java.math.BigInteger;
+
+public class DataStructure {
+    static void main() {
+
+    }
 }
