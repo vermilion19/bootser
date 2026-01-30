@@ -16,4 +16,7 @@ public interface SpecialDayRepository extends JpaRepository<SpecialDay,Long> {
 
     // 가장 가까운 과거 특별한 날
     Optional<SpecialDay> findFirstByCountryCodeInAndDateBeforeOrderByDateDesc(List<CountryCode> countryCodes, LocalDate date);
+
+    // 중복 체크
+    boolean existsByCountryCodeAndDateAndName(CountryCode countryCode, LocalDate date, String name);
 }
