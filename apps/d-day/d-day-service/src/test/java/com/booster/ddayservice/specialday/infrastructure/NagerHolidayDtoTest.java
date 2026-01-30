@@ -1,6 +1,5 @@
 package com.booster.ddayservice.specialday.infrastructure;
 
-import com.booster.ddayservice.specialday.domain.CountryCode;
 import com.booster.ddayservice.specialday.domain.SpecialDay;
 import com.booster.ddayservice.specialday.domain.SpecialDayCategory;
 import com.booster.ddayservice.specialday.domain.Timezone;
@@ -21,7 +20,7 @@ class NagerHolidayDtoTest {
     void should_convertToEntity_when_publicHoliday() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-01-01", "신정", "New Year's Day", KR,
+                "2026-01-01", "신정", "New Year's Day", "KR",
                 true, true, null, null, List.of("Public")
         );
 
@@ -43,7 +42,7 @@ class NagerHolidayDtoTest {
     void should_mapToPublicHoliday_when_typesIsNull() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-12-25", "크리스마스", "Christmas Day", KR,
+                "2026-12-25", "크리스마스", "Christmas Day", "KR",
                 true, true, null, null, null
         );
 
@@ -59,7 +58,7 @@ class NagerHolidayDtoTest {
     void should_mapToPublicHoliday_when_typesIsEmpty() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-12-25", "크리스마스", "Christmas Day", KR,
+                "2026-12-25", "크리스마스", "Christmas Day", "KR",
                 true, true, null, null, List.of()
         );
 
@@ -75,7 +74,7 @@ class NagerHolidayDtoTest {
     void should_mapToMemorialDay_when_nonPublicType() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-05-05", "어린이날", "Children's Day", KR,
+                "2026-05-05", "어린이날", "Children's Day", "KR",
                 true, true, null, null, List.of("Observance")
         );
 
@@ -91,7 +90,7 @@ class NagerHolidayDtoTest {
     void should_setUSTimezone_when_countryIsUS() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-07-04", "Independence Day", "Independence Day", US,
+                "2026-07-04", "Independence Day", "Independence Day", "US",
                 true, true, null, null, List.of("Public")
         );
 
