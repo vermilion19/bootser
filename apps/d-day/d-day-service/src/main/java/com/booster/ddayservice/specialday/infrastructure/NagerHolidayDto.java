@@ -11,7 +11,7 @@ public record NagerHolidayDto(
         String date,
         String localName,
         String name,
-        String countryCode,
+        CountryCode countryCode,
         boolean fixed,
         boolean global,
         List<String> counties,

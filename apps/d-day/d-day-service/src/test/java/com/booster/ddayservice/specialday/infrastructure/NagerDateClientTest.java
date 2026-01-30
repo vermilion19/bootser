@@ -11,6 +11,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
+import static com.booster.ddayservice.specialday.domain.CountryCode.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -34,9 +35,9 @@ class NagerDateClientTest {
     void should_returnHolidayList_when_validCountryCode() throws Exception {
         // given
         String responseJson = new ObjectMapper().writeValueAsString(List.of(
-                new NagerHolidayDto("2026-01-01", "신정", "New Year's Day", "KR",
+                new NagerHolidayDto("2026-01-01", "신정", "New Year's Day", KR,
                         true, true, null, null, List.of("Public")),
-                new NagerHolidayDto("2026-03-01", "삼일절", "Independence Movement Day", "KR",
+                new NagerHolidayDto("2026-03-01", "삼일절", "Independence Movement Day", KR,
                         true, true, null, null, List.of("Public"))
         ));
 
@@ -44,7 +45,7 @@ class NagerDateClientTest {
                 .andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
 
         // when
-        List<NagerHolidayDto> result = nagerDateClient.getPublicHolidays(2026, CountryCode.KR);
+        List<NagerHolidayDto> result = nagerDateClient.getPublicHolidays(2026, KR);
 
         // then
         assertThat(result).hasSize(2);
@@ -63,7 +64,7 @@ class NagerDateClientTest {
                 .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
 
         // when
-        List<NagerHolidayDto> result = nagerDateClient.getPublicHolidays(2026, CountryCode.US);
+        List<NagerHolidayDto> result = nagerDateClient.getPublicHolidays(2026, US);
 
         // then
         assertThat(result).isEmpty();
@@ -79,7 +80,7 @@ class NagerDateClientTest {
                 .andRespond(withResourceNotFound());
 
         // when & then
-        assertThatThrownBy(() -> nagerDateClient.getPublicHolidays(2026, CountryCode.KR))
+        assertThatThrownBy(() -> nagerDateClient.getPublicHolidays(2026, KR))
                 .isInstanceOf(Exception.class);
 
         mockServer.verify();
@@ -99,7 +100,7 @@ class NagerDateClientTest {
                 .andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
 
         // when
-        List<NagerHolidayDto> result = nagerDateClient.getPublicHolidays(2026, CountryCode.KR);
+        List<NagerHolidayDto> result = nagerDateClient.getPublicHolidays(2026, KR);
 
         // then
         assertThat(result).hasSize(1);
@@ -114,7 +115,7 @@ class NagerDateClientTest {
     void should_callCorrectUrl_when_differentCountryCode() throws Exception {
         // given
         String responseJson = new ObjectMapper().writeValueAsString(List.of(
-                new NagerHolidayDto("2026-07-04", "Independence Day", "Independence Day", "US",
+                new NagerHolidayDto("2026-07-04", "Independence Day", "Independence Day", US,
                         true, true, null, null, List.of("Public"))
         ));
 
@@ -122,11 +123,11 @@ class NagerDateClientTest {
                 .andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
 
         // when
-        List<NagerHolidayDto> result = nagerDateClient.getPublicHolidays(2026, CountryCode.US);
+        List<NagerHolidayDto> result = nagerDateClient.getPublicHolidays(2026, US);
 
         // then
         assertThat(result).hasSize(1);
-        assertThat(result.getFirst().countryCode()).isEqualTo("US");
+        assertThat(result.getFirst().countryCode()).isEqualTo(US);
 
         mockServer.verify();
     }

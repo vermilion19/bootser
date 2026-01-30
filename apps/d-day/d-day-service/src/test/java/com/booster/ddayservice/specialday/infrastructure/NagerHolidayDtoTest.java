@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import java.util.List;
 
+import static com.booster.ddayservice.specialday.domain.CountryCode.KR;
+import static com.booster.ddayservice.specialday.domain.CountryCode.US;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class NagerHolidayDtoTest {
@@ -19,12 +21,12 @@ class NagerHolidayDtoTest {
     void should_convertToEntity_when_publicHoliday() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-01-01", "신정", "New Year's Day", "KR",
+                "2026-01-01", "신정", "New Year's Day", KR,
                 true, true, null, null, List.of("Public")
         );
 
         // when
-        SpecialDay entity = dto.toEntity(CountryCode.KR);
+        SpecialDay entity = dto.toEntity(KR);
 
         // then
         assertThat(entity.getName()).isEqualTo("신정");
@@ -32,7 +34,7 @@ class NagerHolidayDtoTest {
         assertThat(entity.getDate()).isEqualTo(LocalDate.of(2026, 1, 1));
         assertThat(entity.getEventTime()).isNull();
         assertThat(entity.getEventTimeZone()).isEqualTo(Timezone.ASIA_SEOUL);
-        assertThat(entity.getCountryCode()).isEqualTo(CountryCode.KR);
+        assertThat(entity.getCountryCode()).isEqualTo(KR);
         assertThat(entity.getDescription()).isEqualTo("New Year's Day");
     }
 
@@ -41,12 +43,12 @@ class NagerHolidayDtoTest {
     void should_mapToPublicHoliday_when_typesIsNull() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-12-25", "크리스마스", "Christmas Day", "KR",
+                "2026-12-25", "크리스마스", "Christmas Day", KR,
                 true, true, null, null, null
         );
 
         // when
-        SpecialDay entity = dto.toEntity(CountryCode.KR);
+        SpecialDay entity = dto.toEntity(KR);
 
         // then
         assertThat(entity.getCategory()).isEqualTo(SpecialDayCategory.PUBLIC_HOLIDAY);
@@ -57,12 +59,12 @@ class NagerHolidayDtoTest {
     void should_mapToPublicHoliday_when_typesIsEmpty() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-12-25", "크리스마스", "Christmas Day", "KR",
+                "2026-12-25", "크리스마스", "Christmas Day", KR,
                 true, true, null, null, List.of()
         );
 
         // when
-        SpecialDay entity = dto.toEntity(CountryCode.KR);
+        SpecialDay entity = dto.toEntity(KR);
 
         // then
         assertThat(entity.getCategory()).isEqualTo(SpecialDayCategory.PUBLIC_HOLIDAY);
@@ -73,12 +75,12 @@ class NagerHolidayDtoTest {
     void should_mapToMemorialDay_when_nonPublicType() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-05-05", "어린이날", "Children's Day", "KR",
+                "2026-05-05", "어린이날", "Children's Day", KR,
                 true, true, null, null, List.of("Observance")
         );
 
         // when
-        SpecialDay entity = dto.toEntity(CountryCode.KR);
+        SpecialDay entity = dto.toEntity(KR);
 
         // then
         assertThat(entity.getCategory()).isEqualTo(SpecialDayCategory.MEMORIAL_DAY);
@@ -89,15 +91,15 @@ class NagerHolidayDtoTest {
     void should_setUSTimezone_when_countryIsUS() {
         // given
         NagerHolidayDto dto = new NagerHolidayDto(
-                "2026-07-04", "Independence Day", "Independence Day", "US",
+                "2026-07-04", "Independence Day", "Independence Day", US,
                 true, true, null, null, List.of("Public")
         );
 
         // when
-        SpecialDay entity = dto.toEntity(CountryCode.US);
+        SpecialDay entity = dto.toEntity(US);
 
         // then
-        assertThat(entity.getCountryCode()).isEqualTo(CountryCode.US);
+        assertThat(entity.getCountryCode()).isEqualTo(US);
         assertThat(entity.getEventTimeZone()).isEqualTo(Timezone.AMERICA_NEW_YORK);
     }
 }
