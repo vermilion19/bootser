@@ -32,6 +32,12 @@
 - [ ] **FR-6**: 외부 공휴일 API 데이터를 주기적으로 동기화한다
   - 외부 API에서 데이터를 가져와 내부 DB에 저장 (캐싱)
   - 동기화 주기: 일 1회 (스케줄러)
+- [ ] **FR-7**: 타국 이벤트의 시간대 변환 및 D-Day 계산을 지원한다
+  - 이벤트는 **원본 시간대**(이벤트가 열리는 국가의 timezone)를 가진다
+  - 사용자가 다른 국가의 이벤트를 조회할 때, 해당 이벤트의 원본 시간(날짜+시각)을 사용자의 timezone으로 변환하여 보여준다
+  - 예: 한국 공연이 `2026-03-02 19:00 Asia/Seoul`이면, 미국 동부 사용자에게는 `2026-03-02 05:00 America/New_York`으로 표시
+  - D-Day 계산도 사용자 timezone 기준으로 수행 (변환된 날짜 기준 남은 일수)
+  - 날짜가 시차로 인해 달라질 수 있음을 명시 표시 (e.g. 한국 3/2 → 미국 3/1)
 
 ### 비기능 요구사항 (Non-Functional)
 
@@ -144,7 +150,49 @@ GET /api/v1/special-days/today?timezone=Asia/Seoul&countryCode=KR
 }
 ```
 
-### 2. 특정 기간 특별한 날 조회
+### 2. 타국 이벤트 조회 (시간대 변환)
+
+```
+GET /api/v1/special-days/today?timezone=America/New_York&countryCode=KR
+```
+
+미국 동부 사용자가 한국 이벤트를 조회하는 경우:
+
+```json
+{
+  "date": "2026-03-01",
+  "countryCode": "KR",
+  "userTimezone": "America/New_York",
+  "hasSpecialDay": true,
+  "specialDays": [
+    {
+      "name": "K-POP 콘서트",
+      "category": "ENTERTAINMENT",
+      "description": "서울 올림픽공원",
+      "originalDate": "2026-03-02",
+      "originalTime": "19:00",
+      "originalTimezone": "Asia/Seoul",
+      "convertedDate": "2026-03-02",
+      "convertedTime": "05:00",
+      "convertedTimezone": "America/New_York",
+      "dateShifted": false
+    }
+  ],
+  "upcoming": {
+    "name": "삼일절",
+    "date": "2026-03-01",
+    "daysUntil": 0,
+    "category": "PUBLIC_HOLIDAY",
+    "convertedDate": "2026-02-28",
+    "dateShifted": true
+  }
+}
+```
+
+> `dateShifted: true`는 시차로 인해 사용자 기준 날짜가 원본과 달라졌음을 의미한다.
+> D-Day 계산은 `convertedDate` 기준으로 수행한다.
+
+### 3. 특정 기간 특별한 날 조회
 
 ```
 GET /api/v1/special-days?countryCode=KR&from=2026-01-01&to=2026-12-31
@@ -175,7 +223,9 @@ POST /api/v1/admin/special-days
 | id | BIGINT (PK) | Snowflake ID |
 | name | VARCHAR(200) | 특별한 날 이름 |
 | category | VARCHAR(50) | 카테고리 (ENUM) |
-| date | DATE | 날짜 |
+| date | DATE | 날짜 (이벤트 현지 기준) |
+| event_time | TIME | 이벤트 시각 (nullable, 공휴일은 null) |
+| event_timezone | VARCHAR(50) | 이벤트 현지 timezone (e.g. `Asia/Seoul`) |
 | country_code | VARCHAR(10) | ISO 3166-1 또는 "GLOBAL" |
 | description | TEXT | 설명 (nullable) |
 | source | VARCHAR(50) | 데이터 출처 (API_SYNC / ADMIN) |
@@ -203,11 +253,19 @@ POST /api/v1/admin/special-days
 - 유효하지 않은 `timezone` → 400 Bad Request
 - 외부 API 장애 시 → 내부 DB 데이터로 fallback (CircuitBreaker)
 
+### 시간대 변환 케이스
+
+- 한국 3/2 19:00 이벤트 → 미국 동부 3/2 05:00 (같은 날)
+- 한국 3/1 02:00 이벤트 → 미국 동부 2/28 12:00 (날짜 역전, `dateShifted: true`)
+- 시각 정보 없는 공휴일 → 날짜만 표시, 시간 변환 없이 날짜 그대로 사용
+- D-Day: 한국 3/2 이벤트를 미국 동부에서 조회 시, convertedDate 기준으로 남은 일수 계산
+
 ### 경계값 케이스
 
 - 날짜 변경선 부근 (UTC 자정 전후) → 타임존별 정확한 날짜 계산 검증
 - 연말/연초 (12/31 ~ 1/1) → D-Day 계산 시 연도 전환
 - 데이터가 아예 없는 국가 → 빈 리스트 + nearest null
+- 시차로 인한 날짜 역전 시 D-Day가 -1일 될 수 있음 검증
 
 ## 미결정 사항 (TBD)
 
