@@ -207,3 +207,45 @@ Shadcn UI + Tailwind CSS 기반으로 DataTable, Modal, Form, Dashboard, Chart �
 /responsive LandingPage                     # 브레이크포인트별 레이아웃 적절성 검토
 /responsive components/dashboard/           # 대시보드 컴포넌트 전체 검토
 ```
+
+---
+
+## `/quiz`
+
+**현재 코드 기반의 시니어 면접 질문 생성**
+
+작성 중인 코드의 잠재적 문제점을 바탕으로 기술 면접 질문을 생성합니다. 동시성/트래픽, 장애 시나리오, 데이터 정합성, 설계 트레이드오프, DB 성능 관점에서 질문하며, 힌트와 접이식 모범 답안을 포함합니다.
+
+```
+/quiz WaitingService               # 트래픽 급증 시 발생할 문제점 질문
+/quiz database-schema.sql          # 인덱스 설계와 쿼리 성능 관련 질문
+/quiz KafkaConfig                  # 브로커 장애 시 메시지 손실 방지 질문
+```
+
+---
+
+## `/roadmap`
+
+**특정 기술 습득을 위한 학습 경로 생성**
+
+새로운 기술을 학습할 때 기초(Foundation) → 실전 적용(Practice) → 심화(Advanced) → 운영/설계(Production) 4단계로 커리큘럼을 생성합니다. 체크리스트 형태로 진행 추적이 가능하며, 면접 빈출 질문과 현재 프로젝트 적용 시나리오를 포함합니다.
+
+```
+/roadmap Distributed Tracing (Zipkin/Sleuth)
+/roadmap 고가용성 DB 클러스터링 구성 및 운영
+/roadmap JVM 튜닝 및 메모리 프로파일링
+```
+
+---
+
+## `/anti-pattern`
+
+**시니어 관점에서의 '나쁜 코드' 탐지 및 개선**
+
+대규모 환경에서 독이 될 수 있는 안티패턴을 탐지합니다. 루프 내 DB 호출, 예외 삼키기, 공유 자원 무방비 접근, God Class, Anemic Domain Model, 보안 취약점 등을 찾아내고 시니어 수준의 대안을 제시합니다.
+
+```
+/anti-pattern src/main/java/service/    # 서비스 레이어 전체 안티패턴 탐지
+/anti-pattern async-processing-logic    # 비동기 처리 로직 점검
+/anti-pattern WaitingFacade             # 특정 클래스 안티패턴 분석
+```
