@@ -8,11 +8,15 @@ import com.booster.ddayservice.specialday.domain.Timezone;
 import com.booster.ddayservice.specialday.exception.SpecialDayErrorCode;
 import com.booster.ddayservice.specialday.exception.SpecialDayException;
 import com.booster.ddayservice.specialday.web.dto.TodayResponse;
+import com.booster.ddayservice.specialday.web.dto.CountryCodeResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Arrays;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,6 +24,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class SpecialDayController {
 
     private final SpecialDayService specialDayService;
+
+    @GetMapping("/countries")
+    public ApiResponse<List<CountryCodeResponse>> getCountryCodes(
+            @RequestParam(required = false) String query
+    ) {
+        List<CountryCodeResponse> results = Arrays.stream(CountryCode.values())
+                .filter(cc -> query == null || query.isBlank()
+                        || cc.getDisplayName().toLowerCase().contains(query.toLowerCase()))
+                .map(CountryCodeResponse::from)
+                .toList();
+        return ApiResponse.success(results);
+    }
 
     @GetMapping("/today")
     public ApiResponse<TodayResponse> getToday(

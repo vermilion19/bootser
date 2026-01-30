@@ -14,11 +14,75 @@
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | /countries | 지원 국가 코드 목록 조회 (검색 지원) |
 | GET | /today | 오늘의 특별한 날 조회 + 다음 D-Day |
 
 ---
 
 ## API 상세
+
+### 국가 코드 목록 조회
+
+```
+GET /api/v1/special-days/countries
+```
+
+#### Description
+지원하는 국가 코드 목록을 반환합니다. `query` 파라미터로 국가명(displayName) 기준 검색이 가능합니다 (대소문자 무시).
+
+#### Query Parameters
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| query | String | No | - | 국가명 검색어 (displayName 부분 일치, 대소문자 무시) |
+
+#### Request Example
+```
+GET /api/v1/special-days/countries?query=Mo
+```
+
+#### Response
+```json
+{
+  "result": "SUCCESS",
+  "data": [
+    {
+      "code": "MN",
+      "displayName": "Mongolia"
+    },
+    {
+      "code": "ME",
+      "displayName": "Montenegro"
+    },
+    {
+      "code": "MS",
+      "displayName": "Montserrat"
+    },
+    {
+      "code": "MA",
+      "displayName": "Morocco"
+    },
+    {
+      "code": "MZ",
+      "displayName": "Mozambique"
+    }
+  ],
+  "message": null,
+  "errorCode": null
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| code | String | ISO 3166-1 alpha-2 국가 코드 |
+| displayName | String | 국가명 (영문) |
+
+#### Response - 전체 목록 (query 없음)
+```
+GET /api/v1/special-days/countries
+```
+`query` 파라미터를 생략하면 지원하는 모든 국가 코드를 반환합니다.
+
+---
 
 ### 오늘의 특별한 날 조회
 
@@ -29,15 +93,10 @@ GET /api/v1/special-days/today
 #### Description
 사용자의 타임존 기준 오늘 날짜에 해당하는 특별한 날 목록과, 가장 가까운 미래의 특별한 날(D-Day)을 반환합니다.
 
-#### Request Headers
-| Header | Required | Description |
-|--------|----------|-------------|
-| Content-Type | No | 요청 본문 없음 (GET) |
-
 #### Query Parameters
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| countryCode | String | Yes | - | ISO 3166-1 alpha-2 국가 코드 (e.g. `KR`, `US`, `JP`) |
+| countryCode | String | No | `KR` | ISO 3166-1 alpha-2 국가 코드 (e.g. `KR`, `US`, `JP`) |
 | timezone | String | No | `UTC` | IANA 타임존 (e.g. `Asia/Seoul`, `America/New_York`) |
 
 #### Request Example
