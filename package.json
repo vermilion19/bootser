@@ -6,6 +6,8 @@
   ],
   "scripts": {
     "dev:user-web": "npm run dev -w @booster/user-web",
-    "build:user-web": "npm run build -w @booster/user-web"
+    "build:user-web": "npm run build -w @booster/user-web",
+    "dev:dday-web": "npm run dev -w @booster/dday-web",
+    "build:dday-web": "npm run build -w @booster/dday-web"
   }
 }
