@@ -209,15 +209,15 @@ apps/d-day/d-day-service/
 
 ## 체크리스트
 
-- [ ] `SpecialDay` 엔티티 + UNIQUE 제약조건
-- [ ] `SpecialDayCategory` enum
-- [ ] `SpecialDayRepository` (findByDate, findFirstByDateAfter)
-- [ ] `NagerDateClient` (RestClient, Nager.Date API 호출)
-- [ ] `SpecialDaySyncService` (연도+국가별 동기화, 중복 방지)
-- [ ] `SpecialDayService` (오늘 조회 + D-Day 계산)
+- [x] `SpecialDay` 엔티티 + UNIQUE 제약조건
+- [x] `SpecialDayCategory` enum
+- [x] `SpecialDayRepository` (findByDate, findFirstByDateAfter)
+- [x] `NagerDateClient` (RestClient, Nager.Date API 호출)
+- [x] `SpecialDaySyncService` (연도+국가별 동기화, 중복 방지)
+- [x] `SpecialDayService` (오늘 조회 + D-Day 계산)
 - [ ] `TimezoneConverter` (eventTime 존재 시 사용자 timezone 변환, null이면 패스스루)
-- [ ] `SpecialDayController` + DTO
-- [ ] `SpecialDayErrorCode` + 예외 처리
+- [x] `SpecialDayController` + DTO
+- [x] `SpecialDayErrorCode` + 예외 처리
 - [ ] 단위 테스트 (Service, Client, TimezoneConverter)
 - [ ] 시간대 변환 테스트 (같은 날 유지, 날짜 역전, eventTime null)
 - [ ] 통합 테스트 (Controller)
