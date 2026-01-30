@@ -23,7 +23,13 @@
       "Bash(docker run:*)",
       "Bash(python3:*)",
       "Bash(docker-compose up:*)",
-      "Bash(gradlew.bat :apps:webflux:chatting-service-t:build:*)"
+      "Bash(gradlew.bat :apps:webflux:chatting-service-t:build:*)",
+      "Bash(npx tsc -b)",
+      "Bash(npx vite build)",
+      "Bash(npx:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
