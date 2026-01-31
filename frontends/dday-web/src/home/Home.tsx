@@ -80,7 +80,12 @@ function Home() {
     return (
         <div className="home">
             <section className="hero">
-                <h1 className="hero-title">D-Day</h1>
+                <div className="burst-wrapper">
+                    <div className="burst-glow-left" />
+                    <div className="burst-glow-right" />
+                    <div className="burst-glow-center" />
+                    <h1 className="hero-title">D-Day</h1>
+                </div>
                 <p className="hero-subtitle">
                     Discover today's special moments around the world.
                 </p>

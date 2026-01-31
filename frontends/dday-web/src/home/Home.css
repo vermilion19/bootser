@@ -44,6 +44,103 @@
     }
 }
 
+/* ===== Light Burst Effect ===== */
+.burst-wrapper {
+    position: relative;
+    display: inline-block;
+    overflow: visible;
+}
+
+.burst-glow-left,
+.burst-glow-right {
+    position: absolute;
+    top: 50%;
+    width: 0;
+    height: 0;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.burst-glow-left {
+    right: 50%;
+    background: radial-gradient(ellipse at right center, rgba(245, 158, 11, 0.2), rgba(249, 115, 22, 0.06) 50%, transparent 80%);
+    animation: burstSpreadLeft 2.4s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+}
+
+.burst-glow-right {
+    left: 50%;
+    background: radial-gradient(ellipse at left center, rgba(245, 158, 11, 0.2), rgba(249, 115, 22, 0.06) 50%, transparent 80%);
+    animation: burstSpreadRight 2.4s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+}
+
+.burst-glow-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.05) 40%, transparent 70%);
+    pointer-events: none;
+    animation: burstCenter 2.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+@keyframes burstSpreadLeft {
+    0% {
+        width: 0;
+        height: 0;
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        width: 48vw;
+        height: 200px;
+        opacity: 0;
+    }
+}
+
+@keyframes burstSpreadRight {
+    0% {
+        width: 0;
+        height: 0;
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        width: 48vw;
+        height: 200px;
+        opacity: 0;
+    }
+}
+
+@keyframes burstCenter {
+    0% {
+        width: 0;
+        height: 0;
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        width: 100vw;
+        height: 260px;
+        opacity: 0;
+    }
+}
+
 /* ===== Country Selector ===== */
 .country-selector {
     width: 100%;
