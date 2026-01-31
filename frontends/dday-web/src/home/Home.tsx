@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getCountries, getToday } from '../api/specialDayApi';
 import type { CountryCodeResponse, TodayResponse, SpecialDayCategory } from '../api/types';
+import { useCountUp } from '../hooks/useCountUp';
 import './Home.css';
 
 const CATEGORY_LABELS: Record<SpecialDayCategory, string> = {
@@ -20,6 +21,11 @@ function formatDate(dateStr: string): string {
         month: 'long',
         day: 'numeric',
     });
+}
+
+function UpcomingDday({ daysUntil }: { daysUntil: number }) {
+    const count = useCountUp(daysUntil, 1400, true);
+    return <div className="upcoming-dday">D-{count}</div>;
 }
 
 function Home() {
@@ -74,8 +80,8 @@ function Home() {
     return (
         <div className="home">
             <section className="hero">
-                <h1>D-Day</h1>
-                <p className="subtitle">
+                <h1 className="hero-title">D-Day</h1>
+                <p className="hero-subtitle">
                     Discover today's special moments around the world.
                 </p>
             </section>
@@ -128,17 +134,21 @@ function Home() {
                 </div>
             ) : today ? (
                 <div className="content">
-                    <div className="date-display">
+                    <div className="date-display anim-fade-up" style={{ animationDelay: '0s' }}>
                         <div className="date-text">{formatDate(today.date)}</div>
                         <div className="country-label">{selectedCountry.displayName}</div>
                     </div>
 
-                    <div className="section">
+                    <div className="section anim-fade-up" style={{ animationDelay: '0.15s' }}>
                         <div className="section-label">Today</div>
                         {today.hasSpecialDay && today.specialDays.length > 0 ? (
                             <div className="special-day-list">
                                 {today.specialDays.map((item, i) => (
-                                    <div className="special-day-item" key={i}>
+                                    <div
+                                        className="special-day-item anim-slide-in"
+                                        key={i}
+                                        style={{ animationDelay: `${0.25 + i * 0.08}s` }}
+                                    >
                                         <div className={`category-indicator ${item.category}`} />
                                         <div className="special-day-info">
                                             <div className="name">{item.name}</div>
@@ -160,11 +170,11 @@ function Home() {
                     </div>
 
                     {today.upcoming && (
-                        <div className="upcoming-section">
+                        <div className="upcoming-section anim-fade-up" style={{ animationDelay: '0.3s' }}>
                             <div className="section-label">Coming Up</div>
                             <div className="upcoming-name">{today.upcoming.name}</div>
                             <div className="upcoming-date">{formatDate(today.upcoming.date)}</div>
-                            <div className="upcoming-dday">D-{today.upcoming.daysUntil}</div>
+                            <UpcomingDday daysUntil={today.upcoming.daysUntil} />
                             <div className="upcoming-category">
                                 {CATEGORY_LABELS[today.upcoming.category]}
                             </div>

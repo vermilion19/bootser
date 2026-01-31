@@ -15,20 +15,33 @@
     padding: 6rem 0 3rem;
 }
 
-.hero h1 {
+.hero-title {
     font-size: 3.5rem;
     font-weight: 800;
     letter-spacing: -0.04em;
     color: #1d1d1f;
     line-height: 1.1;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: heroIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-.hero .subtitle {
+.hero-subtitle {
     font-size: 1.25rem;
     font-weight: 400;
     color: #86868b;
     margin-top: 0.75rem;
     letter-spacing: -0.01em;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: heroIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards;
+}
+
+@keyframes heroIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ===== Country Selector ===== */
@@ -324,6 +337,68 @@
 
 .retry-btn:hover {
     opacity: 0.85;
+}
+
+/* ===== Animations ===== */
+
+/* Fade up entrance */
+.anim-fade-up {
+    animation: fadeUp 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Staggered item slide in */
+.anim-slide-in {
+    animation: slideIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Card hover lift */
+.upcoming-section {
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                box-shadow 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.upcoming-section:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.special-day-item {
+    transition: background 0.2s;
+    border-radius: 10px;
+    margin: 0 -0.75rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.special-day-item:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+/* D-Day number */
+.upcoming-dday {
+    font-variant-numeric: tabular-nums;
 }
 
 /* ===== Responsive ===== */
