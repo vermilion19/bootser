@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew :apps:waiting-service:test:*)",
+      "Bash(./gradlew :apps:restaurant-service:test:*)",
+      "Bash(./gradlew:*)",
+      "Bash(gradlew.bat :apps:promotion-service:test:*)",
+      "Bash(cmd.exe /c \"gradlew.bat :apps:promotion-service:test --tests CouponControllerTest\")",
+      "Bash(npm install)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx:*)",
+      "Bash(npm install:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
+    ]
+  }
+}
