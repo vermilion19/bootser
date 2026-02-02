@@ -1,23 +1,18 @@
 package com.booster.ddayservice.specialday.web.controller;
 
 import com.booster.core.web.response.ApiResponse;
+import com.booster.ddayservice.auth.web.CurrentMemberId;
 import com.booster.ddayservice.specialday.application.SpecialDayService;
 import com.booster.ddayservice.specialday.application.dto.PastResult;
 import com.booster.ddayservice.specialday.application.dto.TodayResult;
-import com.booster.ddayservice.specialday.domain.CountryCode;
-import com.booster.ddayservice.specialday.domain.SpecialDayCategory;
-import com.booster.ddayservice.specialday.domain.Timezone;
+import com.booster.ddayservice.specialday.domain.*;
 import com.booster.ddayservice.specialday.exception.SpecialDayErrorCode;
 import com.booster.ddayservice.specialday.exception.SpecialDayException;
-import com.booster.ddayservice.specialday.web.dto.PastResponse;
-import com.booster.ddayservice.specialday.web.dto.TodayResponse;
-import com.booster.ddayservice.specialday.web.dto.CountryCodeResponse;
+import com.booster.ddayservice.specialday.web.dto.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -45,13 +40,14 @@ public class SpecialDayController {
     public ApiResponse<TodayResponse> getToday(
             @RequestParam(defaultValue = "KR") String countryCode,
             @RequestParam(defaultValue = "UTC") String timezone,
-            @RequestParam(required = false) List<SpecialDayCategory> category
+            @RequestParam(required = false) List<SpecialDayCategory> category,
+            @CurrentMemberId(required = false) Long memberId
     ) {
         CountryCode country = parseCountryCode(countryCode);
         Timezone tz = parseTimezone(timezone);
         List<SpecialDayCategory> categories = category != null ? category : List.of();
 
-        TodayResult result = specialDayService.getToday(country, tz, categories);
+        TodayResult result = specialDayService.getToday(country, tz, categories, memberId);
         return ApiResponse.success(TodayResponse.from(result));
     }
 
@@ -59,17 +55,54 @@ public class SpecialDayController {
     public ResponseEntity<ApiResponse<PastResponse>> getPast(
             @RequestParam(defaultValue = "KR") String countryCode,
             @RequestParam(defaultValue = "UTC") String timezone,
-            @RequestParam(required = false) List<SpecialDayCategory> category
+            @RequestParam(required = false) List<SpecialDayCategory> category,
+            @CurrentMemberId(required = false) Long memberId
     ) {
         CountryCode country = parseCountryCode(countryCode);
         Timezone tz = parseTimezone(timezone);
         List<SpecialDayCategory> categories = category != null ? category : List.of();
 
-        PastResult result = specialDayService.getPast(country, tz, categories);
+        PastResult result = specialDayService.getPast(country, tz, categories, memberId);
         if (result == null) {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(ApiResponse.success(PastResponse.from(result)));
+    }
+
+    @PostMapping
+    public ApiResponse<SpecialDayResponse> create(
+            @Valid @RequestBody CreateSpecialDayRequest request,
+            @CurrentMemberId Long memberId
+    ) {
+        CountryCode country = parseCountryCode(request.countryCode());
+        Timezone tz = request.timezone() != null ? parseTimezone(request.timezone()) : country.getDefaultTimezone();
+        SpecialDayCategory cat = parseCategory(request.category());
+
+        boolean isPublic = request.isPublic() != null ? request.isPublic() : true;
+
+        SpecialDay created = specialDayService.createByMember(
+                request.name(), cat, request.date(), request.eventTime(),
+                tz, country, request.description(), memberId, isPublic);
+
+        return ApiResponse.success(SpecialDayResponse.from(created));
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(
+            @PathVariable Long id,
+            @CurrentMemberId Long memberId
+    ) {
+        specialDayService.delete(id, memberId);
+        return ApiResponse.success(null);
+    }
+
+    @PatchMapping("/{id}/visibility")
+    public ApiResponse<Void> toggleVisibility(
+            @PathVariable Long id,
+            @CurrentMemberId Long memberId
+    ) {
+        specialDayService.toggleVisibility(id, memberId);
+        return ApiResponse.success(null);
     }
 
     private CountryCode parseCountryCode(String countryCode) {
@@ -88,6 +121,15 @@ public class SpecialDayController {
         } catch (IllegalArgumentException e) {
             throw new SpecialDayException(SpecialDayErrorCode.INVALID_TIMEZONE,
                     "유효하지 않은 타임존: " + timezone);
+        }
+    }
+
+    private SpecialDayCategory parseCategory(String category) {
+        try {
+            return SpecialDayCategory.valueOf(category.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new SpecialDayException(SpecialDayErrorCode.INVALID_COUNTRY_CODE,
+                    "유효하지 않은 카테고리: " + category);
         }
     }
 }

@@ -16,7 +16,11 @@
       "Bash(git add:*)",
       "Bash(git reset:*)",
       "Bash(git commit:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(dir:*)",
+      "Bash(del \"C:\\\\Users\\\\NCand\\\\Documents\\\\bootser\\\\apps\\\\d-day\\\\d-day-service\\\\src\\\\main\\\\java\\\\com\\\\booster\\\\ddayservice\\\\config\\\\SpecialDayDataInitializer.java\")",
+      "Bash(xargs cat:*)",
+      "Bash(tree:*)"
     ]
   }
 }
