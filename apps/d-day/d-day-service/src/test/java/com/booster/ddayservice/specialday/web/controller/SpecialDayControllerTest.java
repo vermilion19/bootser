@@ -2,6 +2,7 @@ package com.booster.ddayservice.specialday.web.controller;
 
 import com.booster.core.web.config.JacksonConfig;
 import com.booster.ddayservice.specialday.application.SpecialDayService;
+import com.booster.ddayservice.specialday.application.dto.PastResult;
 import com.booster.ddayservice.specialday.application.dto.TodayResult;
 import com.booster.ddayservice.specialday.domain.CountryCode;
 import com.booster.ddayservice.specialday.domain.SpecialDayCategory;
@@ -18,7 +19,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -42,10 +42,10 @@ class SpecialDayControllerTest {
         TodayResult result = new TodayResult(
                 today, "KR", true,
                 List.of(new TodayResult.SpecialDayItem("신정", SpecialDayCategory.PUBLIC_HOLIDAY, "New Year's Day")),
-                new TodayResult.UpcomingItem("삼일절", LocalDate.of(2026, 3, 1), 59, SpecialDayCategory.PUBLIC_HOLIDAY)
+                List.of(new TodayResult.UpcomingItem("삼일절", LocalDate.of(2026, 3, 1), 59, SpecialDayCategory.PUBLIC_HOLIDAY))
         );
 
-        given(specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL)).willReturn(result);
+        given(specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, List.of())).willReturn(result);
 
         // when & then
         mockMvc.perform(get("/api/v1/special-days/today")
@@ -55,7 +55,7 @@ class SpecialDayControllerTest {
                 .andExpect(jsonPath("$.result").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.hasSpecialDay").value(true))
                 .andExpect(jsonPath("$.data.specialDays[0].name").value("신정"))
-                .andExpect(jsonPath("$.data.upcoming.name").value("삼일절"));
+                .andExpect(jsonPath("$.data.upcoming[0].name").value("삼일절"));
     }
 
     @Test
@@ -96,5 +96,106 @@ class SpecialDayControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("SUCCESS"))
                 .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
+    @DisplayName("GET /past - 과거 특별한 날이 있으면 정상 응답을 반환한다")
+    void should_returnPastResponse_when_pastEventExists() throws Exception {
+        // given
+        PastResult pastResult = new PastResult(
+                "신정", LocalDate.of(2026, 1, 1), 32, SpecialDayCategory.PUBLIC_HOLIDAY
+        );
+
+        given(specialDayService.getPast(CountryCode.KR, Timezone.ASIA_SEOUL, List.of())).willReturn(pastResult);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/special-days/past")
+                        .param("countryCode", "KR")
+                        .param("timezone", "Asia/Seoul"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.name").value("신정"))
+                .andExpect(jsonPath("$.data.daysSince").value(32))
+                .andExpect(jsonPath("$.data.category").value("PUBLIC_HOLIDAY"));
+    }
+
+    @Test
+    @DisplayName("GET /past - 과거 특별한 날이 없으면 204 No Content를 반환한다")
+    void should_return204_when_noPastEventExists() throws Exception {
+        // given
+        given(specialDayService.getPast(CountryCode.KR, Timezone.ASIA_SEOUL, List.of())).willReturn(null);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/special-days/past")
+                        .param("countryCode", "KR")
+                        .param("timezone", "Asia/Seoul"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("GET /today - category 파라미터로 필터링한다")
+    void should_filterByCategory_when_categoryProvided() throws Exception {
+        // given
+        LocalDate today = LocalDate.of(2026, 1, 1);
+        List<SpecialDayCategory> categories = List.of(SpecialDayCategory.PUBLIC_HOLIDAY);
+        TodayResult result = new TodayResult(
+                today, "KR", true,
+                List.of(new TodayResult.SpecialDayItem("신정", SpecialDayCategory.PUBLIC_HOLIDAY, "New Year's Day")),
+                List.of()
+        );
+
+        given(specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, categories)).willReturn(result);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/special-days/today")
+                        .param("countryCode", "KR")
+                        .param("timezone", "Asia/Seoul")
+                        .param("category", "PUBLIC_HOLIDAY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.specialDays[0].name").value("신정"));
+    }
+
+    @Test
+    @DisplayName("GET /today - 다중 category 파라미터를 지원한다")
+    void should_filterByMultipleCategories_when_multipleCategoryProvided() throws Exception {
+        // given
+        LocalDate today = LocalDate.of(2026, 1, 1);
+        List<SpecialDayCategory> categories = List.of(SpecialDayCategory.PUBLIC_HOLIDAY, SpecialDayCategory.SPORTS);
+        TodayResult result = new TodayResult(
+                today, "KR", true,
+                List.of(new TodayResult.SpecialDayItem("신정", SpecialDayCategory.PUBLIC_HOLIDAY, "New Year's Day")),
+                List.of()
+        );
+
+        given(specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, categories)).willReturn(result);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/special-days/today")
+                        .param("countryCode", "KR")
+                        .param("timezone", "Asia/Seoul")
+                        .param("category", "PUBLIC_HOLIDAY")
+                        .param("category", "SPORTS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.hasSpecialDay").value(true));
+    }
+
+    @Test
+    @DisplayName("GET /past - category 파라미터로 필터링한다")
+    void should_filterPastByCategory_when_categoryProvided() throws Exception {
+        // given
+        List<SpecialDayCategory> categories = List.of(SpecialDayCategory.PUBLIC_HOLIDAY);
+        PastResult pastResult = new PastResult(
+                "신정", LocalDate.of(2026, 1, 1), 32, SpecialDayCategory.PUBLIC_HOLIDAY
+        );
+
+        given(specialDayService.getPast(CountryCode.KR, Timezone.ASIA_SEOUL, categories)).willReturn(pastResult);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/special-days/past")
+                        .param("countryCode", "KR")
+                        .param("timezone", "Asia/Seoul")
+                        .param("category", "PUBLIC_HOLIDAY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("신정"));
     }
 }

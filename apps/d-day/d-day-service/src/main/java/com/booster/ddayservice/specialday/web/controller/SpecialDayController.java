@@ -2,14 +2,18 @@ package com.booster.ddayservice.specialday.web.controller;
 
 import com.booster.core.web.response.ApiResponse;
 import com.booster.ddayservice.specialday.application.SpecialDayService;
+import com.booster.ddayservice.specialday.application.dto.PastResult;
 import com.booster.ddayservice.specialday.application.dto.TodayResult;
 import com.booster.ddayservice.specialday.domain.CountryCode;
+import com.booster.ddayservice.specialday.domain.SpecialDayCategory;
 import com.booster.ddayservice.specialday.domain.Timezone;
 import com.booster.ddayservice.specialday.exception.SpecialDayErrorCode;
 import com.booster.ddayservice.specialday.exception.SpecialDayException;
+import com.booster.ddayservice.specialday.web.dto.PastResponse;
 import com.booster.ddayservice.specialday.web.dto.TodayResponse;
 import com.booster.ddayservice.specialday.web.dto.CountryCodeResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,13 +44,32 @@ public class SpecialDayController {
     @GetMapping("/today")
     public ApiResponse<TodayResponse> getToday(
             @RequestParam(defaultValue = "KR") String countryCode,
-            @RequestParam(defaultValue = "UTC") String timezone
+            @RequestParam(defaultValue = "UTC") String timezone,
+            @RequestParam(required = false) List<SpecialDayCategory> category
     ) {
         CountryCode country = parseCountryCode(countryCode);
         Timezone tz = parseTimezone(timezone);
+        List<SpecialDayCategory> categories = category != null ? category : List.of();
 
-        TodayResult result = specialDayService.getToday(country, tz);
+        TodayResult result = specialDayService.getToday(country, tz, categories);
         return ApiResponse.success(TodayResponse.from(result));
+    }
+
+    @GetMapping("/past")
+    public ResponseEntity<ApiResponse<PastResponse>> getPast(
+            @RequestParam(defaultValue = "KR") String countryCode,
+            @RequestParam(defaultValue = "UTC") String timezone,
+            @RequestParam(required = false) List<SpecialDayCategory> category
+    ) {
+        CountryCode country = parseCountryCode(countryCode);
+        Timezone tz = parseTimezone(timezone);
+        List<SpecialDayCategory> categories = category != null ? category : List.of();
+
+        PastResult result = specialDayService.getPast(country, tz, categories);
+        if (result == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(ApiResponse.success(PastResponse.from(result)));
     }
 
     private CountryCode parseCountryCode(String countryCode) {
