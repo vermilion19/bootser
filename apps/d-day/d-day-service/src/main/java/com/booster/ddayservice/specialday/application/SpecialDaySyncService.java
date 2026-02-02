@@ -7,13 +7,11 @@ import com.booster.ddayservice.specialday.infrastructure.NagerDateClient;
 import com.booster.ddayservice.specialday.infrastructure.NagerHolidayDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -76,5 +74,37 @@ public class SpecialDaySyncService {
         log.info("공휴일 동기화 완료: year={}, country={}, saved={}/total={}",
                 year, countryCode, savedCount, holidays.size());
         return savedCount;
+    }
+
+    @Transactional
+    @CacheEvict(value = "special-days-read", allEntries = true)
+    public int syncByYear2(int year, CountryCode countryCode) {
+        // 1. 외부 API 호출 (캐시 적용됨)
+        List<NagerHolidayDto> holidays = nagerDateClient.getPublicHolidays(year, countryCode);
+
+        if (holidays.isEmpty()) {
+            return 0;
+        }
+
+        // 2. [성능 최적화] DB 조회 횟수를 1회로 줄임 (Bulk 조회)
+        // 기존: 루프 돌며 exists 호출 (N번 쿼리) -> 변경: 해당 연도의 이름들을 한 번에 조회
+        Set<String> existingNames = specialDayRepository.findNamesByCountryCodeAndDateBetween(
+                countryCode,
+                java.time.LocalDate.of(year, 1, 1),
+                java.time.LocalDate.of(year, 12, 31)
+        );
+
+        // 3. 필터링 및 엔티티 변환
+        List<SpecialDay> newHolidays = holidays.stream()
+                .filter(h -> !existingNames.contains(h.name())) // 메모리 내 비교
+                .map(h -> h.toEntity(countryCode))
+                .toList();
+
+        // 4. [성능 최적화] Bulk Insert (Batch Update)
+        if (!newHolidays.isEmpty()) {
+            specialDayRepository.saveAll(newHolidays);
+        }
+
+        return newHolidays.size();
     }
 }

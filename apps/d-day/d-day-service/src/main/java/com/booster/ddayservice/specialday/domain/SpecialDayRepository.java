@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface SpecialDayRepository extends JpaRepository<SpecialDay,Long> {
 
@@ -62,20 +63,13 @@ public interface SpecialDayRepository extends JpaRepository<SpecialDay,Long> {
             @Param("date") LocalDate date,
             @Param("memberId") Long memberId);
 
-    // === 기존 메서드 (하위 호환) ===
-
-    List<SpecialDay> findByDateAndCountryCodeIn(LocalDate date, List<CountryCode> countryCodes);
-
-    Optional<SpecialDay> findFirstByCountryCodeInAndDateAfterOrderByDateAsc(List<CountryCode> countryCodes, LocalDate date);
-
-    Optional<SpecialDay> findFirstByCountryCodeInAndDateBeforeOrderByDateDesc(List<CountryCode> countryCodes, LocalDate date);
-
-    List<SpecialDay> findByDateAndCountryCodeInAndCategoryIn(LocalDate date, List<CountryCode> countryCodes, List<SpecialDayCategory> categories);
-
-    Optional<SpecialDay> findFirstByCountryCodeInAndCategoryInAndDateAfterOrderByDateAsc(List<CountryCode> countryCodes, List<SpecialDayCategory> categories, LocalDate date);
-
-    Optional<SpecialDay> findFirstByCountryCodeInAndCategoryInAndDateBeforeOrderByDateDesc(List<CountryCode> countryCodes, List<SpecialDayCategory> categories, LocalDate date);
-
     // 중복 체크
     boolean existsByCountryCodeAndDateAndName(CountryCode countryCode, LocalDate date, String name);
+
+    @Query("SELECT s.name FROM SpecialDay s WHERE s.countryCode = :countryCode AND s.date BETWEEN :startDate AND :endDate")
+    Set<String> findNamesByCountryCodeAndDateBetween(
+            @Param("countryCode") CountryCode countryCode,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }
