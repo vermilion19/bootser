@@ -29,7 +29,10 @@
       "Bash(npx:*)",
       "Bash(git add:*)",
       "Bash(git reset:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(tree:*)",
+      "Bash(xargs:*)",
+      "Bash(git push:*)"
     ]
   }
 }
