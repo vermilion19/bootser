@@ -39,11 +39,15 @@ public class SpecialDay extends BaseEntity {
 
     private String description;
 
+    private Long memberId;
+
+    private boolean isPublic;
 
     @Builder
     public SpecialDay(String name, SpecialDayCategory category, LocalDate date,
                       LocalTime eventTime, Timezone eventTimeZone,
-                      CountryCode countryCode, String description) {
+                      CountryCode countryCode, String description,
+                      Long memberId, Boolean isPublic) {
         this.id = SnowflakeGenerator.nextId();
         this.name = name;
         this.category = category;
@@ -52,6 +56,8 @@ public class SpecialDay extends BaseEntity {
         this.countryCode = countryCode;
         this.eventTimeZone = eventTimeZone;
         this.description = description;
+        this.memberId = memberId;
+        this.isPublic = isPublic != null ? isPublic : true;
     }
 
     public static SpecialDay of(String name, SpecialDayCategory category, LocalDate date,
@@ -67,6 +73,30 @@ public class SpecialDay extends BaseEntity {
                 .eventTimeZone(eventTimeZone)
                 .description(description)
                 .build();
+    }
 
+    public static SpecialDay createByMember(String name, SpecialDayCategory category, LocalDate date,
+                                            LocalTime eventTime, Timezone eventTimeZone,
+                                            CountryCode countryCode, String description,
+                                            Long memberId, boolean isPublic) {
+        return SpecialDay.builder()
+                .name(name)
+                .category(category)
+                .date(date)
+                .eventTime(eventTime)
+                .countryCode(countryCode)
+                .eventTimeZone(eventTimeZone)
+                .description(description)
+                .memberId(memberId)
+                .isPublic(isPublic)
+                .build();
+    }
+
+    public void toggleVisibility() {
+        this.isPublic = !this.isPublic;
+    }
+
+    public boolean isOwnedBy(Long memberId) {
+        return this.memberId != null && this.memberId.equals(memberId);
     }
 }

@@ -3,7 +3,7 @@ set -e
 
 # ==============================================
 # Booster Database Initialization Script
-# Creates multiple databases and their tables
+# Creates multiple databases for all services
 # ==============================================
 
 POSTGRES_USER="${POSTGRES_USER:-booster}"
@@ -19,6 +19,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
     CREATE DATABASE waiting_service_db;
     CREATE DATABASE noti_service_db;
     CREATE DATABASE promotion_service_db;
+    CREATE DATABASE dday_service_db;
 EOSQL
 
 echo "Databases created successfully!"
@@ -183,7 +184,18 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "promotion_service_
 
 EOSQL
 
+# ==============================================
+# D-DAY SERVICE - dday_service_db
+# ==============================================
+echo "Initializing dday_service_db..."
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "dday_service_db" <<-EOSQL
+
+    -- D-Day 서비스는 JPA ddl-auto=update를 사용하므로
+    -- 기본 데이터베이스만 생성하고 테이블은 앱 시작 시 자동 생성
+
+EOSQL
+
 echo "=========================================="
 echo "All databases initialized successfully!"
 echo "=========================================="
-echo "Databases: auth_service_db, restaurant_service_db, waiting_service_db, noti_service_db, promotion_service_db"
+echo "Databases: auth_service_db, restaurant_service_db, waiting_service_db, noti_service_db, promotion_service_db, dday_service_db"

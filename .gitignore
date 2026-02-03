@@ -39,5 +39,10 @@ out/
 ### Node ###
 node_modules/
 dist/
+package-lock.json
 
+### Claude Code ###
 tmpclaude*
+
+### OS artifacts ###
+nul

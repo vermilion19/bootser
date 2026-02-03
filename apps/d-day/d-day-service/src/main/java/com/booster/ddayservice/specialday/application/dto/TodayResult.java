@@ -12,7 +12,7 @@ public record TodayResult(
         String countryCode,
         boolean hasSpecialDay,
         List<SpecialDayItem> specialDays,
-        UpcomingItem upcoming
+        List<UpcomingItem> upcoming
 ) {
 
     public record SpecialDayItem(

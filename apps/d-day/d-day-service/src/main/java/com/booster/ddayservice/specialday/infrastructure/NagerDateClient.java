@@ -2,6 +2,7 @@ package com.booster.ddayservice.specialday.infrastructure;
 
 import com.booster.ddayservice.specialday.domain.CountryCode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -21,6 +22,7 @@ public class NagerDateClient {
                 .build();
     }
 
+    @Cacheable(value = "external-holidays", key = "#year + ':' + #countryCode")
     public List<NagerHolidayDto> getPublicHolidays(int year, CountryCode countryCode) {
         log.info("Nager.Date API 호출: {}/{}", year, countryCode.name());
 

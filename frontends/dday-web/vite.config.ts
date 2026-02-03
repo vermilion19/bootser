@@ -8,7 +8,7 @@ export default defineConfig({
     port: 3302,
     proxy: {
       '/api/v1/special-days': {
-        target: 'http://localhost:6000',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
       },

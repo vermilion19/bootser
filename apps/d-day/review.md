@@ -215,9 +215,38 @@ apps/d-day/d-day-service/
 - [x] `NagerDateClient` (RestClient, Nager.Date API 호출)
 - [x] `SpecialDaySyncService` (연도+국가별 동기화, 중복 방지)
 - [x] `SpecialDayService` (오늘 조회 + D-Day 계산)
-- [ ] `TimezoneConverter` (eventTime 존재 시 사용자 timezone 변환, null이면 패스스루)
+- [x] `TimezoneConverter` (eventTime 존재 시 사용자 timezone 변환, null이면 패스스루)
 - [x] `SpecialDayController` + DTO
 - [x] `SpecialDayErrorCode` + 예외 처리
-- [ ] 단위 테스트 (Service, Client, TimezoneConverter)
-- [ ] 시간대 변환 테스트 (같은 날 유지, 날짜 역전, eventTime null)
-- [ ] 통합 테스트 (Controller)
+- [x] 단위 테스트 (Service, SyncService, Client, TimezoneConverter)
+- [x] 시간대 변환 테스트 (같은 날 유지, 날짜 역전, eventTime null, 동일 timezone)
+- [x] 통합 테스트 (Controller - @WebMvcTest)
+
+---
+
+## Google OAuth 회원가입/로그인 진행 현황
+
+### 완료
+
+- [x] `Member` 엔티티 (Snowflake ID, `ofGoogle()` 팩토리, `(oAuthProvider, oAuthId)` unique 제약)
+- [x] `OAuthProvider` enum (`GOOGLE`)
+- [x] `MemberRepository` (`findByOAuthProviderAndOAuthId`, `existsByOAuthProviderAndOAuthId`)
+- [x] `GoogleOAuthClient` (RestClient 기반 토큰 교환 + 사용자 정보 조회)
+- [x] `GoogleTokenResponse`, `GoogleUserInfoResponse` record
+- [x] `JwtTokenProvider` (JWT 생성/검증/파싱, auth-service TokenProvider 패턴 차용)
+- [x] `AuthService` (Google 로그인 → 회원 upsert → JWT 발급)
+- [x] `LoginResult` DTO
+- [x] `application.yml` JWT/OAuth 설정 추가
+- [x] `build.gradle` jjwt, jackson 의존성 추가
+- [x] 단위 테스트 4건 (MemberTest, JwtTokenProviderTest, AuthServiceTest, GoogleOAuthClientTest)
+
+### 남은 작업
+
+| 순서 | 작업 | 설명 |
+|------|------|------|
+| 1 | **AuthController** | `POST /api/auth/google` 엔드포인트, Request/Response DTO |
+| 2 | **SecurityConfig** | SecurityFilterChain, JwtAuthenticationFilter, `/api/auth/**` permitAll |
+| 3 | **Auth 예외 처리** | `AuthErrorCode` enum, `AuthException`, `AuthExceptionHandler` |
+| 4 | **프론트엔드 연동** | Google 로그인 버튼, 콜백 페이지, JWT 저장, Authorization 헤더 |
+| 5 | **Refresh Token** | RefreshToken 저장(Redis 또는 DB), 토큰 갱신 엔드포인트, rotation |
+| 6 | **통합 테스트** | AuthService 전체 흐름, MemberRepository JPA, AuthController MockMvc |

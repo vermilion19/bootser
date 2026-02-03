@@ -7,32 +7,26 @@
       "Bash(gradlew.bat :apps:promotion-service:test:*)",
       "Bash(cmd.exe /c \"gradlew.bat :apps:promotion-service:test --tests CouponControllerTest\")",
       "Bash(npm install)",
-      "Bash(npm run dev:*)",
-      "Bash(npm install:*)",
-      "Bash(docker ps:*)",
-      "Bash(docker logs:*)",
-      "Bash(docker compose:*)",
-      "Bash(docker exec:*)",
-      "Bash(find:*)",
-      "Bash(for i in 1 2 3 4)",
-      "Bash(do echo \"=== attacker-$i ===\")",
-      "Bash(done)",
-      "Bash(docker inspect:*)",
-      "Bash(docker network inspect:*)",
-      "Bash(curl:*)",
-      "Bash(docker run:*)",
-      "Bash(python3:*)",
-      "Bash(docker-compose up:*)",
-      "Bash(gradlew.bat :apps:webflux:chatting-service-t:build:*)",
-      "Bash(npx tsc -b)",
-      "Bash(npx vite build)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(npx tsc:*)",
       "Bash(npx:*)",
+      "Bash(npm install:*)",
+      "Bash(npm cache clean:*)",
       "Bash(git add:*)",
       "Bash(git reset:*)",
       "Bash(git commit:*)",
+<<<<<<< HEAD
       "Bash(tree:*)",
       "Bash(xargs:*)",
       "Bash(git push:*)"
+=======
+      "Bash(git push)",
+      "Bash(dir:*)",
+      "Bash(del \"C:\\\\Users\\\\NCand\\\\Documents\\\\bootser\\\\apps\\\\d-day\\\\d-day-service\\\\src\\\\main\\\\java\\\\com\\\\booster\\\\ddayservice\\\\config\\\\SpecialDayDataInitializer.java\")",
+      "Bash(xargs cat:*)",
+      "Bash(tree:*)"
+>>>>>>> 835ca9cc1694a236a1ce42ae4132c4e085aa4e6e
     ]
   }
 }

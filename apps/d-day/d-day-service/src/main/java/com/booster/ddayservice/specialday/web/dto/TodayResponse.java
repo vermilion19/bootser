@@ -11,7 +11,7 @@ public record TodayResponse(
         String countryCode,
         boolean hasSpecialDay,
         List<SpecialDayItem> specialDays,
-        UpcomingItem upcoming
+        List<UpcomingItem> upcoming
 ) {
 
     public record SpecialDayItem(
@@ -43,9 +43,9 @@ public record TodayResponse(
                 result.specialDays().stream()
                         .map(SpecialDayItem::from)
                         .toList(),
-                result.upcoming() != null
-                        ? UpcomingItem.from(result.upcoming())
-                        : null
+                result.upcoming().stream()
+                        .map(UpcomingItem::from)
+                        .toList()
         );
     }
 }
