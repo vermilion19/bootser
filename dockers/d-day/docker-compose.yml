@@ -1,0 +1,59 @@
+networks:
+  booster-network:
+    name: booster-network
+    external: true
+
+services:
+  # ==============================================
+  # Application: D-Day Service
+  # ==============================================
+  dday-service:
+    build:
+      context: ../..
+      dockerfile: dockers/services/Dockerfile
+      args:
+        SERVICE_PATH: apps/d-day/d-day-service
+    container_name: dday-service
+    ports:
+      - "8081:8080"
+    environment:
+      # Server
+      SERVER_PORT: 8080
+      # Database (infrastructure의 postgres 사용)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://booster-postgres:5432/dday_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-booster}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-booster1234}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      # Redis (infrastructure의 redis 사용)
+      SPRING_DATA_REDIS_HOST: booster-redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-dGhpcy1pcy1hLWRldi1vbmx5LXNlY3JldC1rZXktdGhhdC1zaG91bGQtYmUtcmVwbGFjZWQtaW4tcHJvZA==}
+      # External APIs
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      # OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # Logging
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_BOOSTER: DEBUG
+    networks:
+      - booster-network
+    restart: unless-stopped
+
+  # ==============================================
+  # Frontend: D-Day Web
+  # ==============================================
+  dday-web:
+    build:
+      context: ../../frontends/dday-web
+      dockerfile: Dockerfile
+    container_name: dday-web
+    depends_on:
+      - dday-service
+    ports:
+      - "3302:80"
+    networks:
+      - booster-network
+    restart: unless-stopped
