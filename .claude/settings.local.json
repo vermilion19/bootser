@@ -16,17 +16,18 @@
       "Bash(git add:*)",
       "Bash(git reset:*)",
       "Bash(git commit:*)",
-<<<<<<< HEAD
       "Bash(tree:*)",
       "Bash(xargs:*)",
-      "Bash(git push:*)"
-=======
       "Bash(git push)",
       "Bash(dir:*)",
       "Bash(del \"C:\\\\Users\\\\NCand\\\\Documents\\\\bootser\\\\apps\\\\d-day\\\\d-day-service\\\\src\\\\main\\\\java\\\\com\\\\booster\\\\ddayservice\\\\config\\\\SpecialDayDataInitializer.java\")",
       "Bash(xargs cat:*)",
-      "Bash(tree:*)"
->>>>>>> 835ca9cc1694a236a1ce42ae4132c4e085aa4e6e
+      "Bash(tree:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose down:*)"
     ]
   }
 }

@@ -9,10 +9,10 @@ services:
   # ==============================================
   dday-service:
     build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: apps/d-day/d-day-service
+      context: ../../apps/d-day/d-day-service
+      dockerfile: Dockerfile
+#      args:
+#        SERVICE_PATH: apps/d-day/d-day-service
     container_name: dday-service
     ports:
       - "8081:8080"
@@ -47,6 +47,7 @@ services:
   # ==============================================
   dday-web:
     build:
+#      context: ../../frontends/dday-web
       context: ../../frontends/dday-web
       dockerfile: Dockerfile
     container_name: dday-web
@@ -54,6 +55,8 @@ services:
       - dday-service
     ports:
       - "3302:80"
+    volumes:
+      - ../../frontends/dday-web/nginx.conf:/etc/nginx/conf.d/default.conf
     networks:
       - booster-network
     restart: unless-stopped
