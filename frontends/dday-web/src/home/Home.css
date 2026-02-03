@@ -210,6 +210,77 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ===== Category Filter ===== */
+.category-filter {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto 2rem;
+}
+
+.category-chip {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    font-weight: 500;
+    color: #6e6e73;
+    background: #f5f5f7;
+    border: 1.5px solid transparent;
+    border-radius: 980px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-chip:hover {
+    background: #e8e8ed;
+}
+
+.category-chip.active {
+    color: #1d1d1f;
+    background: #ffffff;
+    border-color: #1d1d1f;
+}
+
+/* Category-specific active colors */
+.category-chip.PUBLIC_HOLIDAY.active {
+    color: #ff3b30;
+    border-color: #ff3b30;
+    background: rgba(255, 59, 48, 0.08);
+}
+
+.category-chip.MEMORIAL_DAY.active {
+    color: #af52de;
+    border-color: #af52de;
+    background: rgba(175, 82, 222, 0.08);
+}
+
+.category-chip.SPORTS.active {
+    color: #34c759;
+    border-color: #34c759;
+    background: rgba(52, 199, 89, 0.08);
+}
+
+.category-chip.ENTERTAINMENT.active {
+    color: #ff9500;
+    border-color: #ff9500;
+    background: rgba(255, 149, 0, 0.08);
+}
+
+.category-chip.MOVIE.active {
+    color: #007aff;
+    border-color: #007aff;
+    background: rgba(0, 122, 255, 0.08);
+}
+
+.category-chip.CUSTOM.active {
+    color: #8e8e93;
+    border-color: #8e8e93;
+    background: rgba(142, 142, 147, 0.08);
+}
+
 /* ===== Divider ===== */
 .section-divider {
     width: 100%;
@@ -654,5 +725,14 @@
 
     .content {
         gap: 2rem;
+    }
+
+    .category-filter {
+        gap: 0.4rem;
+    }
+
+    .category-chip {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
     }
 }

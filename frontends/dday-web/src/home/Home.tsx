@@ -33,12 +33,46 @@ function PastDday({ daysSince }: { daysSince: number }) {
     return <div className="past-dday">D+{count}</div>;
 }
 
+const STORAGE_KEY_COUNTRY = 'dday-selected-country';
+const STORAGE_KEY_CATEGORIES = 'dday-selected-categories';
+
+const ALL_CATEGORIES: SpecialDayCategory[] = [
+    'PUBLIC_HOLIDAY',
+    'MEMORIAL_DAY',
+    'SPORTS',
+    'ENTERTAINMENT',
+    'MOVIE',
+    'CUSTOM',
+];
+
+function getInitialCountry(): CountryCodeResponse {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY_COUNTRY);
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch {
+        // ignore parse errors
+    }
+    return { code: 'KR', displayName: 'South Korea' };
+}
+
+function getInitialCategories(): SpecialDayCategory[] {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch {
+        // ignore parse errors
+    }
+    return []; // 빈 배열 = 전체 선택
+}
+
 function Home() {
     const [countries, setCountries] = useState<CountryCodeResponse[]>([]);
-    const [selectedCountry, setSelectedCountry] = useState<CountryCodeResponse>({
-        code: 'KR',
-        displayName: 'South Korea',
-    });
+    const [selectedCountry, setSelectedCountry] = useState<CountryCodeResponse>(getInitialCountry);
+    const [selectedCategories, setSelectedCategories] = useState<SpecialDayCategory[]>(getInitialCategories);
     const [query, setQuery] = useState('');
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [today, setToday] = useState<TodayResponse | null>(null);
@@ -75,11 +109,11 @@ function Home() {
         setError(null);
         setPast(null);
         setShowPast(false);
-        getToday(selectedCountry.code)
+        getToday(selectedCountry.code, selectedCategories)
             .then(setToday)
             .catch((e) => setError(e.message))
             .finally(() => setLoading(false));
-    }, [selectedCountry]);
+    }, [selectedCountry, selectedCategories]);
 
     useEffect(() => {
         if (!showPast) {
@@ -87,16 +121,44 @@ function Home() {
             return;
         }
         setPastLoading(true);
-        getPast(selectedCountry.code)
+        getPast(selectedCountry.code, selectedCategories)
             .then(setPast)
             .catch(() => setPast(null))
             .finally(() => setPastLoading(false));
-    }, [showPast, selectedCountry]);
+    }, [showPast, selectedCountry, selectedCategories]);
 
     function handleSelectCountry(c: CountryCodeResponse) {
         setSelectedCountry(c);
         setQuery('');
         setDropdownOpen(false);
+        try {
+            localStorage.setItem(STORAGE_KEY_COUNTRY, JSON.stringify(c));
+        } catch {
+            // ignore storage errors
+        }
+    }
+
+    function handleToggleCategory(category: SpecialDayCategory) {
+        setSelectedCategories((prev) => {
+            const newCategories = prev.includes(category)
+                ? prev.filter((c) => c !== category)
+                : [...prev, category];
+            try {
+                localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(newCategories));
+            } catch {
+                // ignore storage errors
+            }
+            return newCategories;
+        });
+    }
+
+    function handleSelectAllCategories() {
+        setSelectedCategories([]);
+        try {
+            localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify([]));
+        } catch {
+            // ignore storage errors
+        }
     }
 
     return (
@@ -140,6 +202,24 @@ function Home() {
                         ))}
                     </ul>
                 )}
+            </div>
+
+            <div className="category-filter">
+                <button
+                    className={`category-chip ${selectedCategories.length === 0 ? 'active' : ''}`}
+                    onClick={handleSelectAllCategories}
+                >
+                    All
+                </button>
+                {ALL_CATEGORIES.map((cat) => (
+                    <button
+                        key={cat}
+                        className={`category-chip ${cat} ${selectedCategories.includes(cat) ? 'active' : ''}`}
+                        onClick={() => handleToggleCategory(cat)}
+                    >
+                        {CATEGORY_LABELS[cat]}
+                    </button>
+                ))}
             </div>
 
             <div className="section-divider" />
