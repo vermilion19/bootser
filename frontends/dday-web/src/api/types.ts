@@ -31,6 +31,13 @@ export interface TodayResponse {
     upcoming: UpcomingItem | null;
 }
 
+export interface PastResponse {
+    name: string;
+    date: string;
+    daysSince: number;
+    category: SpecialDayCategory;
+}
+
 export type SpecialDayCategory =
     | 'PUBLIC_HOLIDAY'
     | 'MEMORIAL_DAY'

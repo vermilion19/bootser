@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { getCountries, getToday } from '../api/specialDayApi';
-import type { CountryCodeResponse, TodayResponse, SpecialDayCategory } from '../api/types';
+import { getCountries, getPast, getToday } from '../api/specialDayApi';
+import type { CountryCodeResponse, PastResponse, TodayResponse, SpecialDayCategory } from '../api/types';
 import { useCountUp } from '../hooks/useCountUp';
 import './Home.css';
 
@@ -28,6 +28,11 @@ function UpcomingDday({ daysUntil }: { daysUntil: number }) {
     return <div className="upcoming-dday">D-{count}</div>;
 }
 
+function PastDday({ daysSince }: { daysSince: number }) {
+    const count = useCountUp(daysSince, 1400, true);
+    return <div className="past-dday">D+{count}</div>;
+}
+
 function Home() {
     const [countries, setCountries] = useState<CountryCodeResponse[]>([]);
     const [selectedCountry, setSelectedCountry] = useState<CountryCodeResponse>({
@@ -39,6 +44,9 @@ function Home() {
     const [today, setToday] = useState<TodayResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showPast, setShowPast] = useState(false);
+    const [past, setPast] = useState<PastResponse | null>(null);
+    const [pastLoading, setPastLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -65,11 +73,25 @@ function Home() {
     useEffect(() => {
         setLoading(true);
         setError(null);
+        setPast(null);
+        setShowPast(false);
         getToday(selectedCountry.code)
             .then(setToday)
             .catch((e) => setError(e.message))
             .finally(() => setLoading(false));
     }, [selectedCountry]);
+
+    useEffect(() => {
+        if (!showPast) {
+            setPast(null);
+            return;
+        }
+        setPastLoading(true);
+        getPast(selectedCountry.code)
+            .then(setPast)
+            .catch(() => setPast(null))
+            .finally(() => setPastLoading(false));
+    }, [showPast, selectedCountry]);
 
     function handleSelectCountry(c: CountryCodeResponse) {
         setSelectedCountry(c);
@@ -173,6 +195,43 @@ function Home() {
                             </div>
                         )}
                     </div>
+
+                    <div className="past-toggle anim-fade-up" style={{ animationDelay: '0.2s' }}>
+                        <label className="toggle-label">
+                            <input
+                                type="checkbox"
+                                className="toggle-checkbox"
+                                checked={showPast}
+                                onChange={(e) => setShowPast(e.target.checked)}
+                            />
+                            <span className="toggle-switch" />
+                            <span className="toggle-text">Show most recent past event</span>
+                        </label>
+                    </div>
+
+                    {showPast && (
+                        <div className="past-section anim-fade-up" style={{ animationDelay: '0.25s' }}>
+                            <div className="section-label">Recent Past</div>
+                            {pastLoading ? (
+                                <div className="past-loading">
+                                    <div className="spinner" />
+                                </div>
+                            ) : past ? (
+                                <>
+                                    <div className="past-name">{past.name}</div>
+                                    <div className="past-date">{formatDate(past.date)}</div>
+                                    <PastDday daysSince={past.daysSince} />
+                                    <div className="past-category">
+                                        {CATEGORY_LABELS[past.category]}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="no-special-day">
+                                    No recent past events found.
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {today.upcoming && (
                         <div className="upcoming-section anim-fade-up" style={{ animationDelay: '0.3s' }}>

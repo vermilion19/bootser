@@ -336,6 +336,124 @@
     font-weight: 400;
 }
 
+/* ===== Past Toggle ===== */
+.past-toggle {
+    display: flex;
+    justify-content: center;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-checkbox {
+    display: none;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    background: #d2d2d7;
+    border-radius: 13px;
+    transition: background 0.25s;
+    flex-shrink: 0;
+}
+
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    transition: transform 0.25s;
+}
+
+.toggle-checkbox:checked + .toggle-switch {
+    background: #007aff;
+}
+
+.toggle-checkbox:checked + .toggle-switch::after {
+    transform: translateX(18px);
+}
+
+.toggle-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #86868b;
+}
+
+/* ===== Past Card ===== */
+.past-section {
+    background: #f5f5f7;
+    border-radius: 20px;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                box-shadow 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.past-section:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.past-section .section-label {
+    margin-bottom: 1rem;
+}
+
+.past-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1d1d1f;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+}
+
+.past-date {
+    font-size: 0.9rem;
+    color: #6e6e73;
+    margin-top: 0.5rem;
+    font-weight: 400;
+}
+
+.past-dday {
+    font-size: 3.5rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    margin-top: 1.25rem;
+    background: linear-gradient(135deg, #ff9500, #ff3b30);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.past-category {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #86868b;
+    margin-top: 0.75rem;
+}
+
+.past-loading {
+    text-align: center;
+    padding: 2rem 0;
+}
+
 /* ===== Upcoming Card ===== */
 .upcoming-section {
     background: #f5f5f7;
@@ -517,6 +635,14 @@
     }
 
     .upcoming-dday {
+        font-size: 2.5rem;
+    }
+
+    .past-section {
+        padding: 2rem 1.5rem;
+    }
+
+    .past-dday {
         font-size: 2.5rem;
     }
 }

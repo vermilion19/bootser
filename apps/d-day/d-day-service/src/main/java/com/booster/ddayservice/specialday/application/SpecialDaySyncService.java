@@ -8,6 +8,7 @@ import com.booster.ddayservice.specialday.infrastructure.NagerHolidayDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,7 +78,10 @@ public class SpecialDaySyncService {
     }
 
     @Transactional
-    @CacheEvict(value = "special-days-read", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "special-days-read", allEntries = true),
+            @CacheEvict(value = "external-holidays", key = "#year + ':' + #countryCode")
+    })
     public int syncByYear2(int year, CountryCode countryCode) {
         // 1. 외부 API 호출 (캐시 적용됨)
         List<NagerHolidayDto> holidays = nagerDateClient.getPublicHolidays(year, countryCode);
