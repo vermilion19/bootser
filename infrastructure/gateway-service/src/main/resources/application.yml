@@ -32,6 +32,16 @@ spring:
               predicates:
                 - Path=/coupons/**
 
+            - id: d-day-service-route
+              uri: lb://d-day-service
+              predicates:
+                - Path=/api/v1/special-days/**
+
+            - id: d-day-auth-route
+              uri: lb://d-day-service
+              predicates:
+                - Path=/api/v1/auth/**
+
 eureka:
   client:
     service-url:

@@ -5,57 +5,91 @@ networks:
 
 services:
   # ==============================================
-  # Application: D-Day Service
+  # Application: D-Day Service (개발 모드)
+  # - Gradle 연속 빌드로 코드 변경 자동 반영
   # ==============================================
   dday-service:
-    image: booster/dday-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: apps/d-day/d-day-service
-    container_name: dday-service
+    image: eclipse-temurin:25-jdk
+    container_name: dday-service-dev
+    working_dir: /app
     depends_on:
-      - discovery-service
+      discovery-service:
+        condition: service_healthy
     ports:
       - "8081:8080"
+      - "35729:35729"  # LiveReload 포트
+    volumes:
+      # 전체 프로젝트 마운트
+      - ../..:/app
+      # Gradle 캐시 (빌드 속도 향상)
+      - gradle-cache:/root/.gradle
     environment:
       # Server
       SERVER_PORT: 8080
       # Eureka
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
-      # Database (infrastructure의 postgres 사용)
+      # Database
       SPRING_DATASOURCE_URL: jdbc:postgresql://booster-postgres:5432/dday_service_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-booster}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-booster1234}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_SHOW_SQL: "false"
-      # Redis (infrastructure의 redis 사용)
+      # Redis
       SPRING_DATA_REDIS_HOST: booster-redis
       SPRING_DATA_REDIS_PORT: 6379
-      # JWT
+      # DevTools 활성화
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+      SPRING_DEVTOOLS_LIVERELOAD_ENABLED: "true"
+      # JWT & APIs
       JWT_SECRET: ${JWT_SECRET:-dGhpcy1pcy1hLWRldi1vbmx5LXNlY3JldC1rZXktdGhhdC1zaG91bGQtYmUtcmVwbGFjZWQtaW4tcHJvZA==}
-      # External APIs
       TMDB_API_KEY: ${TMDB_API_KEY:-}
-      # OAuth
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       # Logging
       LOGGING_LEVEL_ROOT: INFO
       LOGGING_LEVEL_COM_BOOSTER: DEBUG
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      start_period: 30s
-      retries: 5
+    command: >
+      sh -c "
+        chmod +x ./gradlew &&
+        ./gradlew :apps:d-day:d-day-service:bootRun --continuous -x test
+      "
     networks:
       - booster-network
     restart: unless-stopped
 
   # ==============================================
-  # Discovery Service (Eureka) - d-day 전용 실행시 필요
+  # Frontend: D-Day Web (개발 모드)
+  # - Vite Dev Server로 HMR 지원
+  # ==============================================
+  dday-web:
+    image: node:22-alpine
+    container_name: dday-web-dev
+    working_dir: /app
+    depends_on:
+      - gateway-service
+    ports:
+      - "3302:5173"  # Vite dev server 포트
+    volumes:
+      # 프론트엔드 소스 마운트
+      - ../../frontends/dday-web:/app
+      # node_modules는 컨테이너 내부 사용 (성능)
+      - dday-web-node-modules:/app/node_modules
+    environment:
+      # Vite가 외부 접근 허용
+      VITE_HOST: "0.0.0.0"
+      # API 프록시 대상 (Gateway)
+      VITE_API_URL: http://gateway-service:6000
+    command: >
+      sh -c "
+        npm install &&
+        npm run dev -- --host 0.0.0.0
+      "
+    networks:
+      - booster-network
+    restart: unless-stopped
+
+  # ==============================================
+  # Discovery Service (Eureka)
   # ==============================================
   discovery-service:
     image: booster/discovery-service
@@ -81,7 +115,7 @@ services:
       - booster-network
 
   # ==============================================
-  # Gateway Service - d-day 전용 실행시 필요
+  # Gateway Service
   # ==============================================
   gateway-service:
     image: booster/gateway-service
@@ -109,19 +143,6 @@ services:
     networks:
       - booster-network
 
-  # ==============================================
-  # Frontend: D-Day Web
-  # ==============================================
-  dday-web:
-    build:
-      context: ../../frontends/dday-web
-      dockerfile: Dockerfile
-    container_name: dday-web
-    depends_on:
-      gateway-service:
-        condition: service_healthy
-    ports:
-      - "3302:80"
-    networks:
-      - booster-network
-    restart: unless-stopped
+volumes:
+  gradle-cache:
+  dday-web-node-modules:
