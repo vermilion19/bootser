@@ -5,9 +5,10 @@ import com.booster.ddayservice.specialday.application.MovieSyncService;
 import com.booster.ddayservice.specialday.application.SpecialDayService;
 import com.booster.ddayservice.specialday.application.SpecialDaySyncService;
 import com.booster.ddayservice.specialday.application.SpecialDaySyncService.SyncAllResult;
-import com.booster.ddayservice.specialday.domain.*;
-import com.booster.ddayservice.specialday.exception.SpecialDayErrorCode;
-import com.booster.ddayservice.specialday.exception.SpecialDayException;
+import com.booster.ddayservice.specialday.domain.CountryCode;
+import com.booster.ddayservice.specialday.domain.SpecialDay;
+import com.booster.ddayservice.specialday.domain.SpecialDayCategory;
+import com.booster.ddayservice.specialday.domain.Timezone;
 import com.booster.ddayservice.specialday.web.dto.CreateSpecialDayRequest;
 import com.booster.ddayservice.specialday.web.dto.SpecialDayResponse;
 import com.booster.ddayservice.specialday.web.dto.SyncResultResponse;
@@ -16,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Year;
+
+import static com.booster.ddayservice.specialday.web.controller.SpecialDayParameterParser.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -56,33 +59,5 @@ public class SpecialDayAdminController {
     ) {
         MovieSyncService.MovieSyncResult result = movieSyncService.syncUpcomingMovies(region);
         return ApiResponse.success(result);
-    }
-
-    private CountryCode parseCountryCode(String countryCode) {
-        try {
-            return CountryCode.valueOf(countryCode.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new SpecialDayException(SpecialDayErrorCode.INVALID_COUNTRY_CODE,
-                    "유효하지 않은 국가 코드: " + countryCode);
-        }
-    }
-
-    private Timezone parseTimezone(String timezone) {
-        try {
-            String enumName = timezone.replace("/", "_").replace("-", "_").toUpperCase();
-            return Timezone.valueOf(enumName);
-        } catch (IllegalArgumentException e) {
-            throw new SpecialDayException(SpecialDayErrorCode.INVALID_TIMEZONE,
-                    "유효하지 않은 타임존: " + timezone);
-        }
-    }
-
-    private SpecialDayCategory parseCategory(String category) {
-        try {
-            return SpecialDayCategory.valueOf(category.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new SpecialDayException(SpecialDayErrorCode.INVALID_COUNTRY_CODE,
-                    "유효하지 않은 카테고리: " + category);
-        }
     }
 }
