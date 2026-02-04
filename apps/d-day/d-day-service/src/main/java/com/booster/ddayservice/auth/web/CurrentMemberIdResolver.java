@@ -34,7 +34,18 @@ public class CurrentMemberIdResolver implements HandlerMethodArgumentResolver {
         }
 
         try {
-            return Long.parseLong(userIdHeader);
+            long memberId = Long.parseLong(userIdHeader);
+
+            // [추가된 로직] 게이트웨이가 보낸 '게스트(-1)'인 경우 처리
+            if (memberId == -1L) {
+                // 필수(required=true) API인데 게스트가 들어왔다면 -> 에러 발생 (로그인 필요)
+                if (annotation != null && annotation.required()) {
+                    throw new SpecialDayException(SpecialDayErrorCode.UNAUTHORIZED);
+                }
+                // 필수 아님(required=false) -> null 반환 (비회원 모드 동작)
+                return null;
+            }
+            return memberId;
         } catch (NumberFormatException e) {
             throw new SpecialDayException(SpecialDayErrorCode.UNAUTHORIZED);
         }
