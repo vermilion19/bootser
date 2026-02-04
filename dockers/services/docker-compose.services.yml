@@ -29,6 +29,11 @@ services:
       timeout: 10s
       retries: 10
       start_period: 180s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 
@@ -61,6 +66,11 @@ services:
       timeout: 10s
       retries: 10
       start_period: 180s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 
@@ -92,6 +102,11 @@ services:
       timeout: 10s
       retries: 10
       start_period: 180s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 
@@ -118,6 +133,11 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: booster-kafka:29092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://booster-discovery:8761/eureka/
       WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 
@@ -148,5 +168,10 @@ services:
       timeout: 10s
       retries: 10
       start_period: 180s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network

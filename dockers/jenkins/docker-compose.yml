@@ -22,6 +22,11 @@ services:
       - ../..:/workspace/bootser
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 

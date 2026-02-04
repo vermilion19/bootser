@@ -1,6 +1,7 @@
 package com.booster.ddayservice.specialday.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -66,10 +67,40 @@ public interface SpecialDayRepository extends JpaRepository<SpecialDay,Long> {
     // 중복 체크
     boolean existsByCountryCodeAndDateAndName(CountryCode countryCode, LocalDate date, String name);
 
+    // 날짜 기준 중복 체크 (동기화용)
+    boolean existsByCountryCodeAndDate(CountryCode countryCode, LocalDate date);
+
     @Query("SELECT s.name FROM SpecialDay s WHERE s.countryCode = :countryCode AND s.date BETWEEN :startDate AND :endDate")
     Set<String> findNamesByCountryCodeAndDateBetween(
             @Param("countryCode") CountryCode countryCode,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    // 날짜+이름 조합 조회 (Bulk 중복 체크용)
+    @Query("SELECT CONCAT(s.date, ':', s.name) FROM SpecialDay s WHERE s.countryCode = :countryCode AND s.date BETWEEN :startDate AND :endDate")
+    Set<String> findDateNameKeysByCountryCodeAndDateBetween(
+            @Param("countryCode") CountryCode countryCode,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    // 중복 데이터 삭제용 (날짜+이름 기준)
+    @Modifying
+    @Query("DELETE FROM SpecialDay s WHERE s.id IN " +
+            "(SELECT s2.id FROM SpecialDay s2 WHERE s2.countryCode = :countryCode " +
+            "AND s2.date = :date AND s2.name = :name AND s2.id != :keepId)")
+    int deleteDuplicatesByCountryCodeAndDateAndName(
+            @Param("countryCode") CountryCode countryCode,
+            @Param("date") LocalDate date,
+            @Param("name") String name,
+            @Param("keepId") Long keepId);
+
+    // 국가별 중복 날짜+이름 조회
+    @Query("SELECT CONCAT(s.date, ':', s.name) FROM SpecialDay s WHERE s.countryCode = :countryCode " +
+            "GROUP BY s.date, s.name HAVING COUNT(s) > 1")
+    List<String> findDuplicateDateNameKeysByCountryCode(@Param("countryCode") CountryCode countryCode);
+
+    // 특정 국가, 날짜, 이름의 첫 번째 데이터 조회
+    Optional<SpecialDay> findFirstByCountryCodeAndDateAndName(CountryCode countryCode, LocalDate date, String name);
 }

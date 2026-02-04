@@ -32,7 +32,12 @@
       "mcp__plugin_context7_context7__resolve-library-id",
       "mcp__plugin_context7_context7__query-docs",
       "Bash(curl:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(docker network:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker compose up:*)",
+      "Bash(docker compose:*)"
     ]
   }
 }

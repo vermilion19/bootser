@@ -4,6 +4,11 @@ services:
     container_name: webflux-redis
     ports:
       - "6380:6379"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - webflux-network
 
@@ -23,6 +28,11 @@ services:
       nofile:
         soft: 200000
         hard: 200000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - webflux-network
 
@@ -35,8 +45,14 @@ services:
       - "8083:8081"
     volumes:
       - logstream-data:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - webflux-network
+
   attacker:
     build:
       context: ../../apps/webflux/chatting-service
@@ -55,6 +71,11 @@ services:
       nofile:
         soft: 60000
         hard: 60000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - webflux-network
 

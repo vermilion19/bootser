@@ -60,4 +60,10 @@ public class SpecialDayAdminController {
         MovieSyncService.MovieSyncResult result = movieSyncService.syncUpcomingMovies(region);
         return ApiResponse.success(result);
     }
+
+    @DeleteMapping("/duplicates")
+    public ApiResponse<java.util.Map<String, Integer>> removeDuplicates() {
+        java.util.Map<String, Integer> result = specialDaySyncService.removeAllDuplicates();
+        return ApiResponse.success(result);
+    }
 }

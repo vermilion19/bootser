@@ -27,6 +27,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # 2. Tempo (트레이싱 수집)
   tempo:
@@ -45,6 +50,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # 3. Prometheus (메트릭 수집) - 9091 포트 사용 (jenkins 9090과 충돌 방지)
   prometheus:
@@ -65,6 +75,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ==============================================
   # Tier 2: Visualization (Tier 1 준비 후 시작)
@@ -99,3 +114,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

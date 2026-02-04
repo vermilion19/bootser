@@ -31,6 +31,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 
@@ -52,6 +57,11 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 
@@ -68,6 +78,11 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 
@@ -100,6 +115,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network
 
@@ -119,5 +139,10 @@ services:
       KAFKA_CLUSTERS_0_NAME: booster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - booster-network

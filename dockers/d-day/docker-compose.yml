@@ -15,15 +15,13 @@ services:
       args:
         SERVICE_PATH: apps/d-day/d-day-service
     container_name: dday-service
-    depends_on:
-      - discovery-service
     ports:
       - "8081:8080"
     environment:
       # Server
       SERVER_PORT: 8080
-      # Eureka
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      # Eureka (dockers/gateway에서 실행되는 discovery-service 사용)
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://booster-discovery:8761/eureka/
       EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
       # Database (infrastructure의 postgres 사용)
       SPRING_DATASOURCE_URL: jdbc:postgresql://booster-postgres:5432/dday_service_db
@@ -55,64 +53,9 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"   # 로그 파일 하나당 최대 10MB
-        max-file: "3"     # 최대 3개까지만 보관 (오래된 건 삭제)
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
-
-  # ==============================================
-  # Discovery Service (Eureka) - d-day 전용 실행시 필요
-  # ==============================================
-  discovery-service:
-    image: booster/discovery-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: infrastructure/discovery-service
-    container_name: booster-discovery
-    restart: unless-stopped
-    ports:
-      - "8761:8761"
-    environment:
-      SERVER_PORT: 8761
-      EUREKA_INSTANCE_HOSTNAME: discovery-service
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      start_period: 30s
-      retries: 5
-    networks:
-      - booster-network
-
-  # ==============================================
-  # Gateway Service - d-day 전용 실행시 필요
-  # ==============================================
-  gateway-service:
-    image: booster/gateway-service
-    build:
-      context: ../..
-      dockerfile: dockers/services/Dockerfile
-      args:
-        SERVICE_PATH: infrastructure/gateway-service
-    container_name: booster-gateway
-    restart: unless-stopped
-    depends_on:
-      discovery-service:
-        condition: service_healthy
-    ports:
-      - "6000:6000"
-    environment:
-      SERVER_PORT: 6000
-      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6000/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      start_period: 30s
-      retries: 5
-    networks:
-      - booster-network
 
   # ==============================================
   # Frontend: D-Day Web
@@ -122,9 +65,6 @@ services:
       context: ../../frontends/dday-web
       dockerfile: Dockerfile
     container_name: dday-web
-    depends_on:
-      gateway-service:
-        condition: service_healthy
     ports:
       - "3302:80"
     networks:
@@ -132,6 +72,6 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"   # 로그 파일 하나당 최대 10MB
-        max-file: "3"     # 최대 3개까지만 보관 (오래된 건 삭제)
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
