@@ -19,24 +19,6 @@ public class AuthService {
 
     private final UserRepository userRepository;
 
-//    public User processOAuthLogin(String email, String name, String oauthId) {
-//        Optional<User> existingUser = userRepository.findByOauthProviderAndOauthId(
-//                OAuthProvider.GOOGLE, oauthId);
-//
-//        if (existingUser.isPresent()) {
-//            User user = existingUser.get();
-//            user.updateProfile(name);
-//            log.info("기존 사용자 로그인: userId={}, email={}", user.getId(), email);
-//            return user;
-//        }
-//
-//        User newUser = User.createGoogleUser(email, name, oauthId);
-//        User savedUser = userRepository.save(newUser);
-//
-//        log.info("신규 사용자 가입: userId={}, email={}", savedUser.getId(), email);
-//        return savedUser;
-//    }
-
     public Optional<User> findById(Long userId) {
         return userRepository.findById(userId);
     }

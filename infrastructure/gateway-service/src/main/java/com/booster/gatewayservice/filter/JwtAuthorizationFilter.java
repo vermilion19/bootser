@@ -146,9 +146,9 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
 
     private Mono<Void> handleGuestAccess(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
-                .header("X-User-Id", "-1")       // 요청하신대로 "guest" 문자열 주입
-                .header("X-User-Role", "ROLE_GUEST") // 게스트 권한 주입
-                .header("X-User-Email", "")          // 이메일 없음
+                .header("X-User-Id", "-1")
+                .header("X-User-Role", "ROLE_GUEST")
+                .header("X-User-Email", "")
                 .build();
 
         return chain.filter(exchange.mutate().request(modifiedRequest).build());
