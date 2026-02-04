@@ -11,15 +11,18 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -30,29 +33,41 @@ import javax.crypto.SecretKey;
 )
 public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
 
-    private final SecretKey key;
+    private static final String ACCESS_TOKEN_COOKIE = "access_token";
+    private static final String ACCESS_SERVICES_CLAIM = "access_services";
+    private static final Map<String, String> PATH_SERVICE_MAPPING = Map.of(
+            "/api/v1/special-days/**", "d-day",
+            "/api/v1/diary/**", "diary",
+            "/waitings/**", "waiting",
+            "/restaurants/**", "restaurant"
+    );
 
-    public JwtAuthorizationFilter(@Value("${app.jwt.secret}") String secret) {
+    private final SecretKey key;
+    private final List<String> excludePaths;
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
+    public JwtAuthorizationFilter(
+            @Value("${app.jwt.secret}") String secret,
+            @Value("${gateway.jwt.exclude-paths:}") List<String> excludePaths) {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
+        this.excludePaths = excludePaths;
     }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-        HttpHeaders headers = request.getHeaders();
+        String path = request.getPath().value();
 
-        String authHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
-
-        if (authHeader == null) {
-            return onError(exchange, "No Authorization header", HttpStatus.UNAUTHORIZED);
+        if (isExcludedPath(path)) {
+            return chain.filter(exchange);
         }
 
-        if (!authHeader.startsWith("Bearer ")) {
-            return onError(exchange, "Invalid Authorization header format", HttpStatus.UNAUTHORIZED);
-        }
+        String token = extractTokenFromCookie(request);
 
-        String token = authHeader.substring(7);
+        if (token == null) {
+            return onError(exchange, "No access_token cookie", HttpStatus.UNAUTHORIZED);
+        }
 
         try {
             Claims claims = Jwts.parser()
@@ -61,12 +76,20 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
                     .parseSignedClaims(token)
                     .getPayload();
 
+            String requiredService = getRequiredService(path);
+            if (requiredService != null && !hasServiceAccess(claims, requiredService)) {
+                log.warn("User {} does not have access to service: {}", claims.getSubject(), requiredService);
+                return onError(exchange, "Access denied to service: " + requiredService, HttpStatus.FORBIDDEN);
+            }
+
             String userId = claims.getSubject();
             String role = claims.get("role", String.class);
+            String email = claims.get("email", String.class);
 
             ServerHttpRequest modifiedRequest = request.mutate()
                     .header("X-User-Id", userId)
                     .header("X-User-Role", role)
+                    .header("X-User-Email", email != null ? email : "")
                     .build();
 
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
@@ -79,7 +102,35 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
-        return -100; // 다른 필터들보다 먼저 실행
+        return -100;
+    }
+
+    private String extractTokenFromCookie(ServerHttpRequest request) {
+        List<HttpCookie> cookies = request.getCookies().get(ACCESS_TOKEN_COOKIE);
+        if (cookies != null && !cookies.isEmpty()) {
+            return cookies.getFirst().getValue();
+        }
+        return null;
+    }
+
+    private boolean isExcludedPath(String path) {
+        return excludePaths.stream()
+                .anyMatch(pattern -> pathMatcher.match(pattern, path));
+    }
+
+    private String getRequiredService(String path) {
+        for (Map.Entry<String, String> entry : PATH_SERVICE_MAPPING.entrySet()) {
+            if (pathMatcher.match(entry.getKey(), path)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean hasServiceAccess(Claims claims, String service) {
+        List<String> accessServices = claims.get(ACCESS_SERVICES_CLAIM, List.class);
+        return accessServices != null && accessServices.contains(service);
     }
 
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {

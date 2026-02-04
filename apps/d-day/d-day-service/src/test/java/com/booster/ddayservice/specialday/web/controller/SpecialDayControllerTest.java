@@ -1,7 +1,6 @@
 package com.booster.ddayservice.specialday.web.controller;
 
 import com.booster.core.web.config.JacksonConfig;
-import com.booster.ddayservice.auth.application.JwtTokenProvider;
 import com.booster.ddayservice.auth.web.CurrentMemberIdResolver;
 import com.booster.ddayservice.specialday.application.SpecialDayService;
 import com.booster.ddayservice.specialday.application.dto.PastResult;
@@ -36,8 +35,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SpecialDayController.class)
-@Import({SpecialDayExceptionHandler.class, JacksonConfig.class})
+@Import({SpecialDayExceptionHandler.class, JacksonConfig.class, CurrentMemberIdResolver.class})
 class SpecialDayControllerTest {
+
+    private static final String USER_ID_HEADER = "X-User-Id";
 
     @Autowired
     private MockMvc mockMvc;
@@ -47,9 +48,6 @@ class SpecialDayControllerTest {
 
     @MockitoBean
     private SpecialDayService specialDayService;
-
-    @MockitoBean
-    private JwtTokenProvider tokenProvider;
 
     @Nested
     @DisplayName("GET /today")
@@ -183,7 +181,7 @@ class SpecialDayControllerTest {
             mockMvc.perform(post("/api/v1/special-days")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody)
-                            .requestAttr(CurrentMemberIdResolver.MEMBER_ID_ATTRIBUTE, memberId))
+                            .header(USER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk());
         }
     }
@@ -198,7 +196,7 @@ class SpecialDayControllerTest {
             Long memberId = 100L;
 
             mockMvc.perform(delete("/api/v1/special-days/12345")
-                            .requestAttr(CurrentMemberIdResolver.MEMBER_ID_ATTRIBUTE, memberId))
+                            .header(USER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk());
 
             verify(specialDayService).delete(12345L, memberId);
@@ -213,7 +211,7 @@ class SpecialDayControllerTest {
                     .when(specialDayService).delete(12345L, memberId);
 
             mockMvc.perform(delete("/api/v1/special-days/12345")
-                            .requestAttr(CurrentMemberIdResolver.MEMBER_ID_ATTRIBUTE, memberId))
+                            .header(USER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.errorCode").value("SD-006"));
         }
@@ -229,7 +227,7 @@ class SpecialDayControllerTest {
             Long memberId = 100L;
 
             mockMvc.perform(patch("/api/v1/special-days/12345/visibility")
-                            .requestAttr(CurrentMemberIdResolver.MEMBER_ID_ATTRIBUTE, memberId))
+                            .header(USER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk());
 
             verify(specialDayService).toggleVisibility(12345L, memberId);

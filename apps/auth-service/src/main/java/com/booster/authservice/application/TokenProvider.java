@@ -1,7 +1,7 @@
 package com.booster.authservice.application;
 
-import com.booster.authservice.domain.UserRole;
-import com.booster.authservice.web.dto.TokenResponse;
+import com.booster.authservice.domain.OAuthProvider;
+import com.booster.authservice.domain.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -12,16 +12,21 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.List;
 
 @Slf4j
 @Component
 public class TokenProvider {
 
-    private static final String AUTHORITIES_KEY = "role"; // JWT에 권한을 담을 키값
+    private static final String ROLE_KEY = "role";
+    private static final String ACCESS_SERVICES_KEY = "access_services";
+    private static final String EMAIL_KEY = "email";
+    private static final String NAME_KEY = "name";
+    private static final String OAUTH_PROVIDER_KEY = "oauth_provider";
 
     private final String secret;
     private final long accessTokenValidityInMilliseconds;
-    private SecretKey key; // 암호화된 키 객체
+    private SecretKey key;
 
     public TokenProvider(
             @Value("${app.jwt.secret}") String secret,
@@ -30,36 +35,29 @@ public class TokenProvider {
         this.accessTokenValidityInMilliseconds = accessTokenValidityInMilliseconds;
     }
 
-    // Bean 생성 후 주입받은 secret 값을 이용해 암호화 키 객체 생성
     @PostConstruct
     public void init() {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    /**
-     * 🎫 토큰 생성 (여권 발급)
-     * Snowflake ID와 Role을 Payload에 담습니다.
-     */
-    public TokenResponse createToken(Long userId, String username, UserRole role) {
-        long now = (new Date()).getTime();
+    public String createToken(User user) {
+        long now = System.currentTimeMillis();
         Date validity = new Date(now + this.accessTokenValidityInMilliseconds);
 
-        String accessToken = Jwts.builder()
-                .subject(String.valueOf(userId)) // ❄️ Snowflake ID를 String으로 변환하여 Subject에 저장
-                .claim("username", username)     // 편의를 위해 username도 추가 (선택사항)
-                .claim(AUTHORITIES_KEY, role.name()) // Enum -> String (예: "PARTNER")
-                .signWith(key) // HS512 알고리즘 자동 적용
+        return Jwts.builder()
+                .subject(String.valueOf(user.getId()))
+                .claim(EMAIL_KEY, user.getEmail())
+                .claim(NAME_KEY, user.getName())
+                .claim(ROLE_KEY, user.getRole().getKey())
+                .claim(ACCESS_SERVICES_KEY, user.getAccessServices())
+                .claim(OAUTH_PROVIDER_KEY, user.getOauthProvider().name())
+                .issuedAt(new Date(now))
                 .expiration(validity)
+                .signWith(key)
                 .compact();
-
-        return TokenResponse.of(accessToken, accessTokenValidityInMilliseconds);
     }
 
-    /**
-     * 🕵️ 토큰 검증 (위조 여부 확인)
-     * Gateway에서 주로 하겠지만, Auth 서비스 내부 로직에서도 필요할 수 있음
-     */
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -79,17 +77,42 @@ public class TokenProvider {
         return false;
     }
 
-    /**
-     * 🔍 토큰에서 사용자 ID (Subject) 추출
-     */
     public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parser()
+        Claims claims = parseClaims(token);
+        return Long.parseLong(claims.getSubject());
+    }
+
+    public String getRoleFromToken(String token) {
+        Claims claims = parseClaims(token);
+        return claims.get(ROLE_KEY, String.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> getAccessServicesFromToken(String token) {
+        Claims claims = parseClaims(token);
+        return claims.get(ACCESS_SERVICES_KEY, List.class);
+    }
+
+    public String getEmailFromToken(String token) {
+        Claims claims = parseClaims(token);
+        return claims.get(EMAIL_KEY, String.class);
+    }
+
+    public OAuthProvider getOAuthProviderFromToken(String token) {
+        Claims claims = parseClaims(token);
+        String provider = claims.get(OAUTH_PROVIDER_KEY, String.class);
+        return OAuthProvider.valueOf(provider);
+    }
+
+    public long getExpirationTime() {
+        return accessTokenValidityInMilliseconds;
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-
-        return Long.parseLong(claims.getSubject()); // String -> Snowflake Long 변환
     }
-
 }

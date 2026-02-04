@@ -1,75 +1,51 @@
 package com.booster.authservice.web;
 
 import com.booster.authservice.application.AuthService;
-import com.booster.authservice.domain.UserRole;
-import com.booster.authservice.web.dto.AuthRequest;
-import com.booster.authservice.web.dto.TokenResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthController.class)
-@AutoConfigureMockMvc(addFilters = false) // Security Filter 무시 (순수 컨트롤러 로직만 검증하기 위함)
+@AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    // 🚨 핵심: @MockBean 대신 @MockitoBean 사용 (Spring Boot 3.4+ / 4.0 표준)
     @MockitoBean
     private AuthService authService;
 
     @Test
-    @DisplayName("회원가입 API 호출 성공")
-    void signup_api_success() throws Exception {
-        // given
-        AuthRequest request = new AuthRequest("newuser", "pass1234", UserRole.USER);
-        given(authService.signup(any(AuthRequest.class))).willReturn(123456789L); // Snowflake ID 반환 가정
-
+    @DisplayName("Google 로그인 URL 조회 API 호출 성공")
+    void getGoogleLoginUrl_success() throws Exception {
         // when & then
-        mockMvc.perform(post("/auth/signup")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print()) // 테스트 로그 출력
+        mockMvc.perform(get("/auth/v1/login/google"))
+                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").value(123456789L)); // 반환값이 Long ID 인지 확인
+                .andExpect(jsonPath("$.loginUrl").value("/oauth2/authorization/google"));
     }
 
     @Test
-    @DisplayName("로그인 API 호출 성공")
-    void login_api_success() throws Exception {
-        // given
-        AuthRequest request = new AuthRequest("existingUser", "pass1234", null);
-        TokenResponse tokenResponse = TokenResponse.of("eyJhbGciOi...", 3600000L);
-
-        given(authService.login(any(AuthRequest.class))).willReturn(tokenResponse);
-
+    @DisplayName("로그아웃 API 호출 성공 - 쿠키가 삭제되어야 한다")
+    void logout_success() throws Exception {
         // when & then
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(post("/auth/v1/logout"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("eyJhbGciOi..."))
-                .andExpect(jsonPath("$.type").value("Bearer"));
+                .andExpect(header().exists(HttpHeaders.SET_COOKIE))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE,
+                        org.hamcrest.Matchers.containsString("access_token=")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE,
+                        org.hamcrest.Matchers.containsString("Max-Age=0")));
     }
-
 }

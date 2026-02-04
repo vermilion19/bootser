@@ -26,12 +26,5 @@ management:
       show-details: always
 
 app:
-  jwt:
-    secret: ${JWT_SECRET:dGhpcy1pcy1hLWRldi1vbmx5LXNlY3JldC1rZXktdGhhdC1zaG91bGQtYmUtcmVwbGFjZWQtaW4tcHJvZA==}
-    expiration: 3600000
   tmdb:
     api-key: ${TMDB_API_KEY:dev-tmdb-key}
-  oauth:
-    google:
-      client-id: ${GOOGLE_CLIENT_ID:dev-client-id}
-      client-secret: ${GOOGLE_CLIENT_SECRET:dev-client-secret}
