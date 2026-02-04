@@ -233,17 +233,41 @@ function Home() {
                         </div>
                     )}
 
-                    {today.upcoming && (
+                    {/*{today.upcoming && (*/}
+                    {/*    <div className="upcoming-section anim-fade-up" style={{ animationDelay: '0.3s' }}>*/}
+                    {/*        <div className="section-label">Coming Up</div>*/}
+                    {/*        <div className="upcoming-name">{today.upcoming.name}</div>*/}
+                    {/*        <div className="upcoming-date">{formatDate(today.upcoming.date)}</div>*/}
+                    {/*        <UpcomingDday daysUntil={today.upcoming.daysUntil} />*/}
+                    {/*        <div className="upcoming-category">*/}
+                    {/*            {CATEGORY_LABELS[today.upcoming.category]}*/}
+                    {/*        </div>*/}
+                    {/*    </div>*/}
+                    {/*)}*/}
+                    {today.upcoming && today.upcoming.length > 0 && (
                         <div className="upcoming-section anim-fade-up" style={{ animationDelay: '0.3s' }}>
                             <div className="section-label">Coming Up</div>
-                            <div className="upcoming-name">{today.upcoming.name}</div>
-                            <div className="upcoming-date">{formatDate(today.upcoming.date)}</div>
-                            <UpcomingDday daysUntil={today.upcoming.daysUntil} />
-                            <div className="upcoming-category">
-                                {CATEGORY_LABELS[today.upcoming.category]}
+
+                            <div className="upcoming-list">
+                                {/* 여기에 ?. 를 붙여주세요 */}
+                                {today.upcoming?.map((item, index) => (
+                                    <div
+                                        key={`${item.name}-${index}`}
+                                        className="upcoming-item"
+                                        style={{ marginBottom: '20px' }}
+                                    >
+                                        <div className="upcoming-name">{item.name}</div>
+                                        <div className="upcoming-date">{formatDate(item.date)}</div>
+                                        <UpcomingDday daysUntil={item.daysUntil} />
+                                        <div className="upcoming-category">
+                                            {CATEGORY_LABELS[item.category]}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}
+
                 </div>
             ) : null}
         </div>

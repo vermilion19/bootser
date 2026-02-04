@@ -28,7 +28,7 @@ export interface TodayResponse {
     countryCode: string;
     hasSpecialDay: boolean;
     specialDays: SpecialDayItem[];
-    upcoming: UpcomingItem | null;
+    upcoming: UpcomingItem[] | null;
 }
 
 export interface PastResponse {

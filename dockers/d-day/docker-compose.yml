@@ -40,6 +40,11 @@ services:
       LOGGING_LEVEL_COM_BOOSTER: DEBUG
     networks:
       - booster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # 로그 파일 하나당 최대 10MB
+        max-file: "3"     # 최대 3개까지만 보관 (오래된 건 삭제)
     restart: unless-stopped
 
   # ==============================================
@@ -59,4 +64,9 @@ services:
       - ../../frontends/dday-web/nginx.conf:/etc/nginx/conf.d/default.conf
     networks:
       - booster-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # 로그 파일 하나당 최대 10MB
+        max-file: "3"     # 최대 3개까지만 보관 (오래된 건 삭제)
     restart: unless-stopped
