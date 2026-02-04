@@ -27,6 +27,11 @@ spring:
               predicates:
                 - Path=/auth/**
 
+            - id: auth-login-route
+              uri: lb://auth-service
+              predicates:
+                - Path=/login/** # /login/google 등을 잡음
+
             - id: auth-oauth2-route
               uri: lb://auth-service
               predicates:
@@ -46,6 +51,19 @@ spring:
               uri: lb://d-day-service
               predicates:
                 - Path=/api/v1/special-days/**
+
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "http://localhost:3000"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: true
 
 eureka:
   client:
