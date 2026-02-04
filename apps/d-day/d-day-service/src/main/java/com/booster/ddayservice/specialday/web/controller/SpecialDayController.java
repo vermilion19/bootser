@@ -42,12 +42,12 @@ public class SpecialDayController {
     @GetMapping("/today")
     public ApiResponse<TodayResponse> getToday(
             @RequestParam(defaultValue = "KR") String countryCode,
-            @RequestParam(defaultValue = "UTC") String timezone,
+            @RequestParam(required = false) String timezone,
             @RequestParam(required = false) List<SpecialDayCategory> category,
             @CurrentMemberId(required = false) Long memberId
     ) {
         CountryCode country = parseCountryCode(countryCode);
-        Timezone tz = parseTimezone(timezone);
+        Timezone tz = timezone != null ? parseTimezone(timezone) : country.getDefaultTimezone();
         List<SpecialDayCategory> categories = category != null ? category : List.of();
 
         TodayResult result = specialDayService.getToday(country, tz, categories, memberId);
@@ -57,12 +57,12 @@ public class SpecialDayController {
     @GetMapping("/past")
     public ResponseEntity<ApiResponse<PastResponse>> getPast(
             @RequestParam(defaultValue = "KR") String countryCode,
-            @RequestParam(defaultValue = "UTC") String timezone,
+            @RequestParam(required = false) String timezone,
             @RequestParam(required = false) List<SpecialDayCategory> category,
             @CurrentMemberId(required = false) Long memberId
     ) {
         CountryCode country = parseCountryCode(countryCode);
-        Timezone tz = parseTimezone(timezone);
+        Timezone tz = timezone != null ? parseTimezone(timezone) : country.getDefaultTimezone();
         List<SpecialDayCategory> categories = category != null ? category : List.of();
 
         PastResult result = specialDayService.getPast(country, tz, categories, memberId);

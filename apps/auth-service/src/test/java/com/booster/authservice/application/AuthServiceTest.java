@@ -1,26 +1,23 @@
 package com.booster.authservice.application;
 
+import com.booster.authservice.domain.OAuthProvider;
 import com.booster.authservice.domain.User;
 import com.booster.authservice.domain.UserRepository;
 import com.booster.authservice.domain.UserRole;
-import com.booster.authservice.web.dto.AuthRequest;
-import com.booster.authservice.web.dto.TokenResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -31,89 +28,114 @@ class AuthServiceTest {
     @Mock
     private UserRepository userRepository;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private TokenProvider tokenProvider;
-
     @Test
-    @DisplayName("회원가입 성공 - 비밀번호가 암호화되어 저장되어야 한다")
-    void signup_success() {
+    @DisplayName("OAuth 로그인 - 신규 사용자는 저장되어야 한다")
+    void processOAuthLogin_newUser() {
         // given
-        AuthRequest request = new AuthRequest("user1", "pw1234", UserRole.USER);
+        String email = "test@gmail.com";
+        String name = "Test User";
+        String oauthId = "google-oauth-id-123";
 
-        given(userRepository.existsByUsername(request.username())).willReturn(false);
-        given(passwordEncoder.encode(request.password())).willReturn("encoded_pw1234");
+        given(userRepository.findByEmail(email))
+                .willReturn(Optional.empty());
 
-        // Mocking save: ID가 세팅된 User 객체를 리턴한다고 가정
         User savedUser = User.builder()
-                .username("user1")
-                .password("encoded_pw1234")
+                .email(email)
+                .name(name)
+                .oauthProvider(OAuthProvider.GOOGLE)
+                .oauthId(oauthId)
                 .role(UserRole.USER)
+                .accessServices(List.of("d-day"))
                 .build();
-        // 리플렉션 등으로 ID 강제 주입 (Snowflake는 @PrePersist라 단위테스트에선 동작 안 할 수 있음)
-        // 여기서는 save 호출 여부 검증에 집중
         given(userRepository.save(any(User.class))).willReturn(savedUser);
 
         // when
-        authService.signup(request);
+        User result = authService.processOAuthLogin(email, name, oauthId,"d-day");
 
         // then
-        verify(passwordEncoder).encode("pw1234"); // 암호화 수행 확인
-        verify(userRepository).save(any(User.class)); // 저장 수행 확인
+        assertThat(result.getEmail()).isEqualTo(email);
+        assertThat(result.getName()).isEqualTo(name);
+        assertThat(result.getOauthProvider()).isEqualTo(OAuthProvider.GOOGLE);
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
-    @DisplayName("회원가입 실패 - 중복된 아이디가 있으면 예외 발생")
-    void signup_duplicate() {
+    @DisplayName("OAuth 로그인 - 기존 사용자는 프로필이 업데이트되어야 한다")
+    void processOAuthLogin_existingUser() {
         // given
-        AuthRequest request = new AuthRequest("user1", "pw1234", UserRole.USER);
-        given(userRepository.existsByUsername("user1")).willReturn(true);
+        String email = "test@gmail.com";
+        String oldName = "Old Name";
+        String newName = "New Name";
+        String oauthId = "google-oauth-id-123";
 
-        // when & then
-        assertThatThrownBy(() -> authService.signup(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("이미 사용 중인 아이디입니다.");
-    }
-
-    @Test
-    @DisplayName("로그인 성공 - 토큰이 발급되어야 한다")
-    void login_success() {
-        // given
-        AuthRequest request = new AuthRequest("user1", "pw1234", null);
-        User user = User.builder()
-                .username("user1")
-                .password("encoded_pw1234") // DB에 저장된 암호화된 비번
+        User existingUser = User.builder()
+                .email(email)
+                .name(oldName)
+                .oauthProvider(OAuthProvider.GOOGLE)
+                .oauthId(oauthId)
                 .role(UserRole.USER)
+                .accessServices(List.of("d-day"))
                 .build();
 
-        given(userRepository.findByUsername("user1")).willReturn(Optional.of(user));
-        given(passwordEncoder.matches("pw1234", "encoded_pw1234")).willReturn(true);
-        given(tokenProvider.createToken(any(), any(), any()))
-                .willReturn(TokenResponse.of("access-token", 3600L));
+        given(userRepository.findByEmail(email))
+                .willReturn(Optional.of(existingUser));
+
+        given(userRepository.save(any(User.class)))
+                .willReturn(existingUser);
 
         // when
-        TokenResponse response = authService.login(request);
+        User result = authService.processOAuthLogin(email, newName, oauthId,"d-day");
 
         // then
-        assertThat(response.accessToken()).isEqualTo("access-token");
+        assertThat(result.getName()).isEqualTo(newName);
+        verify(userRepository, times(1)).save(existingUser);
     }
 
     @Test
-    @DisplayName("로그인 실패 - 비밀번호 불일치")
-    void login_fail_password() {
+    @DisplayName("findById - 사용자를 ID로 조회할 수 있다")
+    void findById_success() {
         // given
-        AuthRequest request = new AuthRequest("user1", "wrong_pw", null);
-        User user = User.builder().username("user1").password("encoded_pw1234").role(UserRole.USER).build();
+        Long userId = 123456789L;
+        User user = User.builder()
+                .email("test@gmail.com")
+                .name("Test User")
+                .oauthProvider(OAuthProvider.GOOGLE)
+                .oauthId("google-oauth-id")
+                .role(UserRole.USER)
+                .accessServices(List.of("d-day"))
+                .build();
 
-        given(userRepository.findByUsername("user1")).willReturn(Optional.of(user));
-        given(passwordEncoder.matches("wrong_pw", "encoded_pw1234")).willReturn(false);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
-        // when & then
-        assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("비밀번호가 일치하지 않습니다.");
+        // when
+        Optional<User> result = authService.findById(userId);
+
+        // then
+        assertThat(result).isPresent();
+        assertThat(result.get().getEmail()).isEqualTo("test@gmail.com");
     }
 
+    @Test
+    @DisplayName("findByEmail - 사용자를 이메일로 조회할 수 있다")
+    void findByEmail_success() {
+        // given
+        String email = "test@gmail.com";
+        User user = User.builder()
+                .email(email)
+                .name("Test User")
+                .oauthProvider(OAuthProvider.GOOGLE)
+                .oauthId("google-oauth-id")
+                .role(UserRole.USER)
+                .accessServices(List.of("d-day"))
+                .build();
+
+        given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+
+        // when
+        Optional<User> result = authService.findByEmail(email);
+
+        // then
+        assertThat(result).isPresent();
+        assertThat(result.get().getName()).isEqualTo("Test User");
+    }
 }

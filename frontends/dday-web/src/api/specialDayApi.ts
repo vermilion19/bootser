@@ -1,4 +1,4 @@
-import type { ApiResponse, CountryCodeResponse, PastResponse, TodayResponse } from './types';
+import type { ApiResponse, CountryCodeResponse, PastResponse, SpecialDayCategory, TodayResponse } from './types';
 
 const BASE = '/api/v1/special-days';
 
@@ -15,13 +15,21 @@ export function getCountries(query?: string): Promise<CountryCodeResponse[]> {
     return fetchApi<CountryCodeResponse[]>(`${BASE}/countries${params}`);
 }
 
-export function getToday(countryCode = 'KR', timezone = 'UTC'): Promise<TodayResponse> {
-    const params = new URLSearchParams({ countryCode, timezone });
+export function getToday(
+    countryCode = 'KR',
+    categories: SpecialDayCategory[] = []
+): Promise<TodayResponse> {
+    const params = new URLSearchParams({ countryCode });
+    categories.forEach((c) => params.append('category', c));
     return fetchApi<TodayResponse>(`${BASE}/today?${params}`);
 }
 
-export async function getPast(countryCode = 'KR', timezone = 'UTC'): Promise<PastResponse | null> {
-    const params = new URLSearchParams({ countryCode, timezone });
+export async function getPast(
+    countryCode = 'KR',
+    categories: SpecialDayCategory[] = []
+): Promise<PastResponse | null> {
+    const params = new URLSearchParams({ countryCode });
+    categories.forEach((c) => params.append('category', c));
     const res = await fetch(`${BASE}/past?${params}`);
     if (res.status === 204) return null;
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

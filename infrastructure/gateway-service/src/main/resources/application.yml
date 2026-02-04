@@ -27,10 +27,47 @@ spring:
               predicates:
                 - Path=/auth/**
 
+            - id: auth-login-route
+              uri: lb://auth-service
+              predicates:
+                - Path=/login/** # /login/google 등을 잡음
+
+            - id: auth-oauth2-route
+              uri: lb://auth-service
+              predicates:
+                - Path=/oauth2/**
+
+            - id: auth-oauth2-callback-route
+              uri: lb://auth-service
+              predicates:
+                - Path=/login/oauth2/**
+
             - id: promotion-service-route
               uri: lb://promotion-service
               predicates:
                 - Path=/coupons/**
+
+            - id: d-day-service-route
+              uri: lb://d-day-service
+              predicates:
+                - Path=/api/v1/special-days/**
+
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "http://localhost:3000"
+                  - "http://localhost:3303"       # Vite 개발 서버
+                  - "https://this-is-the.day"     # [추가] 운영용 프론트엔드 도메인
+                  - "https://www.this-is-the.day" # [추가] www 서브도메인
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: true
 
 eureka:
   client:
@@ -52,11 +89,15 @@ management:
 
 app:
   jwt:
-    secret: "vMFZ7YkY5+JjK3Hq8Lw9XzC2Vb4N/mQaR1TsD6EfG8UoWpI0OxLrYtZ3V5KjH9NcXyZ1QaW2EcR4VtB6NkM8=="
-    expiration: 3600000 # 1시간 (3600초 * 1000ms)
+    secret: ${JWT_SECRET:vMFZ7YkY5+JjK3Hq8Lw9XzC2Vb4N/mQaR1TsD6EfG8UoWpI0OxLrYtZ3V5KjH9NcXyZ1QaW2EcR4VtB6NkM8==}
+    expiration: 3600000
 
-# JWT 필터 설정
 gateway:
   jwt:
     filter:
-      enabled: false  # 현재 비활성화
+      enabled: true
+    exclude-paths:
+      - /auth/**
+      - /oauth2/**
+      - /login/oauth2/**
+      - /actuator/**
