@@ -101,11 +101,10 @@ public class SpecialDayService {
         SpecialDay specialDay = specialDayRepository.findById(id)
                 .orElseThrow(() -> new SpecialDayException(SpecialDayErrorCode.SPECIAL_DAY_NOT_FOUND));
 
-        if (!specialDay.isOwnedBy(memberId)) {
-            throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
+        if (specialDay.isOwnedBy(memberId)) {
+            specialDayRepository.delete(specialDay);
         }
-
-        specialDayRepository.delete(specialDay);
+        throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
     }
 
     @Transactional
@@ -113,10 +112,11 @@ public class SpecialDayService {
         SpecialDay specialDay = specialDayRepository.findById(id)
                 .orElseThrow(() -> new SpecialDayException(SpecialDayErrorCode.SPECIAL_DAY_NOT_FOUND));
 
-        if (!specialDay.isOwnedBy(memberId)) {
+        if (specialDay.isOwnedBy(memberId)) {
+            specialDay.toggleVisibility();
+        }else {
             throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
         }
 
-        specialDay.toggleVisibility();
     }
 }

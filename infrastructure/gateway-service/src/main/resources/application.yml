@@ -73,7 +73,6 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-
 management:
   endpoints:
     web:
@@ -101,3 +100,5 @@ gateway:
       - /oauth2/**
       - /login/oauth2/**
       - /actuator/**
+    admin-blocked-paths:
+      - /api/v1/special-days/admin/**

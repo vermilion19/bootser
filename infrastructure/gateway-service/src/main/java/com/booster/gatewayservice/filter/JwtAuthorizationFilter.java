@@ -44,14 +44,17 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
 
     private final SecretKey key;
     private final List<String> excludePaths;
+    private final List<String> adminBlockedPaths;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public JwtAuthorizationFilter(
             @Value("${app.jwt.secret}") String secret,
-            @Value("${gateway.jwt.exclude-paths:}") List<String> excludePaths) {
+            @Value("${gateway.jwt.exclude-paths:}") List<String> excludePaths,
+            @Value("${gateway.jwt.admin-blocked-paths:}") List<String> adminBlockedPaths) {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.excludePaths = excludePaths;
+        this.adminBlockedPaths = adminBlockedPaths;
     }
 
     @Override
@@ -62,6 +65,12 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
         if (isExcludedPath(path)) {
             return chain.filter(exchange);
         }
+
+        if (isAdminBlockedPath(path)) {
+            log.warn("Admin path blocked: {}", path);
+            return onError(exchange, "Admin API access is blocked", HttpStatus.FORBIDDEN);
+        }
+
         String requiredService = getRequiredService(path);
 
 
@@ -119,6 +128,11 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
 
     private boolean isExcludedPath(String path) {
         return excludePaths.stream()
+                .anyMatch(pattern -> pathMatcher.match(pattern, path));
+    }
+
+    private boolean isAdminBlockedPath(String path) {
+        return adminBlockedPaths.stream()
                 .anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 

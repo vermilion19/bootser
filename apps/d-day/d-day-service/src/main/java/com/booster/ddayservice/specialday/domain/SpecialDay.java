@@ -72,6 +72,7 @@ public class SpecialDay extends BaseEntity {
                 .countryCode(countryCode)
                 .eventTimeZone(eventTimeZone)
                 .description(description)
+                .memberId(0L)
                 .build();
     }
 

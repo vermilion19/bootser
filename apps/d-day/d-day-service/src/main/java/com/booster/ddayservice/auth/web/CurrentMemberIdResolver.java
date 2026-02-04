@@ -13,6 +13,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 public class CurrentMemberIdResolver implements HandlerMethodArgumentResolver {
 
     private static final String USER_ID_HEADER = "X-User-Id";
+    private static final long GUEST_MEMBER_ID = -1;
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -37,7 +38,7 @@ public class CurrentMemberIdResolver implements HandlerMethodArgumentResolver {
             long memberId = Long.parseLong(userIdHeader);
 
             // [추가된 로직] 게이트웨이가 보낸 '게스트(-1)'인 경우 처리
-            if (memberId == -1L) {
+            if (memberId == GUEST_MEMBER_ID) {
                 // 필수(required=true) API인데 게스트가 들어왔다면 -> 에러 발생 (로그인 필요)
                 if (annotation != null && annotation.required()) {
                     throw new SpecialDayException(SpecialDayErrorCode.UNAUTHORIZED);
