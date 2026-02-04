@@ -47,3 +47,4 @@ tmpclaude*
 ### OS artifacts ###
 nul
 /dockers/d-day/.env
+/lib/
