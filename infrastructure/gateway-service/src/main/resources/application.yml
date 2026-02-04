@@ -57,6 +57,7 @@ spring:
               '[/**]':
                 allowedOrigins:
                   - "http://localhost:3000"
+                  - "http://localhost:3303"       # Vite 개발 서버
                   - "https://this-is-the.day"     # [추가] 운영용 프론트엔드 도메인
                   - "https://www.this-is-the.day" # [추가] www 서브도메인
                 allowedMethods:

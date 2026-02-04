@@ -8,7 +8,7 @@ const apiTarget = process.env.VITE_API_URL || 'http://localhost:6000'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 3303,
     host: true, // 외부 접근 허용 (Docker 환경)
     proxy: {
       '/api/v1': {
