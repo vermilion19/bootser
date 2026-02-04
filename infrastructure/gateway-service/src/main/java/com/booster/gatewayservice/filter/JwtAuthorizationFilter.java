@@ -62,10 +62,15 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
         if (isExcludedPath(path)) {
             return chain.filter(exchange);
         }
+        String requiredService = getRequiredService(path);
+
 
         String token = extractTokenFromCookie(request);
 
         if (token == null) {
+            if ("d-day".equals(requiredService)) {
+                return handleGuestAccess(exchange, chain);
+            }
             return onError(exchange, "No access_token cookie", HttpStatus.UNAUTHORIZED);
         }
 
@@ -76,7 +81,6 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            String requiredService = getRequiredService(path);
             if (requiredService != null && !hasServiceAccess(claims, requiredService)) {
                 log.warn("User {} does not have access to service: {}", claims.getSubject(), requiredService);
                 return onError(exchange, "Access denied to service: " + requiredService, HttpStatus.FORBIDDEN);
@@ -138,5 +142,15 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
         response.setStatusCode(httpStatus);
         log.error("Gateway Filter Error: {}", err);
         return response.setComplete();
+    }
+
+    private Mono<Void> handleGuestAccess(ServerWebExchange exchange, GatewayFilterChain chain) {
+        ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
+                .header("X-User-Id", "guest")       // 요청하신대로 "guest" 문자열 주입
+                .header("X-User-Role", "ROLE_GUEST") // 게스트 권한 주입
+                .header("X-User-Email", "")          // 이메일 없음
+                .build();
+
+        return chain.filter(exchange.mutate().request(modifiedRequest).build());
     }
 }
