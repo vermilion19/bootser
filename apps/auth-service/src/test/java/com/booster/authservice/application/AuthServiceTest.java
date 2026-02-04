@@ -17,8 +17,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -37,7 +36,7 @@ class AuthServiceTest {
         String name = "Test User";
         String oauthId = "google-oauth-id-123";
 
-        given(userRepository.findByOauthProviderAndOauthId(OAuthProvider.GOOGLE, oauthId))
+        given(userRepository.findByEmail(email))
                 .willReturn(Optional.empty());
 
         User savedUser = User.builder()
@@ -51,7 +50,7 @@ class AuthServiceTest {
         given(userRepository.save(any(User.class))).willReturn(savedUser);
 
         // when
-        User result = authService.processOAuthLogin(email, name, oauthId);
+        User result = authService.processOAuthLogin(email, name, oauthId,"d-day");
 
         // then
         assertThat(result.getEmail()).isEqualTo(email);
@@ -78,15 +77,18 @@ class AuthServiceTest {
                 .accessServices(List.of("d-day"))
                 .build();
 
-        given(userRepository.findByOauthProviderAndOauthId(OAuthProvider.GOOGLE, oauthId))
+        given(userRepository.findByEmail(email))
                 .willReturn(Optional.of(existingUser));
 
+        given(userRepository.save(any(User.class)))
+                .willReturn(existingUser);
+
         // when
-        User result = authService.processOAuthLogin(email, newName, oauthId);
+        User result = authService.processOAuthLogin(email, newName, oauthId,"d-day");
 
         // then
         assertThat(result.getName()).isEqualTo(newName);
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, times(1)).save(existingUser);
     }
 
     @Test
