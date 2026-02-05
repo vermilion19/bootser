@@ -1,5 +1,8 @@
 package com.booster.ddayservice.specialday.application;
 
+import com.booster.ddayservice.aop.Auditable;
+import com.booster.ddayservice.aop.CheckOwnership;
+import com.booster.ddayservice.aop.LogExecutionTime;
 import com.booster.ddayservice.specialday.application.dto.PastResult;
 import com.booster.ddayservice.specialday.application.dto.TodayResult;
 import com.booster.ddayservice.specialday.domain.*;
@@ -21,6 +24,7 @@ public class SpecialDayService {
 
     private final SpecialDayRepository specialDayRepository;
 
+    @LogExecutionTime
     public TodayResult getToday(CountryCode countryCode, Timezone timezone,
                                 List<SpecialDayCategory> categories, Long memberId) {
         LocalDate today = LocalDate.now(timezone.toZoneId());
@@ -88,6 +92,7 @@ public class SpecialDayService {
     }
 
     @Transactional
+    @Auditable(action = "특별일 생성")
     public SpecialDay createByMember(String name, SpecialDayCategory category, LocalDate date,
                                      LocalTime eventTime, Timezone eventTimeZone,
                                      CountryCode countryCode, String description,
@@ -97,40 +102,33 @@ public class SpecialDayService {
     }
 
     @Transactional
+    @CheckOwnership
+    @Auditable(action = "특별일 삭제")
     public void delete(Long id, Long memberId) {
-        SpecialDay specialDay = specialDayRepository.findById(id)
-                .orElseThrow(() -> new SpecialDayException(SpecialDayErrorCode.SPECIAL_DAY_NOT_FOUND));
-
-        if (specialDay.isOwnedBy(memberId)) {
-            specialDayRepository.delete(specialDay);
-        }else {
-            throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
-        }
+        // 소유권 검증은 @CheckOwnership AOP에서 처리
+        // JPA 1차 캐시로 인해 AOP에서 조회한 엔티티 재사용
+        specialDayRepository.deleteById(id);
     }
 
     @Transactional
+    @CheckOwnership
+    @Auditable(action = "공개 설정 변경")
     public void toggleVisibility(Long id, Long memberId) {
+        // 소유권 검증은 @CheckOwnership AOP에서 처리
         SpecialDay specialDay = specialDayRepository.findById(id)
                 .orElseThrow(() -> new SpecialDayException(SpecialDayErrorCode.SPECIAL_DAY_NOT_FOUND));
-
-        if (specialDay.isOwnedBy(memberId)) {
-            specialDay.toggleVisibility();
-        }else {
-            throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
-        }
+        specialDay.toggleVisibility();
     }
 
     @Transactional
+    @CheckOwnership
+    @Auditable(action = "특별일 수정")
     public SpecialDay update(Long id, Long memberId, String name, SpecialDayCategory category,
                              LocalDate date, LocalTime eventTime, Timezone eventTimeZone,
                              CountryCode countryCode, String description, Boolean isPublic) {
+        // 소유권 검증은 @CheckOwnership AOP에서 처리
         SpecialDay specialDay = specialDayRepository.findById(id)
                 .orElseThrow(() -> new SpecialDayException(SpecialDayErrorCode.SPECIAL_DAY_NOT_FOUND));
-
-        if (!specialDay.isOwnedBy(memberId)) {
-            throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
-        }
-
         specialDay.update(name, category, date, eventTime, eventTimeZone, countryCode, description, isPublic);
         return specialDay;
     }

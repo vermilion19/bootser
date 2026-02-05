@@ -1,5 +1,6 @@
 package com.booster.ddayservice.specialday.application;
 
+import com.booster.ddayservice.aop.LogExecutionTime;
 import com.booster.ddayservice.specialday.domain.CountryCode;
 import com.booster.ddayservice.specialday.domain.SpecialDay;
 import com.booster.ddayservice.specialday.domain.SpecialDayRepository;
@@ -24,6 +25,7 @@ public class SpecialDaySyncService {
     private final NagerDateClient nagerDateClient;
     private final SpecialDayRepository specialDayRepository;
 
+    @LogExecutionTime
     public SyncAllResult syncAll(int year) {
         log.info("전체 국가 공휴일 동기화 시작: year={}", year);
 
@@ -55,6 +57,7 @@ public class SpecialDaySyncService {
             List<String> failedCountries
     ) {}
 
+    @LogExecutionTime
     @Caching(evict = {
             @CacheEvict(value = "special-days-read", allEntries = true),
             @CacheEvict(value = "external-holidays", key = "#year + ':' + #countryCode")
