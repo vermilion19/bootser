@@ -55,10 +55,8 @@ public class SpecialDayService {
 
     private List<SpecialDay> findVisibleSpecialDays(LocalDate date, List<CountryCode> countryCodes,
                                                      List<SpecialDayCategory> categories, Long memberId) {
-        // 공개 데이터 (캐시)
-        List<SpecialDay> publicData = categories.isEmpty()
-                ? cacheService.findAllPublicByDate(date, countryCodes)
-                : cacheService.findAllPublicByDateAndCategories(date, countryCodes, categories);
+        // 공개 데이터 (캐시) - 각 그룹별 개별 호출로 self-invocation 방지
+        List<SpecialDay> publicData = findAllPublicByDate(date, countryCodes, categories);
 
         // 비공개 데이터 (DB 직접 조회)
         List<SpecialDay> privateData = List.of();
@@ -71,6 +69,39 @@ public class SpecialDayService {
         // 병합
         List<SpecialDay> result = new ArrayList<>(publicData);
         result.addAll(privateData);
+        return result;
+    }
+
+    private List<SpecialDay> findAllPublicByDate(LocalDate date, List<CountryCode> countryCodes,
+                                                  List<SpecialDayCategory> categories) {
+        List<SpecialDay> result = new ArrayList<>();
+
+        boolean needHolidays = categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.HOLIDAY_GROUP::contains);
+        boolean needEntertainment = categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.ENTERTAINMENT_GROUP::contains);
+        boolean needOthers = categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.CUSTOM_GROUP::contains);
+
+        if (needHolidays) {
+            List<SpecialDay> holidays = cacheService.findPublicHolidays(date, countryCodes);
+            if (!categories.isEmpty()) {
+                holidays = holidays.stream().filter(s -> categories.contains(s.getCategory())).toList();
+            }
+            result.addAll(holidays);
+        }
+        if (needEntertainment) {
+            List<SpecialDay> entertainment = cacheService.findPublicEntertainment(date, countryCodes);
+            if (!categories.isEmpty()) {
+                entertainment = entertainment.stream().filter(s -> categories.contains(s.getCategory())).toList();
+            }
+            result.addAll(entertainment);
+        }
+        if (needOthers) {
+            List<SpecialDay> others = cacheService.findPublicOthers(date, countryCodes);
+            if (!categories.isEmpty()) {
+                others = others.stream().filter(s -> categories.contains(s.getCategory())).toList();
+            }
+            result.addAll(others);
+        }
+
         return result;
     }
 

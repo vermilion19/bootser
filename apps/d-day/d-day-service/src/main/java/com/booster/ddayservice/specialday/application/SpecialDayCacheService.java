@@ -10,7 +10,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -85,44 +84,5 @@ public class SpecialDayCacheService {
         log.debug("[CACHE MISS] public-others - date={}, countries={}", date, countryCodes);
         return specialDayRepository.findPublicByDateAndCountryCodeAndCategories(
                 date, countryCodes, SpecialDayCategory.CUSTOM_GROUP);
-    }
-
-    // === 통합 조회 (모든 공개 데이터) ===
-
-    public List<SpecialDay> findAllPublicByDate(LocalDate date, List<CountryCode> countryCodes) {
-        List<SpecialDay> result = new ArrayList<>();
-        result.addAll(findPublicHolidays(date, countryCodes));
-        result.addAll(findPublicEntertainment(date, countryCodes));
-        result.addAll(findPublicOthers(date, countryCodes));
-        return result;
-    }
-
-    public List<SpecialDay> findAllPublicByDateAndCategories(
-            LocalDate date, List<CountryCode> countryCodes, List<SpecialDayCategory> categories) {
-
-        List<SpecialDay> result = new ArrayList<>();
-
-        // 요청된 카테고리에 해당하는 그룹만 조회
-        boolean needHolidays = categories.stream().anyMatch(SpecialDayCategory.HOLIDAY_GROUP::contains);
-        boolean needEntertainment = categories.stream().anyMatch(SpecialDayCategory.ENTERTAINMENT_GROUP::contains);
-        boolean needOthers = categories.stream().anyMatch(SpecialDayCategory.CUSTOM_GROUP::contains);
-
-        if (needHolidays) {
-            result.addAll(findPublicHolidays(date, countryCodes).stream()
-                    .filter(s -> categories.contains(s.getCategory()))
-                    .toList());
-        }
-        if (needEntertainment) {
-            result.addAll(findPublicEntertainment(date, countryCodes).stream()
-                    .filter(s -> categories.contains(s.getCategory()))
-                    .toList());
-        }
-        if (needOthers) {
-            result.addAll(findPublicOthers(date, countryCodes).stream()
-                    .filter(s -> categories.contains(s.getCategory()))
-                    .toList());
-        }
-
-        return result;
     }
 }
