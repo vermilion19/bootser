@@ -28,3 +28,11 @@ management:
 app:
   tmdb:
     api-key: ${TMDB_API_KEY:dev-tmdb-key}
+
+resilience4j:
+  ratelimiter:
+    instances:
+      adminApi:
+        limit-for-period: 5
+        limit-refresh-period: 1m
+        timeout-duration: 0s

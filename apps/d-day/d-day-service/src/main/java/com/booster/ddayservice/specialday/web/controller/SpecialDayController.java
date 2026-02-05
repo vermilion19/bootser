@@ -107,4 +107,21 @@ public class SpecialDayController {
         specialDayService.toggleVisibility(id, memberId);
         return ApiResponse.success(null);
     }
+
+    @PutMapping("/{id}")
+    public ApiResponse<SpecialDayResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateSpecialDayRequest request,
+            @CurrentMemberId Long memberId
+    ) {
+        CountryCode country = request.countryCode() != null ? parseCountryCode(request.countryCode()) : null;
+        Timezone tz = request.timezone() != null ? parseTimezone(request.timezone()) : null;
+        SpecialDayCategory cat = request.category() != null ? parseCategory(request.category()) : null;
+
+        SpecialDay updated = specialDayService.update(
+                id, memberId, request.name(), cat, request.date(), request.eventTime(),
+                tz, country, request.description(), request.isPublic());
+
+        return ApiResponse.success(SpecialDayResponse.from(updated));
+    }
 }

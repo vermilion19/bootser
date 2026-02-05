@@ -118,6 +118,20 @@ public class SpecialDayService {
         }else {
             throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
         }
+    }
 
+    @Transactional
+    public SpecialDay update(Long id, Long memberId, String name, SpecialDayCategory category,
+                             LocalDate date, LocalTime eventTime, Timezone eventTimeZone,
+                             CountryCode countryCode, String description, Boolean isPublic) {
+        SpecialDay specialDay = specialDayRepository.findById(id)
+                .orElseThrow(() -> new SpecialDayException(SpecialDayErrorCode.SPECIAL_DAY_NOT_FOUND));
+
+        if (!specialDay.isOwnedBy(memberId)) {
+            throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
+        }
+
+        specialDay.update(name, category, date, eventTime, eventTimeZone, countryCode, description, isPublic);
+        return specialDay;
     }
 }

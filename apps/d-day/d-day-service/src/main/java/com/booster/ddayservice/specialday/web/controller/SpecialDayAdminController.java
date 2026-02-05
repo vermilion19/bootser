@@ -12,6 +12,7 @@ import com.booster.ddayservice.specialday.domain.Timezone;
 import com.booster.ddayservice.specialday.web.dto.CreateSpecialDayRequest;
 import com.booster.ddayservice.specialday.web.dto.SpecialDayResponse;
 import com.booster.ddayservice.specialday.web.dto.SyncResultResponse;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +31,7 @@ public class SpecialDayAdminController {
     private final MovieSyncService movieSyncService;
 
     @PostMapping("/sync")
+    @RateLimiter(name = "adminApi")
     public ApiResponse<SyncResultResponse> syncAll(
             @RequestParam(required = false) Integer year
     ) {
@@ -54,6 +56,7 @@ public class SpecialDayAdminController {
     }
 
     @PostMapping("/sync/movies")
+    @RateLimiter(name = "adminApi")
     public ApiResponse<MovieSyncService.MovieSyncResult> syncMovies(
             @RequestParam(defaultValue = "KR") String region
     ) {
@@ -62,6 +65,7 @@ public class SpecialDayAdminController {
     }
 
     @DeleteMapping("/duplicates")
+    @RateLimiter(name = "adminApi")
     public ApiResponse<java.util.Map<String, Integer>> removeDuplicates() {
         java.util.Map<String, Integer> result = specialDaySyncService.removeAllDuplicates();
         return ApiResponse.success(result);

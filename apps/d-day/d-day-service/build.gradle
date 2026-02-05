@@ -8,6 +8,7 @@ dependencies {
     implementation project(':libs:core-web')
     implementation project(':libs:storage-db')
     implementation project(':libs:storage-redis')
+    implementation project(':libs:core-resilience')
 
     runtimeOnly 'com.h2database:h2'
 

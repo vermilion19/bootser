@@ -100,4 +100,17 @@ public class SpecialDay extends BaseEntity {
     public boolean isOwnedBy(Long memberId) {
         return this.memberId != null && this.memberId.equals(memberId);
     }
+
+    public void update(String name, SpecialDayCategory category, LocalDate date,
+                       LocalTime eventTime, Timezone eventTimeZone,
+                       CountryCode countryCode, String description, Boolean isPublic) {
+        if (name != null) this.name = name;
+        if (category != null) this.category = category;
+        if (date != null) this.date = date;
+        if (eventTime != null) this.eventTime = eventTime;
+        if (eventTimeZone != null) this.eventTimeZone = eventTimeZone;
+        if (countryCode != null) this.countryCode = countryCode;
+        if (description != null) this.description = description;
+        if (isPublic != null) this.isPublic = isPublic;
+    }
 }
