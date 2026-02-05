@@ -26,14 +26,19 @@ public class PCCE기출문제10번데이터분석 {
             List<int[]> list = Arrays.asList(data);
             int finalExtIndex = extIndex;
             int finalSortingIndex = sortingIndex;
-            List<int[]> list1 = list.stream().filter(ints -> ints[finalExtIndex] < val_ext).sorted(Comparator.comparingInt(arr -> arr[finalSortingIndex])).collect(Collectors.toList());
-            int[][] answer = new int[list1.size()][];
+//            List<int[]> list1 = list.stream().filter(ints -> ints[finalExtIndex] < val_ext).sorted(Comparator.comparingInt(arr -> arr[finalSortingIndex])).collect(Collectors.toList());
+//            int[][] answer = new int[list1.size()][];
+//
+//            for (int i = 0; i < list1.size(); i++) {
+//                answer[i] = list1.get(i);
+//            }
 
-            for (int i = 0; i < list1.size(); i++) {
-                answer[i] = list1.get(i);
-            }
 
-            return answer;
+            return list.stream()
+                    .filter(ints -> ints[finalExtIndex] < val_ext)
+                    .sorted(Comparator.comparingInt(arr -> arr[finalSortingIndex]))
+                    .toArray(int[][]::new);
+
         }
     }
 }

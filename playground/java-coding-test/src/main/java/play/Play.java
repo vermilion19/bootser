@@ -1,20 +1,28 @@
 package play;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Play {
 
     static void main() {
 
-        String[] words = {"abc", "banana", "aaa", "ca", "aa", "b"};
+        int[][] data = new int[5][];
 
-        Map<Integer, List<String>> groups = new HashMap<>();
-
-        for (String word : words) {
-            int len = word.length();
-            groups.computeIfAbsent(len, k -> new ArrayList<>()).add(word);
+        for (int i = 0; i < data.length; i++) {
+            data[i] = new int[]{i, i + 1, i * 10};
         }
 
-        System.out.println("groups = " + groups);
+        Arrays.stream(data).sorted(
+                Comparator.comparingInt(d -> d[1])).toList();
+
+        Arrays.stream(data).sorted(
+                Comparator.<int[]>comparingInt(d -> d[1]).thenComparingInt(d -> d[0])).toList();
+
+        List<int[]> collect = Arrays.stream(data).sorted(
+                Comparator.<int[]>comparingInt(d -> d[1]).thenComparing(d -> d[0], Comparator.reverseOrder())).collect(Collectors.toList());
+
+
+
     }
 }
