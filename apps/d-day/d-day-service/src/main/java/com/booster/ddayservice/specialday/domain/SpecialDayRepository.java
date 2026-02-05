@@ -70,13 +70,6 @@ public interface SpecialDayRepository extends JpaRepository<SpecialDay,Long> {
     // 날짜 기준 중복 체크 (동기화용)
     boolean existsByCountryCodeAndDate(CountryCode countryCode, LocalDate date);
 
-    @Query("SELECT s.name FROM SpecialDay s WHERE s.countryCode = :countryCode AND s.date BETWEEN :startDate AND :endDate")
-    Set<String> findNamesByCountryCodeAndDateBetween(
-            @Param("countryCode") CountryCode countryCode,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
-
     // 날짜+이름 조합 조회 (Bulk 중복 체크용)
     @Query("SELECT CONCAT(s.date, ':', s.name) FROM SpecialDay s WHERE s.countryCode = :countryCode AND s.date BETWEEN :startDate AND :endDate")
     Set<String> findDateNameKeysByCountryCodeAndDateBetween(

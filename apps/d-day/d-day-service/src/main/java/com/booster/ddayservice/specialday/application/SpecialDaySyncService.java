@@ -90,10 +90,6 @@ public class SpecialDaySyncService {
         return newHolidays.size();
     }
 
-    private String toDateNameKey(LocalDate date, String name) {
-        return date.toString() + ":" + name;
-    }
-
     /**
      * 국가별 중복 데이터 삭제 (같은 국가, 같은 날짜, 같은 이름이면 하나만 남기고 삭제)
      */
