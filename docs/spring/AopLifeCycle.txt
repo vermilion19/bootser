@@ -1,0 +1,87 @@
+스프링 AOP 프록시 생성 및 등록 과정 (Lifecycle)
+
+[Spring IoC Container]                                      [Memory / Object Heap]
+         |
+         | (1) Component Scan & Bean Definition Loading
+         | "OrderService 클래스 발견 (@Service, @Transactional)"
+         V
++---------------------------+
+| 1. Instantiation (객체 생성)|
+|    - 생성자 호출            | -------------------------->  [ (Raw) OrderService ]
++---------------------------+                                  (순수 자바 객체)
+         |
+         V
++---------------------------+
+| 2. Dependency Injection   |
+|    - @Autowired 주입       | -------------------------->  [ (Raw) OrderService ]
++---------------------------+                                  |  - userRepository (주입됨)
+         |
+         V
++---------------------------+
+| 3. Initialization         |
+|    - @PostConstruct 실행   | -------------------------->  [ (Raw) OrderService ]
++---------------------------+                                  (초기화 완료됨)
+         |
+         |
+         |  ========================================================================
+         |  (4) BeanPostProcessor 실행 (AnnotationAwareAspectJAutoProxyCreator)
+         |  ========================================================================
+         V
+    [ Check Pointcut ]
+    "이 빈에 AOP(@Transactional 등)를 적용해야 하는가?"
+         |
+         +--- [ NO ] ---> 원본 객체 그대로 유지
+         |
+         +--- [ YES ] --> 프록시 생성 로직 수행!
+                                |
+                                V
+                       +-------------------------------------------------------+
+                       | [ Proxy Object (CGLIB) ]                              |
+                       |                                                       |
+                       |  +-- [Advisor (Interceptor)]                          |
+                       |  |     - TransactionManager                           |
+                       |  |     - LogTrace                                     |
+                       |  +----------------------------------------------------+
+                       |                                                       |
+                       |  +-- [Target Reference] ---------------------> [ (Raw) OrderService ]
+                       |      (실제 객체를 내부 변수로 가짐)                     (숨겨짐/감싸짐)
+                       +-------------------------------------------------------+
+                                |
+                                | (원본 대신 프록시를 리턴)
+                                V
++---------------------------+
+| 5. Bean Registration      |
+|    - 컨테이너에 빈 등록      |
++---------------------------+
+         |
+         V
+[ Spring Container ]
+ "orderService" 라는 이름으로
+ [ Proxy Object ]가 저장됨
+
+
+==============================================================================================================================================================
+
+
+런타임 호출 흐름 (실제 사용 시)
+
+ [Client / Controller]
+         |
+         | 1. orderService.createOrder() 호출
+         V
+ [ Proxy Object ]
+         |
+         | 2. AOP Interceptor Chain 실행
+         |    (트랜잭션 시작, 로깅 등 부가 기능 수행)
+         V
+ [ Target Object (Real) ]
+         |
+         | 3. 실제 createOrder() 비즈니스 로직 실행
+         |
+         V
+ [ Proxy Object ]
+         |
+         | 4. 결과 반환 및 후처리
+         |    (트랜잭션 커밋/롤백)
+         V
+ [Client / Controller]
