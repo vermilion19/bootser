@@ -5,6 +5,7 @@ import com.booster.ddayservice.aop.CheckOwnership;
 import com.booster.ddayservice.aop.LogExecutionTime;
 import com.booster.ddayservice.specialday.application.dto.PastResult;
 import com.booster.ddayservice.specialday.application.dto.TodayResult;
+import com.booster.ddayservice.specialday.application.dto.TodayResultV2;
 import com.booster.ddayservice.specialday.domain.*;
 import com.booster.ddayservice.specialday.exception.SpecialDayErrorCode;
 import com.booster.ddayservice.specialday.exception.SpecialDayException;
@@ -153,6 +154,64 @@ public class SpecialDayService {
 
     public TodayResult getToday(CountryCode countryCode, Timezone timezone, List<SpecialDayCategory> categories) {
         return getToday(countryCode, timezone, categories, null);
+    }
+
+    // === V2: 카테고리 그룹별 upcoming 분리 ===
+
+    @LogExecutionTime
+    public TodayResultV2 getTodayV2(CountryCode countryCode, Timezone timezone,
+                                    List<SpecialDayCategory> categories, Long memberId) {
+        LocalDate today = LocalDate.now(timezone.toZoneId());
+        List<CountryCode> countryCodes = List.of(countryCode);
+
+        // 1. 오늘의 특별일 조회 (공개: 캐시, 비공개: DB) - 기존 로직 재사용
+        List<SpecialDay> todaySpecialDays = findVisibleSpecialDays(today, countryCodes, categories, memberId);
+
+        // 2. 카테고리 그룹별 upcoming 조회 (V2 핵심 변경점)
+        List<TodayResultV2.UpcomingItem> upcoming = findUpcomingItemsV2(today, countryCodes, categories, memberId);
+
+        List<TodayResultV2.SpecialDayItem> items = todaySpecialDays.stream()
+                .map(TodayResultV2.SpecialDayItem::from)
+                .toList();
+
+        return new TodayResultV2(
+                today,
+                countryCode.name(),
+                !items.isEmpty(),
+                items,
+                upcoming
+        );
+    }
+
+    public TodayResultV2 getTodayV2(CountryCode countryCode, Timezone timezone, List<SpecialDayCategory> categories) {
+        return getTodayV2(countryCode, timezone, categories, null);
+    }
+
+    private List<TodayResultV2.UpcomingItem> findUpcomingItemsV2(LocalDate today, List<CountryCode> countryCodes,
+                                                                  List<SpecialDayCategory> categories, Long memberId) {
+        List<TodayResultV2.UpcomingItem> result = new ArrayList<>();
+
+        // 공휴일 그룹
+        if (categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.HOLIDAY_GROUP::contains)) {
+            cacheService.findFirstPublicHolidayUpcoming(countryCodes, today)
+                    .filter(s -> categories.isEmpty() || categories.contains(s.getCategory()))
+                    .ifPresent(s -> result.add(TodayResultV2.UpcomingItem.from(s, today, "HOLIDAY")));
+        }
+
+        // 엔터테인먼트 그룹
+        if (categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.ENTERTAINMENT_GROUP::contains)) {
+            cacheService.findFirstPublicEntertainmentUpcoming(countryCodes, today)
+                    .filter(s -> categories.isEmpty() || categories.contains(s.getCategory()))
+                    .ifPresent(s -> result.add(TodayResultV2.UpcomingItem.from(s, today, "ENTERTAINMENT")));
+        }
+
+        // 비공개 데이터 (PRIVATE 그룹으로 표시)
+        if (memberId != null) {
+            specialDayRepository.findFirstPrivateUpcoming(countryCodes, today, memberId)
+                    .ifPresent(s -> result.add(TodayResultV2.UpcomingItem.from(s, today, "PRIVATE")));
+        }
+
+        return result;
     }
 
     public PastResult getPast(CountryCode countryCode, Timezone timezone,
