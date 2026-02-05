@@ -103,8 +103,9 @@ public class SpecialDayService {
 
         if (specialDay.isOwnedBy(memberId)) {
             specialDayRepository.delete(specialDay);
+        }else {
+            throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
         }
-        throw new SpecialDayException(SpecialDayErrorCode.FORBIDDEN);
     }
 
     @Transactional

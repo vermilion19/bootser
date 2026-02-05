@@ -55,6 +55,10 @@ public class SpecialDaySyncService {
             List<String> failedCountries
     ) {}
 
+    @Caching(evict = {
+            @CacheEvict(value = "special-days-read", allEntries = true),
+            @CacheEvict(value = "external-holidays", key = "#year + ':' + #countryCode")
+    })
     public int syncByYear(int year, CountryCode countryCode) {
         log.info("공휴일 동기화 시작: year={}, country={}", year, countryCode);
 
@@ -104,16 +108,16 @@ public class SpecialDaySyncService {
             LocalDate date = LocalDate.parse(parts[0]);
             String name = parts[1];
 
-            specialDayRepository.findFirstByCountryCodeAndDateAndName(countryCode, date, name)
-                    .ifPresent(keepEntity -> {
-                        int deleted = specialDayRepository.deleteDuplicatesByCountryCodeAndDateAndName(
-                                countryCode, date, name, keepEntity.getId());
-                        log.debug("중복 삭제: country={}, date={}, name={}, deleted={}", countryCode, date, name, deleted);
-                    });
-            totalDeleted++;
+            var keepEntity = specialDayRepository.findFirstByCountryCodeAndDateAndName(countryCode, date, name);
+            if (keepEntity.isPresent()) {
+                int deleted = specialDayRepository.deleteDuplicatesByCountryCodeAndDateAndName(
+                        countryCode, date, name, keepEntity.get().getId());
+                totalDeleted += deleted;
+                log.debug("중복 삭제: country={}, date={}, name={}, deleted={}", countryCode, date, name, deleted);
+            }
         }
 
-        log.info("중복 데이터 삭제 완료: country={}, duplicateKeys={}", countryCode, duplicateKeys.size());
+        log.info("중복 데이터 삭제 완료: country={}, totalDeleted={}", countryCode, totalDeleted);
         return totalDeleted;
     }
 
@@ -133,40 +137,5 @@ public class SpecialDaySyncService {
 
         log.info("전체 국가 중복 데이터 삭제 완료: {}", result);
         return result;
-    }
-
-    @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "special-days-read", allEntries = true),
-            @CacheEvict(value = "external-holidays", key = "#year + ':' + #countryCode")
-    })
-    public int syncByYear2(int year, CountryCode countryCode) {
-        // 1. 외부 API 호출 (캐시 적용됨)
-        List<NagerHolidayDto> holidays = nagerDateClient.getPublicHolidays(year, countryCode);
-
-        if (holidays.isEmpty()) {
-            return 0;
-        }
-
-        // 2. [성능 최적화] DB 조회 횟수를 1회로 줄임 (Bulk 조회)
-        // 기존: 루프 돌며 exists 호출 (N번 쿼리) -> 변경: 해당 연도의 이름들을 한 번에 조회
-        Set<String> existingNames = specialDayRepository.findNamesByCountryCodeAndDateBetween(
-                countryCode,
-                java.time.LocalDate.of(year, 1, 1),
-                java.time.LocalDate.of(year, 12, 31)
-        );
-
-        // 3. 필터링 및 엔티티 변환
-        List<SpecialDay> newHolidays = holidays.stream()
-                .filter(h -> !existingNames.contains(h.name())) // 메모리 내 비교
-                .map(h -> h.toEntity(countryCode))
-                .toList();
-
-        // 4. [성능 최적화] Bulk Insert (Batch Update)
-        if (!newHolidays.isEmpty()) {
-            specialDayRepository.saveAll(newHolidays);
-        }
-
-        return newHolidays.size();
     }
 }
