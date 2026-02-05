@@ -12,7 +12,65 @@ import java.util.Set;
 
 public interface SpecialDayRepository extends JpaRepository<SpecialDay,Long> {
 
-    // === 가시성 조건 포함 조회 ===
+    // === 공개 데이터 조회 (캐시 대상) ===
+
+    @Query("SELECT s FROM SpecialDay s WHERE s.date = :date AND s.countryCode IN :countryCodes " +
+            "AND s.category IN :categories AND s.isPublic = true")
+    List<SpecialDay> findPublicByDateAndCountryCodeAndCategories(
+            @Param("date") LocalDate date,
+            @Param("countryCodes") List<CountryCode> countryCodes,
+            @Param("categories") List<SpecialDayCategory> categories);
+
+    @Query("SELECT s FROM SpecialDay s WHERE s.countryCode IN :countryCodes AND s.date > :today " +
+            "AND s.category IN :categories AND s.isPublic = true " +
+            "ORDER BY s.date ASC LIMIT 1")
+    Optional<SpecialDay> findFirstPublicUpcomingByCategories(
+            @Param("countryCodes") List<CountryCode> countryCodes,
+            @Param("today") LocalDate today,
+            @Param("categories") List<SpecialDayCategory> categories);
+
+    @Query("SELECT s FROM SpecialDay s WHERE s.countryCode IN :countryCodes AND s.date < :today " +
+            "AND s.category IN :categories AND s.isPublic = true " +
+            "ORDER BY s.date DESC LIMIT 1")
+    Optional<SpecialDay> findFirstPublicPastByCategories(
+            @Param("countryCodes") List<CountryCode> countryCodes,
+            @Param("today") LocalDate today,
+            @Param("categories") List<SpecialDayCategory> categories);
+
+    // === 비공개 데이터 조회 (본인 것만, 캐시 안 함) ===
+
+    @Query("SELECT s FROM SpecialDay s WHERE s.date = :date AND s.countryCode IN :countryCodes " +
+            "AND s.memberId = :memberId AND s.isPublic = false")
+    List<SpecialDay> findPrivateByDateAndMemberId(
+            @Param("date") LocalDate date,
+            @Param("countryCodes") List<CountryCode> countryCodes,
+            @Param("memberId") Long memberId);
+
+    @Query("SELECT s FROM SpecialDay s WHERE s.date = :date AND s.countryCode IN :countryCodes " +
+            "AND s.category IN :categories AND s.memberId = :memberId AND s.isPublic = false")
+    List<SpecialDay> findPrivateByDateAndCategoriesAndMemberId(
+            @Param("date") LocalDate date,
+            @Param("countryCodes") List<CountryCode> countryCodes,
+            @Param("categories") List<SpecialDayCategory> categories,
+            @Param("memberId") Long memberId);
+
+    @Query("SELECT s FROM SpecialDay s WHERE s.countryCode IN :countryCodes AND s.date > :today " +
+            "AND s.memberId = :memberId AND s.isPublic = false " +
+            "ORDER BY s.date ASC LIMIT 1")
+    Optional<SpecialDay> findFirstPrivateUpcoming(
+            @Param("countryCodes") List<CountryCode> countryCodes,
+            @Param("today") LocalDate today,
+            @Param("memberId") Long memberId);
+
+    @Query("SELECT s FROM SpecialDay s WHERE s.countryCode IN :countryCodes AND s.date < :today " +
+            "AND s.memberId = :memberId AND s.isPublic = false " +
+            "ORDER BY s.date DESC LIMIT 1")
+    Optional<SpecialDay> findFirstPrivatePast(
+            @Param("countryCodes") List<CountryCode> countryCodes,
+            @Param("today") LocalDate today,
+            @Param("memberId") Long memberId);
+
+    // === 가시성 조건 포함 조회 (기존 - 하위 호환용) ===
 
     @Query("SELECT s FROM SpecialDay s WHERE s.date = :date AND s.countryCode IN :countryCodes " +
             "AND (s.memberId IS NULL OR s.isPublic = true OR s.memberId = :memberId)")

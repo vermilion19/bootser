@@ -14,8 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ import java.util.Optional;
 public class SpecialDayService {
 
     private final SpecialDayRepository specialDayRepository;
+    private final SpecialDayCacheService cacheService;
 
     @LogExecutionTime
     public TodayResult getToday(CountryCode countryCode, Timezone timezone,
@@ -30,24 +34,11 @@ public class SpecialDayService {
         LocalDate today = LocalDate.now(timezone.toZoneId());
         List<CountryCode> countryCodes = List.of(countryCode);
 
-        List<SpecialDay> todaySpecialDays = categories.isEmpty()
-                ? specialDayRepository.findVisibleByDateAndCountryCode(today, countryCodes, memberId)
-                : specialDayRepository.findVisibleByDateAndCountryCodeAndCategory(today, countryCodes, categories, memberId);
+        // 1. 오늘의 특별일 조회 (공개: 캐시, 비공개: DB)
+        List<SpecialDay> todaySpecialDays = findVisibleSpecialDays(today, countryCodes, categories, memberId);
 
-        Optional<SpecialDay> firstUpcoming = categories.isEmpty()
-                ? specialDayRepository.findFirstVisibleUpcoming(countryCodes, today, memberId)
-                : specialDayRepository.findFirstVisibleUpcomingByCategory(countryCodes, categories, today, memberId);
-
-        List<TodayResult.UpcomingItem> upcoming = firstUpcoming
-                .map(first -> {
-                    List<SpecialDay> sameDateEvents = categories.isEmpty()
-                            ? specialDayRepository.findVisibleByDateAndCountryCode(first.getDate(), countryCodes, memberId)
-                            : specialDayRepository.findVisibleByDateAndCountryCodeAndCategory(first.getDate(), countryCodes, categories, memberId);
-                    return sameDateEvents.stream()
-                            .map(entity -> TodayResult.UpcomingItem.from(entity, today))
-                            .toList();
-                })
-                .orElse(List.of());
+        // 2. 다음 특별일 조회
+        List<TodayResult.UpcomingItem> upcoming = findUpcomingItems(today, countryCodes, categories, memberId);
 
         List<TodayResult.SpecialDayItem> items = todaySpecialDays.stream()
                 .map(TodayResult.SpecialDayItem::from)
@@ -62,6 +53,73 @@ public class SpecialDayService {
         );
     }
 
+    private List<SpecialDay> findVisibleSpecialDays(LocalDate date, List<CountryCode> countryCodes,
+                                                     List<SpecialDayCategory> categories, Long memberId) {
+        // 공개 데이터 (캐시)
+        List<SpecialDay> publicData = categories.isEmpty()
+                ? cacheService.findAllPublicByDate(date, countryCodes)
+                : cacheService.findAllPublicByDateAndCategories(date, countryCodes, categories);
+
+        // 비공개 데이터 (DB 직접 조회)
+        List<SpecialDay> privateData = List.of();
+        if (memberId != null) {
+            privateData = categories.isEmpty()
+                    ? specialDayRepository.findPrivateByDateAndMemberId(date, countryCodes, memberId)
+                    : specialDayRepository.findPrivateByDateAndCategoriesAndMemberId(date, countryCodes, categories, memberId);
+        }
+
+        // 병합
+        List<SpecialDay> result = new ArrayList<>(publicData);
+        result.addAll(privateData);
+        return result;
+    }
+
+    private List<TodayResult.UpcomingItem> findUpcomingItems(LocalDate today, List<CountryCode> countryCodes,
+                                                              List<SpecialDayCategory> categories, Long memberId) {
+        // 공개 데이터에서 가장 가까운 upcoming 찾기
+        Optional<SpecialDay> publicUpcoming = findFirstPublicUpcoming(countryCodes, today, categories);
+
+        // 비공개 데이터에서 가장 가까운 upcoming 찾기
+        Optional<SpecialDay> privateUpcoming = Optional.empty();
+        if (memberId != null) {
+            privateUpcoming = specialDayRepository.findFirstPrivateUpcoming(countryCodes, today, memberId);
+        }
+
+        // 둘 중 더 가까운 날짜 선택
+        Optional<SpecialDay> firstUpcoming = Stream.of(publicUpcoming, privateUpcoming)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .min(Comparator.comparing(SpecialDay::getDate));
+
+        return firstUpcoming
+                .map(first -> {
+                    List<SpecialDay> sameDateEvents = findVisibleSpecialDays(first.getDate(), countryCodes, categories, memberId);
+                    return sameDateEvents.stream()
+                            .map(entity -> TodayResult.UpcomingItem.from(entity, today))
+                            .toList();
+                })
+                .orElse(List.of());
+    }
+
+    private Optional<SpecialDay> findFirstPublicUpcoming(List<CountryCode> countryCodes, LocalDate today,
+                                                          List<SpecialDayCategory> categories) {
+        // 각 캐시 그룹에서 upcoming 조회 후 가장 가까운 것 선택
+        List<Optional<SpecialDay>> upcomingCandidates = new ArrayList<>();
+
+        if (categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.HOLIDAY_GROUP::contains)) {
+            upcomingCandidates.add(cacheService.findFirstPublicHolidayUpcoming(countryCodes, today));
+        }
+        if (categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.ENTERTAINMENT_GROUP::contains)) {
+            upcomingCandidates.add(cacheService.findFirstPublicEntertainmentUpcoming(countryCodes, today));
+        }
+
+        return upcomingCandidates.stream()
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(s -> categories.isEmpty() || categories.contains(s.getCategory()))
+                .min(Comparator.comparing(SpecialDay::getDate));
+    }
+
     public TodayResult getToday(CountryCode countryCode, Timezone timezone, List<SpecialDayCategory> categories) {
         return getToday(countryCode, timezone, categories, null);
     }
@@ -71,13 +129,42 @@ public class SpecialDayService {
         LocalDate today = LocalDate.now(timezone.toZoneId());
         List<CountryCode> countryCodes = List.of(countryCode);
 
-        Optional<SpecialDay> pastEvent = categories.isEmpty()
-                ? specialDayRepository.findFirstVisiblePast(countryCodes, today, memberId)
-                : specialDayRepository.findFirstVisiblePastByCategory(countryCodes, categories, today, memberId);
+        // 공개 데이터에서 가장 최근 past 찾기
+        Optional<SpecialDay> publicPast = findFirstPublicPast(countryCodes, today, categories);
+
+        // 비공개 데이터에서 가장 최근 past 찾기
+        Optional<SpecialDay> privatePast = Optional.empty();
+        if (memberId != null) {
+            privatePast = specialDayRepository.findFirstPrivatePast(countryCodes, today, memberId);
+        }
+
+        // 둘 중 더 최근 날짜 선택
+        Optional<SpecialDay> pastEvent = Stream.of(publicPast, privatePast)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .max(Comparator.comparing(SpecialDay::getDate));
 
         return pastEvent
                 .map(entity -> PastResult.from(entity, today))
                 .orElse(null);
+    }
+
+    private Optional<SpecialDay> findFirstPublicPast(List<CountryCode> countryCodes, LocalDate today,
+                                                      List<SpecialDayCategory> categories) {
+        List<Optional<SpecialDay>> pastCandidates = new ArrayList<>();
+
+        if (categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.HOLIDAY_GROUP::contains)) {
+            pastCandidates.add(cacheService.findFirstPublicHolidayPast(countryCodes, today));
+        }
+        if (categories.isEmpty() || categories.stream().anyMatch(SpecialDayCategory.ENTERTAINMENT_GROUP::contains)) {
+            pastCandidates.add(cacheService.findFirstPublicEntertainmentPast(countryCodes, today));
+        }
+
+        return pastCandidates.stream()
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(s -> categories.isEmpty() || categories.contains(s.getCategory()))
+                .max(Comparator.comparing(SpecialDay::getDate));
     }
 
     public PastResult getPast(CountryCode countryCode, Timezone timezone, List<SpecialDayCategory> categories) {
