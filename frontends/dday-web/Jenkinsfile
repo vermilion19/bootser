@@ -1,0 +1,107 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME = 'dday-web'
+        SERVICE_PATH = 'frontends/dday-web'
+        DOCKER_IMAGE = 'booster/dday-web'
+        NODE_VERSION = '22'
+    }
+
+    triggers {
+        githubPush()
+    }
+
+    tools {
+        nodejs "${NODE_VERSION}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Check Changes') {
+            steps {
+                script {
+                    def changes = sh(
+                        script: "git diff --name-only ${GIT_PREVIOUS_SUCCESSFUL_COMMIT ?: 'HEAD~1'} ${GIT_COMMIT}",
+                        returnStdout: true
+                    ).trim()
+
+                    def shouldBuild = changes.contains('frontends/dday-web')
+
+                    if (!shouldBuild) {
+                        currentBuild.result = 'NOT_BUILT'
+                        echo "No changes in ${SERVICE_NAME}. Skipping build."
+                        currentBuild.getRawBuild().getExecutor().interrupt(Result.NOT_BUILT)
+                    }
+
+                    echo "Changed files:\n${changes}"
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                dir("${SERVICE_PATH}") {
+                    sh 'npm ci'
+                    sh 'npm run lint'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir("${SERVICE_PATH}") {
+                    sh """
+                        docker build \
+                            -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                            -t ${DOCKER_IMAGE}:latest \
+                            .
+                    """
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-registry',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh """
+                    kubectl set image deployment/${SERVICE_NAME} \
+                        ${SERVICE_NAME}=${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                        -n booster
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "${SERVICE_NAME} 빌드 및 배포 성공: #${BUILD_NUMBER}"
+        }
+        failure {
+            echo "${SERVICE_NAME} 빌드 실패: #${BUILD_NUMBER}"
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}
