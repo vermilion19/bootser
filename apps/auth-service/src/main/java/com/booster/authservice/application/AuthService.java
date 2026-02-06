@@ -1,8 +1,8 @@
 package com.booster.authservice.application;
 
-import com.booster.authservice.domain.OAuthProvider;
 import com.booster.authservice.domain.User;
 import com.booster.authservice.domain.UserRepository;
+import com.booster.core.web.event.MemberEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +18,7 @@ import java.util.Optional;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final MemberEventPublisher memberEventPublisher;
 
     public Optional<User> findById(Long userId) {
         return userRepository.findById(userId);
@@ -31,12 +32,18 @@ public class AuthService {
 
         // 1. 기존 회원 조회 또는 신규 생성 (기존 로직)
         User user = userRepository.findByEmail(email)
-                .orElseGet(() -> User.builder()
-                        .email(email)
-                        .name(name)
-                        .oauthId(oauthId)
-                        .accessServices(new ArrayList<>()) // 리스트 초기화 주의
-                        .build());
+                .orElseGet(() -> {
+                    User newUser = User.builder()
+                                    .email(email)
+                                    .name(name)
+                                    .oauthId(oauthId)
+                                    .accessServices(new ArrayList<>()) // 리스트 초기화 주의
+                                    .build();
+
+                    memberEventPublisher.publish(newUser, MemberEvent.EventType.SIGNUP);
+                    return newUser;
+                    }
+                );
 
         user.updateProfile(name);
 

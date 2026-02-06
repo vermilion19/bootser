@@ -19,6 +19,12 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
 
 app:
   jwt:
@@ -28,6 +34,9 @@ app:
     redirect-uri: ${OAUTH_REDIRECT_URI:http://localhost:3000}
   cookie:
     secure: ${COOKIE_SECURE:false}
+  kafka:
+    topics:
+      member-events: member-events
 
 management:
   endpoints:

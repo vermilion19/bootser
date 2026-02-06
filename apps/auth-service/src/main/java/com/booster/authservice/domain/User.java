@@ -44,16 +44,11 @@ public class User extends BaseEntity {
     @Column(name = "access_services", nullable = false)
     private List<String> accessServices = new ArrayList<>();
 
-    @PrePersist
-    public void generateId() {
-        if (this.id == null) {
-            this.id = SnowflakeGenerator.nextId();
-        }
-    }
 
     @Builder
     public User(String email, String name, OAuthProvider oauthProvider, String oauthId,
                 UserRole role, List<String> accessServices) {
+        this.id = SnowflakeGenerator.nextId();
         this.email = email;
         this.name = name;
         this.oauthProvider = oauthProvider;
