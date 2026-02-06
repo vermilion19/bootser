@@ -6,6 +6,11 @@ pipeline {
         SERVICE_PATH = 'apps/d-day/d-day-service'
         DOCKER_IMAGE = 'booster/d-day-service'
         GRADLE_OPTS = '-Dorg.gradle.daemon=false'
+
+        // TODO: 오라클 클라우드 인스턴스 정보로 변경
+        DEPLOY_HOST = 'xxx.xxx.xxx.xxx'
+        DEPLOY_USER = 'ubuntu'
+        DEPLOY_PORT = '8081'
     }
 
     triggers {
@@ -93,11 +98,22 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh """
-                    kubectl set image deployment/${SERVICE_NAME} \
-                        ${SERVICE_NAME}=${DOCKER_IMAGE}:${BUILD_NUMBER} \
-                        -n booster
-                """
+                sshagent(['oracle-cloud-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} '
+                            docker pull ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            docker stop ${SERVICE_NAME} || true
+                            docker rm ${SERVICE_NAME} || true
+                            docker run -d \\
+                                --name ${SERVICE_NAME} \\
+                                --restart unless-stopped \\
+                                -p ${DEPLOY_PORT}:8080 \\
+                                -e EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://discovery-service:8761/eureka/ \\
+                                --link discovery-service \\
+                                ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        '
+                    """
+                }
             }
         }
     }

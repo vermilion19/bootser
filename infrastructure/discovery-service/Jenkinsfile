@@ -2,23 +2,19 @@ pipeline {
     agent any
 
     environment {
-        SERVICE_NAME = 'dday-web'
-        SERVICE_PATH = 'frontends/dday-web'
-        DOCKER_IMAGE = 'booster/dday-web'
-        NODE_VERSION = '22'
+        SERVICE_NAME = 'discovery-service'
+        SERVICE_PATH = 'infrastructure/discovery-service'
+        DOCKER_IMAGE = 'booster/discovery-service'
+        GRADLE_OPTS = '-Dorg.gradle.daemon=false'
 
         // TODO: 오라클 클라우드 인스턴스 정보로 변경
         DEPLOY_HOST = 'xxx.xxx.xxx.xxx'
         DEPLOY_USER = 'ubuntu'
-        DEPLOY_PORT = '80'
+        DEPLOY_PORT = '8761'
     }
 
     triggers {
         githubPush()
-    }
-
-    tools {
-        nodejs "${NODE_VERSION}"
     }
 
     stages {
@@ -36,7 +32,7 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    def shouldBuild = changes.contains('frontends/dday-web')
+                    def shouldBuild = changes.contains('infrastructure/discovery-service')
 
                     if (!shouldBuild) {
                         currentBuild.result = 'NOT_BUILT'
@@ -49,11 +45,19 @@ pipeline {
             }
         }
 
-        stage('Lint') {
+        stage('Build') {
             steps {
-                dir("${SERVICE_PATH}") {
-                    sh 'npm ci'
-                    sh 'npm run lint'
+                sh './gradlew :infrastructure:discovery-service:clean :infrastructure:discovery-service:build -x test'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh './gradlew :infrastructure:discovery-service:test'
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: '**/build/test-results/test/*.xml'
                 }
             }
         }
@@ -98,7 +102,7 @@ pipeline {
                             docker run -d \\
                                 --name ${SERVICE_NAME} \\
                                 --restart unless-stopped \\
-                                -p ${DEPLOY_PORT}:80 \\
+                                -p ${DEPLOY_PORT}:8761 \\
                                 ${DOCKER_IMAGE}:${BUILD_NUMBER}
                         '
                     """
