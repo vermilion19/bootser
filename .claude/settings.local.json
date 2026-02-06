@@ -37,7 +37,8 @@
       "Bash(docker ps:*)",
       "Bash(docker exec:*)",
       "Bash(docker compose up:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(git push:*)"
     ]
   }
 }
