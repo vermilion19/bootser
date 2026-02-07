@@ -20,6 +20,10 @@ include 'apps:webflux:chatting-service-t'
 include 'apps:d-day'
 include 'apps:d-day:d-day-service'
 
+// Kotlin 전용 서비스
+include 'apps:kotlin'
+include 'apps:kotlin:sample-service'
+
 // 2. Libs (공통 라이브러리 모듈)
 include 'libs:common'
 include 'libs:core-web'
@@ -29,6 +33,7 @@ include 'libs:storage-redis'
 include 'libs:storage-kafka'
 include 'libs:core-observability'
 include 'libs:core-resilience'
+include 'libs:kotlin-core'
 
 include 'infrastructure:discovery-service'
 include 'infrastructure:gateway-service'
