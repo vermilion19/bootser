@@ -43,6 +43,7 @@ package-lock.json
 
 ### Claude Code ###
 tmpclaude*
+.claude/settings.local.json
 
 ### OS artifacts ###
 nul
