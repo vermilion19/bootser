@@ -13,19 +13,17 @@ data class AnimalResponse(
     val name: String,
     val species: String,
     val age: Int
-){
-    companion object{
-        fun from(animal: Animal) : AnimalResponse{
-            return AnimalResponse(
-                id = animal.id!!,
-                name = animal.name,
-                species = animal.species,
-                age = animal.age
-            )
-        }
-    }
-}
-
+)
 data class AnimalUpdateRequest(
     val age: Int
 )
+
+
+fun Animal.toResponse() : AnimalResponse{
+    return AnimalResponse(
+        id = this.id!!,
+        name = this.name,
+        species = this.species,
+        age = this.age
+    )
+}

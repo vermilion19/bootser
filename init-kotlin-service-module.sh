@@ -71,32 +71,17 @@ kotlin {
 }
 
 dependencies {
-    // Kotlin Core 라이브러리
+    // Kotlin Core 라이브러리 (kotlin-reflect, kotlin-stdlib, jackson-module-kotlin, test 포함)
     implementation(project(":libs:kotlin-core"))
-
-    // Kotlin
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-
-    // Jackson Kotlin
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-
-    // Metrics
-    implementation("io.micrometer:micrometer-registry-prometheus")
 
     // Database
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
-
-    // Test
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 }
 
 tasks.withType<Test> {
@@ -161,14 +146,6 @@ spring:
       hibernate:
         format_sql: true
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,prometheus
-  endpoint:
-    health:
-      show-details: always
 EOF
 
 # 9. settings.gradle에 include 추가
