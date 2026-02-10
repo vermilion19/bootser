@@ -4,6 +4,7 @@ import com.booster.core.web.response.ApiResponse;
 import com.booster.ddayservice.specialday.application.MovieSyncService;
 import com.booster.ddayservice.specialday.application.SpecialDayService;
 import com.booster.ddayservice.specialday.application.SpecialDaySyncService;
+import com.booster.ddayservice.specialday.application.SportsSyncService;
 import com.booster.ddayservice.specialday.application.SpecialDaySyncService.SyncAllResult;
 import com.booster.ddayservice.specialday.domain.CountryCode;
 import com.booster.ddayservice.specialday.domain.SpecialDay;
@@ -29,6 +30,7 @@ public class SpecialDayAdminController {
     private final SpecialDaySyncService specialDaySyncService;
     private final SpecialDayService specialDayService;
     private final MovieSyncService movieSyncService;
+    private final SportsSyncService sportsSyncService;
 
     @PostMapping("/sync")
     @RateLimiter(name = "adminApi")
@@ -61,6 +63,15 @@ public class SpecialDayAdminController {
             @RequestParam(defaultValue = "KR") String region
     ) {
         MovieSyncService.MovieSyncResult result = movieSyncService.syncUpcomingMovies(region);
+        return ApiResponse.success(result);
+    }
+
+    @PostMapping("/sync/sports")
+    @RateLimiter(name = "adminApi")
+    public ApiResponse<SportsSyncService.SportsSyncResult> syncSports(
+            @RequestParam(defaultValue = "7") int days
+    ) {
+        SportsSyncService.SportsSyncResult result = sportsSyncService.syncUpcomingEvents(days);
         return ApiResponse.success(result);
     }
 

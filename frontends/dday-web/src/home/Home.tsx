@@ -350,6 +350,17 @@ function Home() {
 
                 </div>
             ) : null}
+
+            <footer className="attribution">
+                <p>
+                    This product uses the TMDB API but is not endorsed or certified by
+                    <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer"> TMDB</a>.
+                </p>
+                <p>
+                    Sports data provided by
+                    <a href="https://www.thesportsdb.com" target="_blank" rel="noopener noreferrer"> TheSportsDB</a>.
+                </p>
+            </footer>
         </div>
     );
 }

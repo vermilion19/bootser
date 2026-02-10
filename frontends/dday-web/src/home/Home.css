@@ -718,6 +718,34 @@
     }
 }
 
+/* ===== Attribution Footer ===== */
+.attribution {
+    width: 100%;
+    max-width: 680px;
+    text-align: center;
+    padding: 2rem 0 3rem;
+    font-size: 0.75rem;
+    color: #86868b;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.attribution p {
+    margin: 0;
+}
+
+.attribution a {
+    color: #007aff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.attribution a:hover {
+    text-decoration: underline;
+}
+
 @media (max-width: 480px) {
     .hero h1 {
         font-size: 2rem;

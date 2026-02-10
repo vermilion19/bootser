@@ -36,6 +36,8 @@ management:
 app:
   tmdb:
     api-key: ${TMDB_API_KEY:dev-tmdb-key}
+  thesportsdb:
+    api-key: ${THESPORTSDB_API_KEY:3}
 
 resilience4j:
   ratelimiter:
