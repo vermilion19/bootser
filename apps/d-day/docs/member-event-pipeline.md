@@ -337,24 +337,24 @@ spring:
 - [x] MemberOutboxRelay 스케줄러 생성
 - [x] User ID를 Builder에서 생성하도록 수정
 
-### Phase 3: d-day-service (Consumer)
+### Phase 3: d-day-service (Consumer) ✅ 완료
 
-- [ ] build.gradle에 storage-kafka 의존성 추가
-- [ ] application.yml에 Kafka Consumer 설정 추가
-- [ ] MemberReference 엔티티 생성
-- [ ] MemberStatus enum 생성
-- [ ] MemberReferenceRepository 생성
-- [ ] MemberSyncService 생성
-- [ ] MemberEventConsumer 생성 (@KafkaListener)
-- [ ] MemberDltConsumer 생성
+- [x] build.gradle에 storage-kafka 의존성 추가
+- [x] application.yml에 Kafka Consumer 설정 추가
+- [x] MemberReference 엔티티 생성
+- [x] MemberStatus enum 생성
+- [x] MemberReferenceRepository 생성
+- [x] MemberSyncService 생성
+- [x] MemberEventConsumer 생성 (@KafkaListener)
+- [x] MemberDltConsumer 생성
 
-### Phase 4: 테스트 & 안정화
+### Phase 4: 테스트 & 안정화 ✅ 완료
 
-- [ ] auth-service 이벤트 발행 테스트
-- [ ] d-day-service 이벤트 수신 테스트
-- [ ] 이벤트 유실 시나리오 테스트
-- [ ] DLT 동작 검증
-- [ ] 멱등성 테스트 (동일 이벤트 중복 수신)
+- [x] auth-service 이벤트 발행 테스트
+- [x] d-day-service 이벤트 수신 테스트
+- [x] 이벤트 유실 시나리오 테스트
+- [x] DLT 동작 검증
+- [x] 멱등성 테스트 (동일 이벤트 중복 수신)
 
 ---
 

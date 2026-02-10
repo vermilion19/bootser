@@ -3,6 +3,7 @@ package com.booster.ddayservice.specialday.application;
 import com.booster.ddayservice.specialday.application.dto.PastResult;
 import com.booster.ddayservice.specialday.application.dto.TodayResult;
 import com.booster.ddayservice.specialday.domain.*;
+import com.booster.ddayservice.specialday.exception.SpecialDayErrorCode;
 import com.booster.ddayservice.specialday.exception.SpecialDayException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,6 +34,9 @@ class SpecialDayServiceTest {
     @Mock
     private SpecialDayRepository specialDayRepository;
 
+    @Mock
+    private SpecialDayCacheService cacheService;
+
     @Nested
     @DisplayName("getToday")
     class GetToday {
@@ -46,9 +50,15 @@ class SpecialDayServiceTest {
             SpecialDay specialDay = SpecialDay.of("신정", SpecialDayCategory.PUBLIC_HOLIDAY,
                     today, null, Timezone.ASIA_SEOUL, CountryCode.KR, "New Year's Day");
 
-            given(specialDayRepository.findVisibleByDateAndCountryCode(today, countryCodes, null))
+            given(cacheService.findPublicHolidays(today, countryCodes))
                     .willReturn(List.of(specialDay));
-            given(specialDayRepository.findFirstVisibleUpcoming(countryCodes, today, null))
+            given(cacheService.findPublicEntertainment(today, countryCodes))
+                    .willReturn(List.of());
+            given(cacheService.findPublicOthers(today, countryCodes))
+                    .willReturn(List.of());
+            given(cacheService.findFirstPublicHolidayUpcoming(countryCodes, today))
+                    .willReturn(Optional.empty());
+            given(cacheService.findFirstPublicEntertainmentUpcoming(countryCodes, today))
                     .willReturn(Optional.empty());
 
             TodayResult result = specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, List.of());
@@ -64,9 +74,15 @@ class SpecialDayServiceTest {
             LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
             List<CountryCode> countryCodes = List.of(CountryCode.KR);
 
-            given(specialDayRepository.findVisibleByDateAndCountryCode(today, countryCodes, null))
+            given(cacheService.findPublicHolidays(today, countryCodes))
                     .willReturn(List.of());
-            given(specialDayRepository.findFirstVisibleUpcoming(countryCodes, today, null))
+            given(cacheService.findPublicEntertainment(today, countryCodes))
+                    .willReturn(List.of());
+            given(cacheService.findPublicOthers(today, countryCodes))
+                    .willReturn(List.of());
+            given(cacheService.findFirstPublicHolidayUpcoming(countryCodes, today))
+                    .willReturn(Optional.empty());
+            given(cacheService.findFirstPublicEntertainmentUpcoming(countryCodes, today))
                     .willReturn(Optional.empty());
 
             TodayResult result = specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, List.of());
@@ -86,12 +102,27 @@ class SpecialDayServiceTest {
             SpecialDay upcoming = SpecialDay.of("삼일절", SpecialDayCategory.PUBLIC_HOLIDAY,
                     futureDate, null, Timezone.ASIA_SEOUL, CountryCode.KR, "Independence Movement Day");
 
-            given(specialDayRepository.findVisibleByDateAndCountryCode(today, countryCodes, null))
+            // 오늘 조회 - 비어있음
+            given(cacheService.findPublicHolidays(today, countryCodes))
                     .willReturn(List.of());
-            given(specialDayRepository.findFirstVisibleUpcoming(countryCodes, today, null))
+            given(cacheService.findPublicEntertainment(today, countryCodes))
+                    .willReturn(List.of());
+            given(cacheService.findPublicOthers(today, countryCodes))
+                    .willReturn(List.of());
+
+            // upcoming 조회
+            given(cacheService.findFirstPublicHolidayUpcoming(countryCodes, today))
                     .willReturn(Optional.of(upcoming));
-            given(specialDayRepository.findVisibleByDateAndCountryCode(futureDate, countryCodes, null))
+            given(cacheService.findFirstPublicEntertainmentUpcoming(countryCodes, today))
+                    .willReturn(Optional.empty());
+
+            // upcoming 날짜의 특별일 조회
+            given(cacheService.findPublicHolidays(futureDate, countryCodes))
                     .willReturn(List.of(upcoming));
+            given(cacheService.findPublicEntertainment(futureDate, countryCodes))
+                    .willReturn(List.of());
+            given(cacheService.findPublicOthers(futureDate, countryCodes))
+                    .willReturn(List.of());
 
             TodayResult result = specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, List.of());
 
@@ -110,9 +141,10 @@ class SpecialDayServiceTest {
             SpecialDay holiday = SpecialDay.of("신정", SpecialDayCategory.PUBLIC_HOLIDAY,
                     today, null, Timezone.ASIA_SEOUL, CountryCode.KR, "New Year's Day");
 
-            given(specialDayRepository.findVisibleByDateAndCountryCodeAndCategory(today, countryCodes, categories, null))
+            // PUBLIC_HOLIDAY는 HOLIDAY_GROUP에 포함 → findPublicHolidays 호출
+            given(cacheService.findPublicHolidays(today, countryCodes))
                     .willReturn(List.of(holiday));
-            given(specialDayRepository.findFirstVisibleUpcomingByCategory(countryCodes, categories, today, null))
+            given(cacheService.findFirstPublicHolidayUpcoming(countryCodes, today))
                     .willReturn(Optional.empty());
 
             TodayResult result = specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, categories);
@@ -128,14 +160,16 @@ class SpecialDayServiceTest {
             LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
             List<CountryCode> countryCodes = List.of(CountryCode.KR);
 
-            given(specialDayRepository.findVisibleByDateAndCountryCode(today, countryCodes, null))
-                    .willReturn(List.of());
-            given(specialDayRepository.findFirstVisibleUpcoming(countryCodes, today, null))
-                    .willReturn(Optional.empty());
+            given(cacheService.findPublicHolidays(today, countryCodes)).willReturn(List.of());
+            given(cacheService.findPublicEntertainment(today, countryCodes)).willReturn(List.of());
+            given(cacheService.findPublicOthers(today, countryCodes)).willReturn(List.of());
+            given(cacheService.findFirstPublicHolidayUpcoming(countryCodes, today)).willReturn(Optional.empty());
+            given(cacheService.findFirstPublicEntertainmentUpcoming(countryCodes, today)).willReturn(Optional.empty());
 
             specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, List.of(), null);
 
-            verify(specialDayRepository).findVisibleByDateAndCountryCode(today, countryCodes, null);
+            // 비인증이므로 비공개 데이터 조회 안 함 (cacheService만 호출)
+            verify(cacheService).findPublicHolidays(today, countryCodes);
         }
 
         @Test
@@ -145,14 +179,20 @@ class SpecialDayServiceTest {
             List<CountryCode> countryCodes = List.of(CountryCode.KR);
             Long memberId = 123L;
 
-            given(specialDayRepository.findVisibleByDateAndCountryCode(today, countryCodes, memberId))
+            given(cacheService.findPublicHolidays(today, countryCodes)).willReturn(List.of());
+            given(cacheService.findPublicEntertainment(today, countryCodes)).willReturn(List.of());
+            given(cacheService.findPublicOthers(today, countryCodes)).willReturn(List.of());
+            given(specialDayRepository.findPrivateByDateAndMemberId(today, countryCodes, memberId))
                     .willReturn(List.of());
-            given(specialDayRepository.findFirstVisibleUpcoming(countryCodes, today, memberId))
+            given(cacheService.findFirstPublicHolidayUpcoming(countryCodes, today)).willReturn(Optional.empty());
+            given(cacheService.findFirstPublicEntertainmentUpcoming(countryCodes, today)).willReturn(Optional.empty());
+            given(specialDayRepository.findFirstPrivateUpcoming(countryCodes, today, memberId))
                     .willReturn(Optional.empty());
 
             specialDayService.getToday(CountryCode.KR, Timezone.ASIA_SEOUL, List.of(), memberId);
 
-            verify(specialDayRepository).findVisibleByDateAndCountryCode(today, countryCodes, memberId);
+            // 인증 사용자이므로 비공개 데이터도 조회
+            verify(specialDayRepository).findPrivateByDateAndMemberId(today, countryCodes, memberId);
         }
     }
 
@@ -170,8 +210,10 @@ class SpecialDayServiceTest {
             SpecialDay pastDay = SpecialDay.of("신정", SpecialDayCategory.PUBLIC_HOLIDAY,
                     pastDate, null, Timezone.ASIA_SEOUL, CountryCode.KR, "New Year's Day");
 
-            given(specialDayRepository.findFirstVisiblePast(countryCodes, today, null))
+            given(cacheService.findFirstPublicHolidayPast(countryCodes, today))
                     .willReturn(Optional.of(pastDay));
+            given(cacheService.findFirstPublicEntertainmentPast(countryCodes, today))
+                    .willReturn(Optional.empty());
 
             PastResult result = specialDayService.getPast(CountryCode.KR, Timezone.ASIA_SEOUL, List.of());
 
@@ -186,7 +228,9 @@ class SpecialDayServiceTest {
             LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
             List<CountryCode> countryCodes = List.of(CountryCode.KR);
 
-            given(specialDayRepository.findFirstVisiblePast(countryCodes, today, null))
+            given(cacheService.findFirstPublicHolidayPast(countryCodes, today))
+                    .willReturn(Optional.empty());
+            given(cacheService.findFirstPublicEntertainmentPast(countryCodes, today))
                     .willReturn(Optional.empty());
 
             PastResult result = specialDayService.getPast(CountryCode.KR, Timezone.ASIA_SEOUL, List.of());
@@ -200,42 +244,16 @@ class SpecialDayServiceTest {
     class Delete {
 
         @Test
-        @DisplayName("본인 소유 특별한 날을 삭제한다")
-        void should_delete_when_ownedByMember() {
+        @DisplayName("deleteById를 호출하여 특별한 날을 삭제한다")
+        void should_deleteById_when_called() {
+            Long id = 1L;
             Long memberId = 100L;
-            SpecialDay specialDay = SpecialDay.createByMember("내 기념일", SpecialDayCategory.CUSTOM,
-                    LocalDate.of(2026, 6, 1), null, Timezone.ASIA_SEOUL, CountryCode.KR,
-                    "내 기념일", memberId, true);
 
-            given(specialDayRepository.findById(specialDay.getId())).willReturn(Optional.of(specialDay));
+            specialDayService.delete(id, memberId);
 
-            specialDayService.delete(specialDay.getId(), memberId);
-
-            verify(specialDayRepository).delete(specialDay);
-        }
-
-        @Test
-        @DisplayName("타인 소유 특별한 날 삭제 시 FORBIDDEN 예외가 발생한다")
-        void should_throwForbidden_when_notOwned() {
-            Long ownerId = 100L;
-            Long otherMemberId = 200L;
-            SpecialDay specialDay = SpecialDay.createByMember("기념일", SpecialDayCategory.CUSTOM,
-                    LocalDate.of(2026, 6, 1), null, Timezone.ASIA_SEOUL, CountryCode.KR,
-                    "기념일", ownerId, true);
-
-            given(specialDayRepository.findById(specialDay.getId())).willReturn(Optional.of(specialDay));
-
-            assertThatThrownBy(() -> specialDayService.delete(specialDay.getId(), otherMemberId))
-                    .isInstanceOf(SpecialDayException.class);
-        }
-
-        @Test
-        @DisplayName("존재하지 않는 특별한 날 삭제 시 NOT_FOUND 예외가 발생한다")
-        void should_throwNotFound_when_notExists() {
-            given(specialDayRepository.findById(999L)).willReturn(Optional.empty());
-
-            assertThatThrownBy(() -> specialDayService.delete(999L, 100L))
-                    .isInstanceOf(SpecialDayException.class);
+            // 단위 테스트에서 @CheckOwnership AOP는 동작하지 않음
+            // 서비스 메서드의 deleteById 호출만 검증
+            verify(specialDayRepository).deleteById(id);
         }
     }
 
@@ -244,8 +262,8 @@ class SpecialDayServiceTest {
     class ToggleVisibility {
 
         @Test
-        @DisplayName("본인 소유 특별한 날의 공개 여부를 토글한다")
-        void should_toggleVisibility_when_ownedByMember() {
+        @DisplayName("특별한 날의 공개 여부를 토글한다")
+        void should_toggleVisibility_when_called() {
             Long memberId = 100L;
             SpecialDay specialDay = SpecialDay.createByMember("기념일", SpecialDayCategory.CUSTOM,
                     LocalDate.of(2026, 6, 1), null, Timezone.ASIA_SEOUL, CountryCode.KR,
@@ -255,23 +273,18 @@ class SpecialDayServiceTest {
 
             assertThat(specialDay.isPublic()).isTrue();
 
+            // 단위 테스트에서 @CheckOwnership AOP는 동작하지 않음
             specialDayService.toggleVisibility(specialDay.getId(), memberId);
 
             assertThat(specialDay.isPublic()).isFalse();
         }
 
         @Test
-        @DisplayName("타인 소유 특별한 날 토글 시 FORBIDDEN 예외가 발생한다")
-        void should_throwForbidden_when_toggleNotOwned() {
-            Long ownerId = 100L;
-            Long otherMemberId = 200L;
-            SpecialDay specialDay = SpecialDay.createByMember("기념일", SpecialDayCategory.CUSTOM,
-                    LocalDate.of(2026, 6, 1), null, Timezone.ASIA_SEOUL, CountryCode.KR,
-                    "기념일", ownerId, true);
+        @DisplayName("존재하지 않는 특별한 날 토글 시 NOT_FOUND 예외가 발생한다")
+        void should_throwNotFound_when_toggleNonExistent() {
+            given(specialDayRepository.findById(999L)).willReturn(Optional.empty());
 
-            given(specialDayRepository.findById(specialDay.getId())).willReturn(Optional.of(specialDay));
-
-            assertThatThrownBy(() -> specialDayService.toggleVisibility(specialDay.getId(), otherMemberId))
+            assertThatThrownBy(() -> specialDayService.toggleVisibility(999L, 100L))
                     .isInstanceOf(SpecialDayException.class);
         }
     }

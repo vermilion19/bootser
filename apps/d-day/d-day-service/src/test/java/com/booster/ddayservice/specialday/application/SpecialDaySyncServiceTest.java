@@ -14,9 +14,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -46,16 +48,19 @@ class SpecialDaySyncServiceTest {
         );
 
         given(nagerDateClient.getPublicHolidays(2026, CountryCode.KR)).willReturn(holidays);
-        given(specialDayRepository.existsByCountryCodeAndDateAndName(any(), any(), any()))
-                .willReturn(false);
-        given(specialDayRepository.save(any(SpecialDay.class))).willAnswer(inv -> inv.getArgument(0));
+        given(specialDayRepository.findDateNameKeysByCountryCodeAndDateBetween(
+                eq(CountryCode.KR),
+                eq(LocalDate.of(2026, 1, 1)),
+                eq(LocalDate.of(2026, 12, 31))
+        )).willReturn(Set.of());
+        given(specialDayRepository.saveAll(anyList())).willAnswer(inv -> inv.getArgument(0));
 
         // when
         int count = specialDaySyncService.syncByYear(2026, CountryCode.KR);
 
         // then
         assertThat(count).isEqualTo(2);
-        verify(specialDayRepository, org.mockito.Mockito.times(2)).save(any(SpecialDay.class));
+        verify(specialDayRepository).saveAll(anyList());
     }
 
     @Test
@@ -68,16 +73,18 @@ class SpecialDaySyncServiceTest {
         );
 
         given(nagerDateClient.getPublicHolidays(2026, CountryCode.KR)).willReturn(holidays);
-        given(specialDayRepository.existsByCountryCodeAndDateAndName(
-                eq(CountryCode.KR), eq(LocalDate.of(2026, 1, 1)), eq("신정")))
-                .willReturn(true);
+        given(specialDayRepository.findDateNameKeysByCountryCodeAndDateBetween(
+                eq(CountryCode.KR),
+                eq(LocalDate.of(2026, 1, 1)),
+                eq(LocalDate.of(2026, 12, 31))
+        )).willReturn(Set.of("2026-01-01:신정"));
 
         // when
         int count = specialDaySyncService.syncByYear(2026, CountryCode.KR);
 
         // then
         assertThat(count).isZero();
-        verify(specialDayRepository, never()).save(any());
+        verify(specialDayRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -91,6 +98,6 @@ class SpecialDaySyncServiceTest {
 
         // then
         assertThat(count).isZero();
-        verify(specialDayRepository, never()).save(any());
+        verify(specialDayRepository, never()).saveAll(anyList());
     }
 }
