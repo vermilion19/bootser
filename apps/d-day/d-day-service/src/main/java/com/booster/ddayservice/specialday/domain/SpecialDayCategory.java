@@ -17,11 +17,11 @@ public enum SpecialDayCategory {
 
     public String getCacheGroup() {
         if (HOLIDAY_GROUP.contains(this)) {
-            return "public-holidays";
+            return "holidays";
         } else if (ENTERTAINMENT_GROUP.contains(this)) {
-            return "public-entertainment";
+            return "entertainment";
         } else {
-            return "public-others";
+            return "others";
         }
     }
 }

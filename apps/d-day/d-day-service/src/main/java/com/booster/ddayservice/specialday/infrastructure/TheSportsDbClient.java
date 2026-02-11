@@ -3,7 +3,6 @@ package com.booster.ddayservice.specialday.infrastructure;
 import com.booster.ddayservice.specialday.domain.SportsDataProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -27,7 +26,6 @@ public class TheSportsDbClient implements SportsDataProvider {
     }
 
     @Override
-    @Cacheable(value = "external-sports", key = "#from + ':' + #to")
     public List<SportsEventData> getEventsByDateRange(LocalDate from, LocalDate to) {
         List<TheSportsDbEventDto> allEvents = new ArrayList<>();
         LocalDate current = from;

@@ -53,7 +53,7 @@ public class SportsSyncService {
     private final SportsDataProvider sportsDataProvider;
     private final SpecialDayRepository specialDayRepository;
 
-    @CacheEvict(value = "external-sports", allEntries = true, beforeInvocation = true)
+    @CacheEvict(value = "entertainment", allEntries = true)
     public SportsSyncResult syncUpcomingEvents(int days) {
         int syncDays = days > 0 ? days : DEFAULT_SYNC_DAYS;
         LocalDate from = LocalDate.now();

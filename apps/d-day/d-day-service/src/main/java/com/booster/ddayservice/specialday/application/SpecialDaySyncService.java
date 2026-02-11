@@ -9,7 +9,6 @@ import com.booster.ddayservice.specialday.infrastructure.NagerHolidayDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,10 +57,7 @@ public class SpecialDaySyncService {
     ) {}
 
     @LogExecutionTime
-    @Caching(evict = {
-            @CacheEvict(value = "special-days-read", allEntries = true),
-            @CacheEvict(value = "external-holidays", key = "#year + ':' + #countryCode")
-    })
+    @CacheEvict(value = "holidays", allEntries = true)
     public int syncByYear(int year, CountryCode countryCode) {
         log.info("공휴일 동기화 시작: year={}, country={}", year, countryCode);
 

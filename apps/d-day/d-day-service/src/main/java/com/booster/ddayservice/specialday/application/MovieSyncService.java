@@ -20,7 +20,7 @@ public class MovieSyncService {
     private final MovieDataProvider movieDataProvider;
     private final SpecialDayRepository specialDayRepository;
 
-    @CacheEvict(value = "external-movies", key = "#region", beforeInvocation = true)
+    @CacheEvict(value = "entertainment", allEntries = true)
     public MovieSyncResult syncUpcomingMovies(String region) {
         log.info("영화 개봉일 동기화 시작: region={}", region);
 
