@@ -38,6 +38,13 @@ app:
     api-key: ${TMDB_API_KEY:dev-tmdb-key}
   thesportsdb:
     api-key: ${THESPORTSDB_API_KEY:3}
+  sync:
+    cron:
+      holidays: "0 0 3 1 * *"           # 매월 1일 03:00
+      movies: "0 0 2 ? * SUN"         # 매주 일요일 02:00
+      sports: "0 0 6 * * *"           # 매일 06:00
+    movies-region: KR
+    sports-days: 7
 
 resilience4j:
   ratelimiter:
