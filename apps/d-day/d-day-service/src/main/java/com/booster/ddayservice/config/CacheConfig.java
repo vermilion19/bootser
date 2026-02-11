@@ -42,11 +42,13 @@ public class CacheConfig implements CachingConfigurer {
         Map<String, RedisCacheConfiguration> customConfigs = new HashMap<>();
         // 외부 API 응답 캐시
         customConfigs.put("external-holidays", defaultConfig.entryTtl(Duration.ofDays(30)));
+        customConfigs.put("external-movies", defaultConfig.entryTtl(Duration.ofDays(30)));
+        customConfigs.put("external-sports", defaultConfig.entryTtl(Duration.ofDays(30)));
 
         // 공개 데이터 조회 캐시 (카테고리별 TTL)
-        customConfigs.put("public-holidays", defaultConfig.entryTtl(Duration.ofDays(180)));      // 공휴일: 6개월
-        customConfigs.put("public-entertainment", defaultConfig.entryTtl(Duration.ofDays(7)));   // 영화/스포츠: 1주일
-        customConfigs.put("public-others", defaultConfig.entryTtl(Duration.ofDays(1)));          // 기타: 1일
+        customConfigs.put("public-holidays", defaultConfig.entryTtl(Duration.ofDays(180)));
+        customConfigs.put("public-entertainment", defaultConfig.entryTtl(Duration.ofDays(30)));
+        customConfigs.put("public-others", defaultConfig.entryTtl(Duration.ofDays(1)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)

@@ -4,6 +4,7 @@ import com.booster.ddayservice.specialday.domain.*;
 import com.booster.ddayservice.specialday.domain.MovieDataProvider.MovieData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ public class MovieSyncService {
     private final MovieDataProvider movieDataProvider;
     private final SpecialDayRepository specialDayRepository;
 
+    @CacheEvict(value = "external-movies", key = "#region", beforeInvocation = true)
     public MovieSyncResult syncUpcomingMovies(String region) {
         log.info("영화 개봉일 동기화 시작: region={}", region);
 

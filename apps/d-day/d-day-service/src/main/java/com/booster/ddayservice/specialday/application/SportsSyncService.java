@@ -8,6 +8,7 @@ import com.booster.ddayservice.specialday.domain.SportsDataProvider;
 import com.booster.ddayservice.specialday.domain.SportsDataProvider.SportsEventData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +53,7 @@ public class SportsSyncService {
     private final SportsDataProvider sportsDataProvider;
     private final SpecialDayRepository specialDayRepository;
 
+    @CacheEvict(value = "external-sports", allEntries = true, beforeInvocation = true)
     public SportsSyncResult syncUpcomingEvents(int days) {
         int syncDays = days > 0 ? days : DEFAULT_SYNC_DAYS;
         LocalDate from = LocalDate.now();

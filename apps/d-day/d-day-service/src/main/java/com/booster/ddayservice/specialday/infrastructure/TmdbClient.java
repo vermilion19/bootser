@@ -3,6 +3,7 @@ package com.booster.ddayservice.specialday.infrastructure;
 import com.booster.ddayservice.specialday.domain.MovieDataProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -27,6 +28,7 @@ public class TmdbClient implements MovieDataProvider {
     }
 
     @Override
+    @Cacheable(value = "external-movies", key = "#region")
     public List<MovieData> getUpcomingMovies(String region) {
         List<TmdbMovieDto> allMovies = new ArrayList<>();
         int page = 1;
