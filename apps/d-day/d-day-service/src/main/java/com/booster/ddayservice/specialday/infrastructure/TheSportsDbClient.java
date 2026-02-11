@@ -1,5 +1,6 @@
 package com.booster.ddayservice.specialday.infrastructure;
 
+import com.booster.ddayservice.specialday.domain.SportsDataProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class TheSportsDbClient {
+public class TheSportsDbClient implements SportsDataProvider {
 
     private static final String BASE_URL = "https://www.thesportsdb.com/api/v1/json";
 
@@ -24,7 +25,8 @@ public class TheSportsDbClient {
                 .build();
     }
 
-    public List<TheSportsDbEventDto> getEventsByDateRange(LocalDate from, LocalDate to) {
+    @Override
+    public List<SportsEventData> getEventsByDateRange(LocalDate from, LocalDate to) {
         List<TheSportsDbEventDto> allEvents = new ArrayList<>();
         LocalDate current = from;
 
@@ -48,10 +50,10 @@ public class TheSportsDbClient {
         }
 
         log.info("TheSportsDB 이벤트 총 {}건 조회 ({} ~ {})", allEvents.size(), from, to);
-        return allEvents;
-    }
-
-    public List<TheSportsDbEventDto> getEventsByDate(LocalDate date) {
-        return getEventsByDateRange(date, date);
+        return allEvents.stream()
+                .map(dto -> new SportsEventData(
+                        dto.eventName(), dto.sport(), dto.league(),
+                        dto.dateEvent(), dto.time(), dto.country(), dto.venue()))
+                .toList();
     }
 }

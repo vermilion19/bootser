@@ -1,8 +1,7 @@
 package com.booster.ddayservice.specialday.application;
 
 import com.booster.ddayservice.specialday.domain.*;
-import com.booster.ddayservice.specialday.infrastructure.TmdbClient;
-import com.booster.ddayservice.specialday.infrastructure.TmdbMovieDto;
+import com.booster.ddayservice.specialday.domain.MovieDataProvider.MovieData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +16,7 @@ import java.util.List;
 @Transactional
 public class MovieSyncService {
 
-    private final TmdbClient tmdbClient;
+    private final MovieDataProvider movieDataProvider;
     private final SpecialDayRepository specialDayRepository;
 
     public MovieSyncResult syncUpcomingMovies(String region) {
@@ -30,12 +29,12 @@ public class MovieSyncService {
             countryCode = CountryCode.KR;
         }
 
-        List<TmdbMovieDto> movies = tmdbClient.getUpcomingMovies(region);
+        List<MovieData> movies = movieDataProvider.getUpcomingMovies(region);
 
         int savedCount = 0;
         int skippedCount = 0;
 
-        for (TmdbMovieDto movie : movies) {
+        for (MovieData movie : movies) {
             if (movie.releaseDate() == null || movie.releaseDate().isBlank()) {
                 skippedCount++;
                 continue;

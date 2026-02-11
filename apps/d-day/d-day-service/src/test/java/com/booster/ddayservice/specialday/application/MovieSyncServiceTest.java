@@ -1,11 +1,11 @@
 package com.booster.ddayservice.specialday.application;
 
 import com.booster.ddayservice.specialday.domain.CountryCode;
+import com.booster.ddayservice.specialday.domain.MovieDataProvider;
+import com.booster.ddayservice.specialday.domain.MovieDataProvider.MovieData;
 import com.booster.ddayservice.specialday.domain.SpecialDay;
 import com.booster.ddayservice.specialday.domain.SpecialDayCategory;
 import com.booster.ddayservice.specialday.domain.SpecialDayRepository;
-import com.booster.ddayservice.specialday.infrastructure.TmdbClient;
-import com.booster.ddayservice.specialday.infrastructure.TmdbMovieDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +29,7 @@ class MovieSyncServiceTest {
     private MovieSyncService movieSyncService;
 
     @Mock
-    private TmdbClient tmdbClient;
+    private MovieDataProvider movieDataProvider;
 
     @Mock
     private SpecialDayRepository specialDayRepository;
@@ -38,12 +38,12 @@ class MovieSyncServiceTest {
     @DisplayName("TMDB 영화 데이터를 동기화한다")
     void should_syncMovies_when_newMoviesExist() {
         // given
-        List<TmdbMovieDto> movies = List.of(
-                new TmdbMovieDto(1L, "영화A", "Movie A", "설명A", "2026-07-01", "/poster1.jpg"),
-                new TmdbMovieDto(2L, "영화B", "Movie B", "설명B", "2026-08-01", "/poster2.jpg")
+        List<MovieData> movies = List.of(
+                new MovieData("영화A", "설명A", "2026-07-01"),
+                new MovieData("영화B", "설명B", "2026-08-01")
         );
 
-        given(tmdbClient.getUpcomingMovies("KR")).willReturn(movies);
+        given(movieDataProvider.getUpcomingMovies("KR")).willReturn(movies);
         given(specialDayRepository.existsByCountryCodeAndDateAndName(any(), any(), any())).willReturn(false);
         given(specialDayRepository.save(any(SpecialDay.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -61,12 +61,12 @@ class MovieSyncServiceTest {
     @DisplayName("중복 영화는 스킵한다")
     void should_skipDuplicates_when_movieAlreadyExists() {
         // given
-        List<TmdbMovieDto> movies = List.of(
-                new TmdbMovieDto(1L, "영화A", "Movie A", "설명A", "2026-07-01", "/poster1.jpg"),
-                new TmdbMovieDto(2L, "영화B", "Movie B", "설명B", "2026-08-01", "/poster2.jpg")
+        List<MovieData> movies = List.of(
+                new MovieData("영화A", "설명A", "2026-07-01"),
+                new MovieData("영화B", "설명B", "2026-08-01")
         );
 
-        given(tmdbClient.getUpcomingMovies("KR")).willReturn(movies);
+        given(movieDataProvider.getUpcomingMovies("KR")).willReturn(movies);
         given(specialDayRepository.existsByCountryCodeAndDateAndName(
                 eq(CountryCode.KR), eq(LocalDate.of(2026, 7, 1)), eq("영화A"))).willReturn(true);
         given(specialDayRepository.existsByCountryCodeAndDateAndName(
@@ -86,12 +86,12 @@ class MovieSyncServiceTest {
     @DisplayName("개봉일이 없는 영화는 스킵한다")
     void should_skipMovies_when_releaseDateIsNull() {
         // given
-        List<TmdbMovieDto> movies = List.of(
-                new TmdbMovieDto(1L, "영화A", "Movie A", "설명A", null, "/poster1.jpg"),
-                new TmdbMovieDto(2L, "영화B", "Movie B", "설명B", "", "/poster2.jpg")
+        List<MovieData> movies = List.of(
+                new MovieData("영화A", "설명A", null),
+                new MovieData("영화B", "설명B", "")
         );
 
-        given(tmdbClient.getUpcomingMovies("KR")).willReturn(movies);
+        given(movieDataProvider.getUpcomingMovies("KR")).willReturn(movies);
 
         // when
         MovieSyncService.MovieSyncResult result = movieSyncService.syncUpcomingMovies("KR");
@@ -106,7 +106,7 @@ class MovieSyncServiceTest {
     @DisplayName("TMDB에서 빈 결과를 반환하면 0건 저장한다")
     void should_returnZero_when_noMoviesFromTmdb() {
         // given
-        given(tmdbClient.getUpcomingMovies("KR")).willReturn(List.of());
+        given(movieDataProvider.getUpcomingMovies("KR")).willReturn(List.of());
 
         // when
         MovieSyncService.MovieSyncResult result = movieSyncService.syncUpcomingMovies("KR");

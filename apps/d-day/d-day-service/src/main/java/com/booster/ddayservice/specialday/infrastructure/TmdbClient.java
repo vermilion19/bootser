@@ -1,5 +1,6 @@
 package com.booster.ddayservice.specialday.infrastructure;
 
+import com.booster.ddayservice.specialday.domain.MovieDataProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -10,7 +11,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class TmdbClient {
+public class TmdbClient implements MovieDataProvider {
 
     private static final String BASE_URL = "https://api.themoviedb.org/3";
     private static final int MAX_PAGES = 5;
@@ -25,7 +26,8 @@ public class TmdbClient {
                 .build();
     }
 
-    public List<TmdbMovieDto> getUpcomingMovies(String region) {
+    @Override
+    public List<MovieData> getUpcomingMovies(String region) {
         List<TmdbMovieDto> allMovies = new ArrayList<>();
         int page = 1;
 
@@ -56,6 +58,8 @@ public class TmdbClient {
         }
 
         log.info("TMDB upcoming movies 총 {}건 조회", allMovies.size());
-        return allMovies;
+        return allMovies.stream()
+                .map(dto -> new MovieData(dto.title(), dto.overview(), dto.releaseDate()))
+                .toList();
     }
 }

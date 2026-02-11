@@ -4,8 +4,8 @@ import com.booster.ddayservice.specialday.domain.CountryCode;
 import com.booster.ddayservice.specialday.domain.SpecialDay;
 import com.booster.ddayservice.specialday.domain.SpecialDayCategory;
 import com.booster.ddayservice.specialday.domain.SpecialDayRepository;
-import com.booster.ddayservice.specialday.infrastructure.TheSportsDbClient;
-import com.booster.ddayservice.specialday.infrastructure.TheSportsDbEventDto;
+import com.booster.ddayservice.specialday.domain.SportsDataProvider;
+import com.booster.ddayservice.specialday.domain.SportsDataProvider.SportsEventData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -49,7 +49,7 @@ public class SportsSyncService {
             Map.entry("Turkey", CountryCode.TR)
     );
 
-    private final TheSportsDbClient theSportsDbClient;
+    private final SportsDataProvider sportsDataProvider;
     private final SpecialDayRepository specialDayRepository;
 
     public SportsSyncResult syncUpcomingEvents(int days) {
@@ -59,7 +59,7 @@ public class SportsSyncService {
 
         log.info("스포츠 이벤트 동기화 시작: {} ~ {} ({}일)", from, to, syncDays);
 
-        List<TheSportsDbEventDto> events = theSportsDbClient.getEventsByDateRange(from, to);
+        List<SportsEventData> events = sportsDataProvider.getEventsByDateRange(from, to);
 
         int savedCount = 0;
         int skippedCount = 0;
@@ -67,7 +67,7 @@ public class SportsSyncService {
         Set<String> existingKeys = specialDayRepository.findDateNameKeysByCountryCodeAndDateBetween(
                 null, from, to);
 
-        for (TheSportsDbEventDto event : events) {
+        for (SportsEventData event : events) {
             if (event.dateEvent() == null || event.dateEvent().isBlank()) {
                 skippedCount++;
                 continue;
@@ -77,14 +77,14 @@ public class SportsSyncService {
             try {
                 eventDate = LocalDate.parse(event.dateEvent());
             } catch (DateTimeParseException e) {
-                log.warn("스포츠 이벤트 날짜 파싱 실패: event={}, date={}", event.eventName(), event.dateEvent());
+                log.warn("스포츠 이벤트 날짜 파싱 실패: event={}, date={}", event.name(), event.dateEvent());
                 skippedCount++;
                 continue;
             }
 
             CountryCode countryCode = resolveCountryCode(event.country());
 
-            String eventName = event.eventName();
+            String eventName = event.name();
             if (specialDayRepository.existsByCountryCodeAndDateAndName(countryCode, eventDate, eventName)) {
                 skippedCount++;
                 continue;
@@ -130,7 +130,7 @@ public class SportsSyncService {
         }
     }
 
-    private String buildDescription(TheSportsDbEventDto event) {
+    private String buildDescription(SportsEventData event) {
         StringBuilder sb = new StringBuilder();
         if (event.sport() != null) {
             sb.append("[").append(event.sport()).append("] ");
