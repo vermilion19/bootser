@@ -9,9 +9,11 @@
 | Language | Kotlin |
 | Framework | Spring Boot 4.0.1 + Spring WebFlux |
 | Runtime | Reactor Netty (Non-blocking I/O) |
-| Async | Kotlin Coroutines + Reactor |
+| Async | Kotlin Coroutines + Flow (`SharedFlow`, `suspend fun`) |
 | Message Broker | Redis Pub/Sub (수평 확장) |
 | Serialization | Jackson + jackson-module-kotlin |
+| Observability | Spring Actuator + Micrometer + Prometheus |
+| Test | JUnit 5 + MockitoKotlin + Coroutines Test |
 
 ## 아키텍처
 
@@ -24,9 +26,11 @@ Client A ──WebSocket──▶ [Instance 1]            [Instance 2] ◀──
 ```
 
 - **Non-blocking I/O**: Reactor Netty 이벤트 루프로 소수 스레드가 수만 커넥션 처리
+- **Kotlin Coroutines**: `SharedFlow` 기반 메시지 스트림, `suspend fun`으로 Redis 비동기 발행
 - **Redis Pub/Sub**: 서버 인스턴스 간 메시지 동기화 (수평 확장)
 - **채팅방 격리**: `rooms` 맵으로 방별 브로드캐스트 (전체 broadcast 아님)
 - **Graceful Shutdown**: `@PreDestroy`에서 전체 클라이언트에 종료 메시지 전송 후 연결 정리
+- **SupervisorJob**: Redis 리스너의 개별 메시지 처리 실패가 전체 리스너에 전파되지 않음
 
 ## 프로젝트 구조
 
@@ -35,19 +39,30 @@ chatting-service/
 ├── build.gradle.kts
 ├── docs/
 │   └── README.md
-└── src/main/kotlin/com/booster/kotlin/chattingservice/
-    ├── ChattingServiceApplication.kt       # Spring Boot 진입점
-    ├── domain/
-    │   └── ChatMessage.kt                  # 메시지 DTO (ENTER, TALK, LEAVE, PING)
-    ├── application/
-    │   └── ChatService.kt                  # 커넥션 관리 + Redis Pub/Sub 발행/수신
-    ├── config/
-    │   ├── WebSocketConfig.kt              # /ws/chat 엔드포인트 매핑
-    │   └── RedisConfig.kt                  # Redis Pub/Sub 리스너
-    ├── web/
-    │   └── ChatWebSocketHandler.kt         # WebSocket 핸들러
-    └── test/
-        └── LoadTester.kt                   # 부하 테스트 도구
+└── src/
+    ├── main/kotlin/com/booster/kotlin/chattingservice/
+    │   ├── ChattingServiceApplication.kt       # Spring Boot 진입점
+    │   ├── domain/
+    │   │   └── ChatMessage.kt                  # 메시지 DTO (ENTER, TALK, LEAVE, PING)
+    │   ├── application/
+    │   │   └── ChatService.kt                  # 커넥션 관리 + Redis Pub/Sub + Micrometer 메트릭
+    │   ├── config/
+    │   │   ├── WebSocketConfig.kt              # /ws/chat 엔드포인트 매핑
+    │   │   ├── RedisConfig.kt                  # Redis Pub/Sub 리스너 (CoroutineScope)
+    │   │   └── ChatMetrics.kt                  # Prometheus 커스텀 Gauge 등록
+    │   ├── web/
+    │   │   └── ChatWebSocketHandler.kt         # WebSocket 핸들러 (Coroutine 기반)
+    │   └── test/
+    │       └── LoadTester.kt                   # 부하 테스트 도구
+    └── test/kotlin/com/booster/kotlin/chattingservice/
+        ├── ChattingServiceApplicationTests.kt  # 컨텍스트 로드 테스트
+        ├── TestConfig.kt                       # Redis mock + broadcast 시뮬레이션
+        ├── domain/
+        │   └── ChatMessageTest.kt              # DTO 단위 테스트 (8개)
+        ├── application/
+        │   └── ChatServiceTest.kt              # 서비스 단위 테스트 (13개)
+        └── web/
+            └── ChatWebSocketHandlerTest.kt     # WebSocket 통합 테스트 (4개)
 ```
 
 ## 메시지 타입
@@ -82,6 +97,7 @@ chatting-service/
 | `spring.data.redis.host` | localhost | Redis 호스트 |
 | `spring.data.redis.port` | 6379 | Redis 포트 |
 | `spring.data.redis.lettuce.pool.max-active` | 16 | 최대 활성 커넥션 |
+| `management.endpoints.web.exposure.include` | health,info,prometheus,metrics | Actuator 노출 엔드포인트 |
 
 ---
 
@@ -106,11 +122,70 @@ docker run -d --name redis -p 6379:6379 redis:latest
 
 ---
 
-## 테스트 방법
+## 모니터링 (Actuator + Prometheus)
 
-### 1. 수동 테스트 (wscat)
+### Actuator 엔드포인트
 
-wscat 설치 후 터미널 여러 개로 테스트합니다.
+| 엔드포인트 | 설명 |
+|-----------|------|
+| `GET /actuator/health` | 헬스 체크 (상세 정보 포함) |
+| `GET /actuator/prometheus` | Prometheus 스크래핑용 메트릭 |
+| `GET /actuator/metrics` | 전체 메트릭 목록 |
+| `GET /actuator/metrics/chat.connections.active` | 현재 접속자 수 |
+
+### 커스텀 메트릭
+
+| 메트릭 | 타입 | 설명 |
+|--------|------|------|
+| `chat_connections_active` | Gauge | 현재 WebSocket 접속자 수 |
+| `chat_rooms_active` | Gauge | 현재 활성 채팅방 수 |
+| `chat_messages_published_total` | Counter | Redis로 발행된 메시지 누적 수 |
+| `chat_messages_broadcast_total` | Counter | 로컬 유저에게 전달된 메시지 누적 수 |
+
+### Prometheus 연동 예시
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'kotlin-chatting-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['localhost:8085']
+```
+
+### Grafana 대시보드 쿼리 예시
+
+```promql
+# 실시간 접속자 수
+chat_connections_active
+
+# 초당 메시지 발행률
+rate(chat_messages_published_total[1m])
+
+# 초당 브로드캐스트률
+rate(chat_messages_broadcast_total[1m])
+```
+
+---
+
+## 테스트
+
+### 단위 테스트 + 통합 테스트 (29개)
+
+```bash
+./gradlew :apps:kotlin:chatting-service:test
+```
+
+| 테스트 클래스 | 테스트 수 | 범위 |
+|--------------|-----------|------|
+| `ChatMessageTest` | 8개 | 팩토리 메서드, 불변성, JSON 직렬화/역직렬화 |
+| `ChatServiceTest` | 13개 | register, handleMessage, broadcast, remove, cleanup |
+| `ChatWebSocketHandlerTest` | 4개 | 접속 거부, 정상 접속, 메시지 송수신, 잘못된 JSON |
+| `ChattingServiceApplicationTests` | 1개 | Spring 컨텍스트 로드 |
+
+> 테스트 시 Redis 없이 동작합니다. `TestConfig`에서 `ReactiveStringRedisTemplate`을 mock하여 `broadcastToLocalUsers`를 직접 호출하는 방식으로 Redis Pub/Sub를 시뮬레이션합니다.
+
+### 수동 테스트 (wscat)
 
 ```bash
 # wscat 설치
@@ -126,19 +201,12 @@ wscat -c "ws://localhost:8085/ws/chat?userId=userB"
 접속 후 아래 JSON을 입력합니다.
 
 ```json
-# 유저 A: 방 입장
 {"type":"ENTER","roomId":"room-1","userId":"userA","message":""}
-
-# 유저 B: 같은 방 입장
 {"type":"ENTER","roomId":"room-1","userId":"userB","message":""}
-
-# 유저 A: 메시지 전송
 {"type":"TALK","roomId":"room-1","userId":"userA","message":"안녕하세요!"}
-
-# 유저 B에게 메시지가 수신되는지 확인
 ```
 
-### 2. 부하 테스트 (LoadTester)
+### 부하 테스트 (LoadTester)
 
 #### JAR 빌드
 
@@ -199,7 +267,7 @@ java -jar apps/kotlin/chatting-service/build/libs/load-tester.jar
 [STAT] connected=1000, sent=2000, received=150000, errors=0, disconnected=0
 ```
 
-### 3. 10만 동시 접속 테스트 시 OS 튜닝
+### 10만 동시 접속 테스트 시 OS 튜닝
 
 10만 커넥션을 테스트하려면 OS 수준 설정이 필요합니다.
 
@@ -231,7 +299,7 @@ java -Xms1g -Xmx2g \
      -jar load-tester.jar
 ```
 
-### 4. 수평 확장 테스트 (다중 인스턴스)
+### 수평 확장 테스트 (다중 인스턴스)
 
 Redis Pub/Sub를 통해 인스턴스 간 메시지가 동기화되는지 확인합니다.
 
