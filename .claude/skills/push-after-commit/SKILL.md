@@ -1,5 +1,5 @@
 ---
-name: commit-and-push
+name: push-after-commit
 description: 변경사항 분석 후 Conventional Commit 형식으로 커밋하고 원격에 push까지 수행
 user-invocable: true
 ---
@@ -51,6 +51,6 @@ Git 변경사항을 분석하여 적절한 커밋 메시지를 생성하고, 커
 ### 사용 예시
 
 ```
-/commit-and-push          # 스테이징된 변경사항 커밋 후 push
-/commit-and-push all      # 모든 변경사항 add 후 커밋 & push
+/push-after-commit          # 스테이징된 변경사항 커밋 후 push
+/push-after-commit all      # 모든 변경사항 add 후 커밋 & push
 ```
