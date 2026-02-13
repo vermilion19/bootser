@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test"
+  short_description: "Help with Test tasks and workflows"
+  default_prompt: "Use $test to handle this task from start to finish."

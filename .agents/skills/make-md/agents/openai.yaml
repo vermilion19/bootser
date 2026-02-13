@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make Md"
+  short_description: "Help with Make Md tasks and workflows"
+  default_prompt: "Use $make-md to handle this task from start to finish."

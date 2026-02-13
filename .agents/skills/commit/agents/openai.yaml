@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit"
+  short_description: "Help with Commit tasks and workflows"
+  default_prompt: "Use $commit to handle this task from start to finish."

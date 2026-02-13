@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resilience"
+  short_description: "Help with Resilience tasks and workflows"
+  default_prompt: "Use $resilience to handle this task from start to finish."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Responsive"
+  short_description: "Help with Responsive tasks and workflows"
+  default_prompt: "Use $responsive to handle this task from start to finish."

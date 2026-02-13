@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spec Writer"
+  short_description: "Help with Spec Writer tasks and workflows"
+  default_prompt: "Use $spec-writer to handle this task from start to finish."

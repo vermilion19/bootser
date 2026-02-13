@@ -1,0 +1,4 @@
+interface:
+  display_name: "Perf Audit"
+  short_description: "Help with Perf Audit tasks and workflows"
+  default_prompt: "Use $perf-audit to handle this task from start to finish."

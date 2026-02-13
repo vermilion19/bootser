@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Gen"
+  short_description: "Help with UI Gen tasks and workflows"
+  default_prompt: "Use $ui-gen to handle this task from start to finish."

@@ -77,6 +77,16 @@ function Escape-YamlString {
     return $Value.Replace('\\', '\\\\').Replace('"', '\\"')
 }
 
+function Write-Utf8NoBom {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Content
+    )
+
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
 function Write-OpenAiYaml {
     param(
         [Parameter(Mandatory = $true)][string]$SkillDir,
@@ -97,7 +107,7 @@ function Write-OpenAiYaml {
         ('  default_prompt: "{0}"' -f (Escape-YamlString -Value $defaultPrompt))
     ) -join "`n"
 
-    Set-Content -LiteralPath (Join-Path $agentsDir 'openai.yaml') -Value ($yaml + "`n") -Encoding UTF8
+    Write-Utf8NoBom -Path (Join-Path $agentsDir 'openai.yaml') -Content ($yaml + "`n")
 }
 
 if (-not $SourceRoot) {
@@ -138,7 +148,7 @@ foreach ($srcDir in $sourceSkillDirs) {
 
     if ($PSCmdlet.ShouldProcess($dstSkillDir, 'Sync SKILL.md and agents/openai.yaml')) {
         New-Item -ItemType Directory -Path $dstSkillDir -Force | Out-Null
-        Set-Content -LiteralPath $dstSkillFile -Value $normalized -Encoding UTF8
+        Write-Utf8NoBom -Path $dstSkillFile -Content $normalized
         Write-OpenAiYaml -SkillDir $dstSkillDir -SkillName $skillName
         $synced++
     }

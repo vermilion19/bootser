@@ -1,0 +1,4 @@
+interface:
+  display_name: "Push After Commit"
+  short_description: "Help with Push After Commit tasks and workflows"
+  default_prompt: "Use $push-after-commit to handle this task from start to finish."

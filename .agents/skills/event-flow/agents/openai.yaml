@@ -1,0 +1,4 @@
+interface:
+  display_name: "Event Flow"
+  short_description: "Help with Event Flow tasks and workflows"
+  default_prompt: "Use $event-flow to handle this task from start to finish."

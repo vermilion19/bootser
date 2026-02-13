@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anti Pattern"
+  short_description: "Help with Anti Pattern tasks and workflows"
+  default_prompt: "Use $anti-pattern to handle this task from start to finish."

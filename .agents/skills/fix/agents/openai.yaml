@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fix"
+  short_description: "Help with Fix tasks and workflows"
+  default_prompt: "Use $fix to handle this task from start to finish."

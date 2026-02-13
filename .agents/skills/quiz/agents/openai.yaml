@@ -1,0 +1,4 @@
+interface:
+  display_name: "Quiz"
+  short_description: "Help with Quiz tasks and workflows"
+  default_prompt: "Use $quiz to handle this task from start to finish."

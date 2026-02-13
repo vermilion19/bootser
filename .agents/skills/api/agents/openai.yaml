@@ -1,0 +1,4 @@
+interface:
+  display_name: "API"
+  short_description: "Help with API tasks and workflows"
+  default_prompt: "Use $api to handle this task from start to finish."
