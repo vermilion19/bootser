@@ -7,6 +7,8 @@ enum class ActionType {
     SLEEP_START,
     SLEEP_END,
     TREAT,
+    TRAIN,
+    EVOLVE,
     BATTLE_QUEUE,
     BATTLE_RESULT
 }

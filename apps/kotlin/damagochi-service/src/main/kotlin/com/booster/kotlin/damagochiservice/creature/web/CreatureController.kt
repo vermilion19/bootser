@@ -61,6 +61,20 @@ class CreatureController(
         @PathVariable id: Long
     ): ResponseEntity<CreatureSummary> =
         ResponseEntity.ok(creatureApplicationService.treat(userId, id))
+
+    @PostMapping("/{id}/actions/train")
+    fun train(
+        @CurrentUserId userId: Long,
+        @PathVariable id: Long
+    ): ResponseEntity<CreatureSummary> =
+        ResponseEntity.ok(creatureApplicationService.train(userId, id))
+
+    @PostMapping("/{id}/actions/evolve")
+    fun evolve(
+        @CurrentUserId userId: Long,
+        @PathVariable id: Long
+    ): ResponseEntity<CreatureSummary> =
+        ResponseEntity.ok(creatureApplicationService.evolve(userId, id))
 }
 
 data class CreateCreatureRequest(

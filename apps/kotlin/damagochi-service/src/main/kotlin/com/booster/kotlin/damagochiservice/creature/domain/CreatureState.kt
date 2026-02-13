@@ -43,14 +43,34 @@ class CreatureState private constructor(
     @Column
     var lastTreatedAt: LocalDateTime? = null,
 
+    @Column(name = "effort_points", nullable = false)
+    var effortPoints: Int = 0,
+
     @Column(nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
+    val effortSlots: Int get() = effortPoints / TRAININGS_PER_SLOT
+
+    fun train() {
+        require(effortPoints < MAX_EFFORT_POINTS) {
+            "Effort is already at maximum. effortPoints=$effortPoints"
+        }
+        this.effortPoints++
+    }
+
+    fun resetEffort() {
+        this.effortPoints = 0
+    }
+
     fun touch(now: LocalDateTime = LocalDateTime.now()) {
         this.updatedAt = now
     }
 
     companion object {
+        const val MAX_SLOTS = 4
+        const val TRAININGS_PER_SLOT = 4
+        const val MAX_EFFORT_POINTS = MAX_SLOTS * TRAININGS_PER_SLOT
+
         fun initial(creatureId: Long): CreatureState =
             CreatureState(creatureId = creatureId)
     }

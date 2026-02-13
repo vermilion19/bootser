@@ -71,17 +71,66 @@ class CreatureApplicationServiceTest @Autowired constructor(
     }
 
     @Test
-    fun `sleep toggle has cooldown policy`() {
+    fun `wake up is immediate and sleep start has cooldown policy`() {
         val userId = 400L
         val creature = creatureApplicationService.createCreature(
             CreateCreatureCommand(userId = userId, name = "sleepy", species = "cat")
         )
 
         creatureApplicationService.updateSleep(userId, creature.id, true)
+        val awakened = creatureApplicationService.updateSleep(userId, creature.id, false)
+        assertThat(awakened.state.sleeping).isFalse()
 
         assertThatThrownBy {
-            creatureApplicationService.updateSleep(userId, creature.id, false)
+            creatureApplicationService.updateSleep(userId, creature.id, true)
         }.isInstanceOf(SleepToggleCooldownException::class.java)
+    }
+
+    @Test
+    fun `cannot run feed train treat evolve while sleeping`() {
+        val userId = 410L
+        val creature = creatureApplicationService.createCreature(
+            CreateCreatureCommand(userId = userId, name = "sleeper", species = "cat")
+        )
+        creatureApplicationService.updateSleep(userId, creature.id, true)
+
+        assertThatThrownBy {
+            creatureApplicationService.feed(userId, creature.id)
+        }.isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("Cannot feed while sleeping")
+
+        assertThatThrownBy {
+            creatureApplicationService.train(userId, creature.id)
+        }.isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("Cannot train while sleeping")
+
+        assertThatThrownBy {
+            creatureApplicationService.treat(userId, creature.id)
+        }.isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("Cannot treat while sleeping")
+
+        assertThatThrownBy {
+            creatureApplicationService.evolve(userId, creature.id)
+        }.isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("Cannot evolve while sleeping")
+    }
+
+    @Test
+    fun `cannot activate sleeping creature`() {
+        val userId = 420L
+        creatureApplicationService.createCreature(
+            CreateCreatureCommand(userId = userId, name = "active", species = "cat")
+        )
+        val sleepingBackup = creatureApplicationService.createCreature(
+            CreateCreatureCommand(userId = userId, name = "backup", species = "fox")
+        )
+
+        creatureApplicationService.updateSleep(userId, sleepingBackup.id, true)
+
+        assertThatThrownBy {
+            creatureApplicationService.activateCreature(userId, sleepingBackup.id)
+        }.isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("Cannot activate while sleeping")
     }
 
     @Test

@@ -69,10 +69,11 @@ class CreatureApplicationService(
         val now = now()
         val target = creatureRepository.findByIdAndUserId(creatureId, userId)
             ?: throw IllegalArgumentException("Creature not found. creatureId=$creatureId userId=$userId")
+        val targetState = resolveAndPersistState(target.id)
+        assertAwakeForAction(targetState, "activate")
 
         if (target.isActive) {
-            val state = resolveAndPersistState(target.id)
-            return CreatureSummary.from(target, state, now)
+            return CreatureSummary.from(target, targetState, now)
         }
 
         val latestSwitch = creatureRepository
@@ -100,15 +101,14 @@ class CreatureApplicationService(
                 payloadJson = """{"creatureId":${target.id}}"""
             )
         )
-
-        val state = resolveAndPersistState(target.id)
-        return CreatureSummary.from(target, state, now)
+        return CreatureSummary.from(target, targetState, now)
     }
 
     @Transactional
     fun feed(userId: Long, creatureId: Long): CreatureSummary {
         val creature = findUserCreature(userId, creatureId)
         val state = resolveAndPersistState(creature.id)
+        assertAwakeForAction(state, "feed")
         val now = now()
         state.hunger = (state.hunger + gameBalanceProperties.action.feedHungerGain).coerceAtMost(100)
         state.conditionScore = (state.conditionScore + gameBalanceProperties.action.feedConditionGain).coerceAtMost(100)
@@ -137,7 +137,7 @@ class CreatureApplicationService(
         }
 
         val lastToggle = state.lastSleepToggleAt
-        if (lastToggle != null) {
+        if (sleeping && lastToggle != null) {
             val availableAt = lastToggle.plusMinutes(gameBalanceProperties.action.sleepToggleCooldownMinutes)
             if (availableAt.isAfter(now)) {
                 throw SleepToggleCooldownException(
@@ -164,9 +164,58 @@ class CreatureApplicationService(
     }
 
     @Transactional
+    fun evolve(userId: Long, creatureId: Long): CreatureSummary {
+        val creature = findUserCreature(userId, creatureId)
+        val state = resolveAndPersistState(creature.id)
+        assertAwakeForAction(state, "evolve")
+        val now = now()
+
+        val nextStage = creature.stage.next()
+            ?: throw IllegalStateException("Already at max stage. stage=${creature.stage}")
+
+        creature.evolve(nextStage)
+        state.resetEffort()
+        state.touch(now)
+
+        actionLogRepository.save(
+            ActionLog.create(
+                userId = userId,
+                creatureId = creature.id,
+                actionType = ActionType.EVOLVE,
+                payloadJson = """{"fromStage":"${creature.stage.name}","toStage":"${nextStage.name}"}"""
+            )
+        )
+
+        return CreatureSummary.from(creature, state, now)
+    }
+
+    @Transactional
+    fun train(userId: Long, creatureId: Long): CreatureSummary {
+        val creature = findUserCreature(userId, creatureId)
+        val state = resolveAndPersistState(creature.id)
+        val now = now()
+
+        assertAwakeForAction(state, "train")
+
+        state.train()
+        state.touch(now)
+
+        actionLogRepository.save(
+            ActionLog.create(
+                userId = userId,
+                creatureId = creature.id,
+                actionType = ActionType.TRAIN
+            )
+        )
+
+        return CreatureSummary.from(creature, state, now)
+    }
+
+    @Transactional
     fun treat(userId: Long, creatureId: Long): CreatureSummary {
         val creature = findUserCreature(userId, creatureId)
         val state = resolveAndPersistState(creature.id)
+        assertAwakeForAction(state, "treat")
         val now = now()
         state.health = (state.health + gameBalanceProperties.action.treatHealthGain).coerceAtMost(100)
         state.conditionScore = (state.conditionScore + gameBalanceProperties.action.treatConditionGain).coerceAtMost(100)
@@ -204,6 +253,10 @@ class CreatureApplicationService(
 
     private fun now(): LocalDateTime = LocalDateTime.now(clock)
 
+    private fun assertAwakeForAction(state: CreatureState, action: String) {
+        require(!state.sleeping) { "Cannot $action while sleeping. Wake up first." }
+    }
+
 }
 
 data class CreateCreatureCommand(
@@ -240,6 +293,8 @@ data class CreatureSummary(
                     hunger = state.hunger,
                     conditionScore = state.conditionScore,
                     winRate = state.winRate,
+                    effortPoints = state.effortPoints,
+                    effortSlots = state.effortSlots,
                     sleeping = state.sleeping,
                     sleepingSince = state.sleepingSince?.toString(),
                     lastSleepToggleAt = state.lastSleepToggleAt?.toString(),
@@ -257,6 +312,8 @@ data class CreatureStateView(
     val hunger: Int,
     val conditionScore: Int,
     val winRate: Int,
+    val effortPoints: Int,
+    val effortSlots: Int,
     val sleeping: Boolean,
     val sleepingSince: String?,
     val lastSleepToggleAt: String?,
@@ -264,7 +321,6 @@ data class CreatureStateView(
     val lastTreatedAt: String?,
     val updatedAt: String
 )
-
 
 
 
