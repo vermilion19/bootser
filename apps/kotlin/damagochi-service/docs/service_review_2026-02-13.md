@@ -1,89 +1,89 @@
-# Damagochi Service ¸®ºä (2026-02-13)
+# Damagochi Service ë¦¬ë·° (2026-02-13)
 
-## ¹üÀ§
-- `apps/kotlin/damagochi-service/src/main/kotlin` ÀüÃ¼ °ËÅä
-- `apps/kotlin/damagochi-service/src/test/kotlin` Å×½ºÆ® ÄÚµå °ËÅä
-- ÃÊÁ¡: Á¤È®¼º, DDD ÀûÇÕ¼º, º¯°æ ¿ëÀÌ¼º, ¿î¿µ ¸®½ºÅ©
+## ë²”ìœ„
+- `apps/kotlin/damagochi-service/src/main/kotlin` ì „ì²´ ê²€í† 
+- `apps/kotlin/damagochi-service/src/test/kotlin` í…ŒìŠ¤íŠ¸ ì½”ë“œ ê²€í† 
+- ì´ˆì : ì •í™•ì„±, DDD ì í•©ì„±, ë³€ê²½ ìš©ì´ì„±, ìš´ì˜ ë¦¬ìŠ¤í¬
 
-## ÁÖ¿ä ¹ß°ß»çÇ× (½É°¢µµ ¼ø)
+## ì£¼ìš” ë°œê²¬ì‚¬í•­ (ì‹¬ê°ë„ ìˆœ)
 
-### 1. Ä¡¸íÀû(Critical) - »ç¿ëÀÚ ½Äº°À» Å¬¶óÀÌ¾ğÆ®°¡ À§Á¶ °¡´É (`X-User-Id`)
-- ±Ù°Å: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/common/web/CurrentUserIdResolver.kt:25`
-- ÇöÀç´Â ¿äÃ» Çì´õ `X-User-Id` °ªÀ» ±×´ë·Î ½Å·ÚÇØ¼­ ÀÎÁõ »ç¿ëÀÚ·Î »ç¿ëÇÕ´Ï´Ù.
-- ¿µÇâ: ¾î¶² Å¬¶óÀÌ¾ğÆ®µç ÀÓÀÇ »ç¿ëÀÚ·Î °¡ÀåÇÏ¿© Å¸ÀÎÀÇ Å©¸®Ã³/¹èÆ² µ¥ÀÌÅÍ¿¡ Á¢±Ù ¹× º¯°æÇÒ ¼ö ÀÖ½À´Ï´Ù.
-- ±ÇÀå:
-  1. JWT/¼¼¼Ç µî ½ÇÁ¦ ÀÎÁõ ÄÁÅØ½ºÆ®¸¦ µµÀÔÇÏ°í, °ËÁõµÈ principal¿¡¼­ userId¸¦ ÃßÃâÇÏ¼¼¿ä.
-  2. `X-User-Id` ¹æ½ÄÀº ·ÎÄÃ °³¹ß ÇÁ·ÎÆÄÀÏ¿¡¼­¸¸ Çã¿ëÇÏ¼¼¿ä.
+### 1. ì¹˜ëª…ì (Critical) - ì‚¬ìš©ì ì‹ë³„ì„ í´ë¼ì´ì–¸íŠ¸ê°€ ìœ„ì¡° ê°€ëŠ¥ (`X-User-Id`)
+- ê·¼ê±°: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/common/web/CurrentUserIdResolver.kt:25`
+- í˜„ì¬ëŠ” ìš”ì²­ í—¤ë” `X-User-Id` ê°’ì„ ê·¸ëŒ€ë¡œ ì‹ ë¢°í•´ì„œ ì¸ì¦ ì‚¬ìš©ìë¡œ ì‚¬ìš©í•©ë‹ˆë‹¤.
+- ì˜í–¥: ì–´ë–¤ í´ë¼ì´ì–¸íŠ¸ë“  ì„ì˜ ì‚¬ìš©ìë¡œ ê°€ì¥í•˜ì—¬ íƒ€ì¸ì˜ í¬ë¦¬ì²˜/ë°°í‹€ ë°ì´í„°ì— ì ‘ê·¼ ë° ë³€ê²½í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+- ê¶Œì¥:
+  1. JWT/ì„¸ì…˜ ë“± ì‹¤ì œ ì¸ì¦ ì»¨í…ìŠ¤íŠ¸ë¥¼ ë„ì…í•˜ê³ , ê²€ì¦ëœ principalì—ì„œ userIdë¥¼ ì¶”ì¶œí•˜ì„¸ìš”.
+  2. `X-User-Id` ë°©ì‹ì€ ë¡œì»¬ ê°œë°œ í”„ë¡œíŒŒì¼ì—ì„œë§Œ í—ˆìš©í•˜ì„¸ìš”.
 
-### 2. ³ôÀ½(High) - È¸¿ø°¡ÀÔ Áßº¹ Ã¼Å©¿¡ °æÀï Á¶°ÇÀÌ ÀÖ¾î µ¿½Ã ¿äÃ» ½Ã 500 °¡´É
-- ±Ù°Å: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/auth/application/AuthApplicationService.kt:17`
-- `existsByLoginId` È®ÀÎ ÈÄ `save` ÇÏ´Â ±¸Á¶°¡ ¿øÀÚÀûÀÌÁö ¾Ê½À´Ï´Ù. µ¿½Ã °¡ÀÔ ½Ã µÑ ´Ù Ã¼Å©¸¦ Åë°úÇÏ°í, ÇÏ³ª´Â DB unique Á¦¾à¿¡¼­ ½ÇÆĞÇÒ ¼ö ÀÖ½À´Ï´Ù.
-- ¿µÇâ: ºñ°áÁ¤Àû µ¿ÀÛ, 500 ÀÀ´ä °¡´É¼º.
-- ±ÇÀå:
-  1. DB unique À§¹İÀ» ºñÁî´Ï½º ¿¹¿Ü·Î Ã³¸®ÇØ 409(Conflict)·Î ¸ÅÇÎÇÏ¼¼¿ä.
-  2. »çÀü Áßº¹ Ã¼Å©´Â UX º¸Á¶·Î¸¸ µÎ°í, ÃÖÁ¾ ¹«°á¼ºÀº DB Á¦¾àÀ» ±âÁØÀ¸·Î ÇÏ¼¼¿ä.
+### 2. ë†’ìŒ(High) - íšŒì›ê°€ì… ì¤‘ë³µ ì²´í¬ì— ê²½ìŸ ì¡°ê±´ì´ ìˆì–´ ë™ì‹œ ìš”ì²­ ì‹œ 500 ê°€ëŠ¥
+- ê·¼ê±°: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/auth/application/AuthApplicationService.kt:17`
+- `existsByLoginId` í™•ì¸ í›„ `save` í•˜ëŠ” êµ¬ì¡°ê°€ ì›ìì ì´ì§€ ì•ŠìŠµë‹ˆë‹¤. ë™ì‹œ ê°€ì… ì‹œ ë‘˜ ë‹¤ ì²´í¬ë¥¼ í†µê³¼í•˜ê³ , í•˜ë‚˜ëŠ” DB unique ì œì•½ì—ì„œ ì‹¤íŒ¨í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+- ì˜í–¥: ë¹„ê²°ì •ì  ë™ì‘, 500 ì‘ë‹µ ê°€ëŠ¥ì„±.
+- ê¶Œì¥:
+  1. DB unique ìœ„ë°˜ì„ ë¹„ì¦ˆë‹ˆìŠ¤ ì˜ˆì™¸ë¡œ ì²˜ë¦¬í•´ 409(Conflict)ë¡œ ë§¤í•‘í•˜ì„¸ìš”.
+  2. ì‚¬ì „ ì¤‘ë³µ ì²´í¬ëŠ” UX ë³´ì¡°ë¡œë§Œ ë‘ê³ , ìµœì¢… ë¬´ê²°ì„±ì€ DB ì œì•½ì„ ê¸°ì¤€ìœ¼ë¡œ í•˜ì„¸ìš”.
 
-### 3. ³ôÀ½(High) - Å©¸®Ã³ ºÒº¯½Ä(ÃÖ´ë ½½·Ô/È°¼º 1°³)ÀÌ µ¿½Ã¼º¿¡ ¾ÈÀüÇÏÁö ¾ÊÀ½
-- ±Ù°Å:
-  - ½½·Ô ¼ö Ã¼Å©: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:37`
-  - È°¼º ÀüÈ¯ ·ÎÁ÷: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:90`
-  - ¿£Æ¼Æ¼¿¡ »ç¿ëÀÚº° È°¼º 1°³ DB °­Á¦ ÀåÄ¡ ºÎÀç: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/domain/Creature.kt:19`
-- ¿µÇâ: µ¿½Ã ¿äÃ» ½Ã ½½·Ô ÃÊ°ú »ı¼º, È°¼º Å©¸®Ã³ 2°³ ÀÌ»ó °°Àº ±ÔÄ¢ À§¹İ °¡´É.
-- ±ÇÀå:
-  1. Æ®·£Àè¼Ç Àá±İ Àü·«(`PESSIMISTIC_WRITE` ¶Ç´Â »ç¿ëÀÚ ´ÜÀ§ ¶ô) µµÀÔ.
-  2. °¡´ÉÇÑ ¹üÀ§¿¡¼­ DB Á¦¾à Ãß°¡(¶Ç´Â È°¼º °ü°è¸¦ º°µµ Å×ÀÌºí·Î ºĞ¸®ÇØ °­Á¦).
+### 3. ë†’ìŒ(High) - í¬ë¦¬ì²˜ ë¶ˆë³€ì‹(ìµœëŒ€ ìŠ¬ë¡¯/í™œì„± 1ê°œ)ì´ ë™ì‹œì„±ì— ì•ˆì „í•˜ì§€ ì•ŠìŒ
+- ê·¼ê±°:
+  - ìŠ¬ë¡¯ ìˆ˜ ì²´í¬: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:37`
+  - í™œì„± ì „í™˜ ë¡œì§: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:90`
+  - ì—”í‹°í‹°ì— ì‚¬ìš©ìë³„ í™œì„± 1ê°œ DB ê°•ì œ ì¥ì¹˜ ë¶€ì¬: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/domain/Creature.kt:19`
+- ì˜í–¥: ë™ì‹œ ìš”ì²­ ì‹œ ìŠ¬ë¡¯ ì´ˆê³¼ ìƒì„±, í™œì„± í¬ë¦¬ì²˜ 2ê°œ ì´ìƒ ê°™ì€ ê·œì¹™ ìœ„ë°˜ ê°€ëŠ¥.
+- ê¶Œì¥:
+  1. íŠ¸ëœì­ì…˜ ì ê¸ˆ ì „ëµ(`PESSIMISTIC_WRITE` ë˜ëŠ” ì‚¬ìš©ì ë‹¨ìœ„ ë½) ë„ì….
+  2. ê°€ëŠ¥í•œ ë²”ìœ„ì—ì„œ DB ì œì•½ ì¶”ê°€(ë˜ëŠ” í™œì„± ê´€ê³„ë¥¼ ë³„ë„ í…Œì´ë¸”ë¡œ ë¶„ë¦¬í•´ ê°•ì œ).
 
-### 4. Áß°£(Medium) - ÀĞ±â Àü¿ë Æ®·£Àè¼Ç °æ·Î¿¡¼­ ½ÇÁ¦ ¾²±â ¹ß»ı
-- ±Ù°Å:
-  - Å¬·¡½º readOnly: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:19`
-  - `findCreatures`¿¡¼­ »óÅÂ º¸Á¤ ÈÄ ÀúÀå: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:28`
-  - ½ÇÁ¦ save È£Ãâ: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:200`
-- ¿µÇâ: JPA flush/provider ¼³Á¤¿¡ µû¶ó µ¿ÀÛÀÌ ´Ş¶óÁú ¼ö ÀÖ°í, ÃßÈÄ Æ©´× ½Ã ÀáÀç ¹ö±×°¡ ¹ß»ıÇÒ ¼ö ÀÖ½À´Ï´Ù.
-- ±ÇÀå:
-  1. ¾²±â°¡ Æ÷ÇÔµÈ °æ·Î´Â ¸í½ÃÀûÀ¸·Î `@Transactional(readOnly = false)` Ã³¸®.
-  2. ¼ø¼ö Á¶È¸¿Í »óÅÂ º¸Á¤(¾²±â)À» ºĞ¸®.
+### 4. ì¤‘ê°„(Medium) - ì½ê¸° ì „ìš© íŠ¸ëœì­ì…˜ ê²½ë¡œì—ì„œ ì‹¤ì œ ì“°ê¸° ë°œìƒ
+- ê·¼ê±°:
+  - í´ë˜ìŠ¤ readOnly: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:19`
+  - `findCreatures`ì—ì„œ ìƒíƒœ ë³´ì • í›„ ì €ì¥: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:28`
+  - ì‹¤ì œ save í˜¸ì¶œ: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:200`
+- ì˜í–¥: JPA flush/provider ì„¤ì •ì— ë”°ë¼ ë™ì‘ì´ ë‹¬ë¼ì§ˆ ìˆ˜ ìˆê³ , ì¶”í›„ íŠœë‹ ì‹œ ì ì¬ ë²„ê·¸ê°€ ë°œìƒí•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+- ê¶Œì¥:
+  1. ì“°ê¸°ê°€ í¬í•¨ëœ ê²½ë¡œëŠ” ëª…ì‹œì ìœ¼ë¡œ `@Transactional(readOnly = false)` ì²˜ë¦¬.
+  2. ìˆœìˆ˜ ì¡°íšŒì™€ ìƒíƒœ ë³´ì •(ì“°ê¸°)ì„ ë¶„ë¦¬.
 
-### 5. Áß°£(Medium) - Redis ·£´ı ¸ÅÄª Å¥¿¡ stale ¿£Æ®¸® ´©Àû °¡´É
-- ±Ù°Å: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/battle/application/match/RedisBattleMatchRegistry.kt:45`
-- `removeFromRandomQueue`°¡ ÇØ½Ã(`KEY_RANDOM_ENTRIES`)¸¸ »èÁ¦ÇÏ°í ¸®½ºÆ®(`KEY_RANDOM_ORDER`)¿¡¼­´Â Á¦°ÅÇÏÁö ¾Ê½À´Ï´Ù.
-- ¿µÇâ: ¿À·¡µÈ userId°¡ ¸®½ºÆ®¿¡ ½×¿© ¼º´É ÀúÇÏ(ºÒÇÊ¿ä pop ¹İº¹, ¸Ş¸ğ¸® Áõ°¡) À§Çè.
-- ±ÇÀå:
-  1. Á¦°Å ½Ã ¸®½ºÆ®¿¡¼­µµ Á¤¸®(`LREM`)ÇÏ°Å³ª, ´ÜÀÏ ±¸Á¶(sorted set µî)·Î Àç¼³°è.
-  2. ÇöÀç ±¸Á¶ À¯Áö ½Ã Á¤±â Á¤¸®(compaction) Àü·« Ãß°¡.
+### 5. ì¤‘ê°„(Medium) - Redis ëœë¤ ë§¤ì¹­ íì— stale ì—”íŠ¸ë¦¬ ëˆ„ì  ê°€ëŠ¥
+- ê·¼ê±°: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/battle/application/match/RedisBattleMatchRegistry.kt:45`
+- `removeFromRandomQueue`ê°€ í•´ì‹œ(`KEY_RANDOM_ENTRIES`)ë§Œ ì‚­ì œí•˜ê³  ë¦¬ìŠ¤íŠ¸(`KEY_RANDOM_ORDER`)ì—ì„œëŠ” ì œê±°í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
+- ì˜í–¥: ì˜¤ë˜ëœ userIdê°€ ë¦¬ìŠ¤íŠ¸ì— ìŒ“ì—¬ ì„±ëŠ¥ ì €í•˜(ë¶ˆí•„ìš” pop ë°˜ë³µ, ë©”ëª¨ë¦¬ ì¦ê°€) ìœ„í—˜.
+- ê¶Œì¥:
+  1. ì œê±° ì‹œ ë¦¬ìŠ¤íŠ¸ì—ì„œë„ ì •ë¦¬(`LREM`)í•˜ê±°ë‚˜, ë‹¨ì¼ êµ¬ì¡°(sorted set ë“±)ë¡œ ì¬ì„¤ê³„.
+  2. í˜„ì¬ êµ¬ì¡° ìœ ì§€ ì‹œ ì •ê¸° ì •ë¦¬(compaction) ì „ëµ ì¶”ê°€.
 
-### 6. ³·À½(Low) - JSON payload¸¦ ¹®ÀÚ¿­ º¸°£À¸·Î Á÷Á¢ »ı¼º
-- ±Ù°Å:
+### 6. ë‚®ìŒ(Low) - JSON payloadë¥¼ ë¬¸ìì—´ ë³´ê°„ìœ¼ë¡œ ì§ì ‘ ìƒì„±
+- ê·¼ê±°:
   - `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureApplicationService.kt:59`
   - `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/battle/application/BattleApplicationService.kt:234`
-- ¿µÇâ: »ç¿ëÀÚ ÀÔ·Â¿¡ µû¶ó JSON Çü½ÄÀÌ ±úÁö°Å³ª ·Î±× ÀÏ°ü¼ºÀÌ ¶³¾îÁú ¼ö ÀÖ½À´Ï´Ù.
-- ±ÇÀå: `ObjectMapper` + Àü¿ë DTO·Î Á÷·ÄÈ­.
+- ì˜í–¥: ì‚¬ìš©ì ì…ë ¥ì— ë”°ë¼ JSON í˜•ì‹ì´ ê¹¨ì§€ê±°ë‚˜ ë¡œê·¸ ì¼ê´€ì„±ì´ ë–¨ì–´ì§ˆ ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+- ê¶Œì¥: `ObjectMapper` + ì „ìš© DTOë¡œ ì§ë ¬í™”.
 
-### 7. ³·À½(Low) - ½Ã°£ ¸ğµ¨ ÀÏ°ü¼º ºÎÁ· (UTC Clock + LocalDateTime + KST ÇÏµåÄÚµù)
-- ±Ù°Å:
+### 7. ë‚®ìŒ(Low) - ì‹œê°„ ëª¨ë¸ ì¼ê´€ì„± ë¶€ì¡± (UTC Clock + LocalDateTime + KST í•˜ë“œì½”ë”©)
+- ê·¼ê±°:
   - UTC clock: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/common/config/ClockConfig.kt:9`
-  - KST °íÁ¤ ¾ß°£ °è»ê: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureStateCalculator.kt:9`
-- ¿µÇâ: ÀÎÇÁ¶ó Å¸ÀÓÁ¸/Á¤Ã¥ º¯°æ ½Ã ÇØ¼® ºÒÀÏÄ¡ °¡´É.
-- ±ÇÀå: ³»ºÎ ½Ã°£Àº `Instant`/`OffsetDateTime` ±âÁØÀ¸·Î ÅëÀÏÇÏ°í, Á¤Ã¥ Å¸ÀÓÁ¸Àº ¿ÜºÎ ¼³Á¤È­.
+  - KST ê³ ì • ì•¼ê°„ ê³„ì‚°: `apps/kotlin/damagochi-service/src/main/kotlin/com/booster/kotlin/damagochiservice/creature/application/CreatureStateCalculator.kt:9`
+- ì˜í–¥: ì¸í”„ë¼ íƒ€ì„ì¡´/ì •ì±… ë³€ê²½ ì‹œ í•´ì„ ë¶ˆì¼ì¹˜ ê°€ëŠ¥.
+- ê¶Œì¥: ë‚´ë¶€ ì‹œê°„ì€ `Instant`/`OffsetDateTime` ê¸°ì¤€ìœ¼ë¡œ í†µì¼í•˜ê³ , ì •ì±… íƒ€ì„ì¡´ì€ ì™¸ë¶€ ì„¤ì •í™”.
 
-## DDD/±¸Á¶ Æò°¡
-- ÀåÁ¡:
-  - `auth`, `creature`, `battle`, `activity`, `common` ÄÁÅØ½ºÆ® ºĞ¸®°¡ ¸íÈ®ÇØÁ³½À´Ï´Ù.
-  - µµ¸ŞÀÎ ¿£Æ¼Æ¼/¸®Æ÷ÁöÅä¸®¿Í À¥ ¾î´ğÅÍ ºĞ¸®°¡ µÇ¾î ÀÖ½À´Ï´Ù.
-- º¸¿ÏÁ¡:
-  - ÀÏºÎ Application Service°¡ ³Ê¹« Ä¿¼­(¿ÀÄÉ½ºÆ®·¹ÀÌ¼Ç + DTO ´Ù¼ö) º¯°æ ¿µÇâ ¹üÀ§°¡ Å®´Ï´Ù.
-  - ÇÙ½É ºÒº¯½ÄÀÌ ¾ÖÇÃ¸®ÄÉÀÌ¼Ç ·¹º§¿¡ Ä¡¿ìÃÄ ÀÖ°í DB °­Á¦ ÀåÄ¡°¡ ¾àÇÕ´Ï´Ù.
+## DDD/êµ¬ì¡° í‰ê°€
+- ì¥ì :
+  - `auth`, `creature`, `battle`, `activity`, `common` ì»¨í…ìŠ¤íŠ¸ ë¶„ë¦¬ê°€ ëª…í™•í•´ì¡ŒìŠµë‹ˆë‹¤.
+  - ë„ë©”ì¸ ì—”í‹°í‹°/ë¦¬í¬ì§€í† ë¦¬ì™€ ì›¹ ì–´ëŒ‘í„° ë¶„ë¦¬ê°€ ë˜ì–´ ìˆìŠµë‹ˆë‹¤.
+- ë³´ì™„ì :
+  - ì¼ë¶€ Application Serviceê°€ ë„ˆë¬´ ì»¤ì„œ(ì˜¤ì¼€ìŠ¤íŠ¸ë ˆì´ì…˜ + DTO ë‹¤ìˆ˜) ë³€ê²½ ì˜í–¥ ë²”ìœ„ê°€ í½ë‹ˆë‹¤.
+  - í•µì‹¬ ë¶ˆë³€ì‹ì´ ì• í”Œë¦¬ì¼€ì´ì…˜ ë ˆë²¨ì— ì¹˜ìš°ì³ ìˆê³  DB ê°•ì œ ì¥ì¹˜ê°€ ì•½í•©ë‹ˆë‹¤.
 
-## Å×½ºÆ® Ä¿¹ö¸®Áö °ø¹é
-- µ¿½Ã¼º Å×½ºÆ® ºÎÀç:
-  - È¸¿ø°¡ÀÔ Áßº¹ race
-  - Å©¸®Ã³ È°¼º ÀüÈ¯ race
-  - Å©¸®Ã³ ½½·Ô ÃÊ°ú race
-- Redis ·¹Áö½ºÆ®¸® ¸ğµå(`damagochi.battle.registry-type=redis`) ÅëÇÕ Å×½ºÆ® ºÎÀç.
-- º¸¾È È¸±Í Å×½ºÆ® ºÎÀç(¿î¿µ¿¡¼­ header À§Á¶ ºÒ°¡ º¸Àå È®ÀÎ ÇÊ¿ä).
+## í…ŒìŠ¤íŠ¸ ì»¤ë²„ë¦¬ì§€ ê³µë°±
+- ë™ì‹œì„± í…ŒìŠ¤íŠ¸ ë¶€ì¬:
+  - íšŒì›ê°€ì… ì¤‘ë³µ race
+  - í¬ë¦¬ì²˜ í™œì„± ì „í™˜ race
+  - í¬ë¦¬ì²˜ ìŠ¬ë¡¯ ì´ˆê³¼ race
+- Redis ë ˆì§€ìŠ¤íŠ¸ë¦¬ ëª¨ë“œ(`damagochi.battle.registry-type=redis`) í†µí•© í…ŒìŠ¤íŠ¸ ë¶€ì¬.
+- ë³´ì•ˆ íšŒê·€ í…ŒìŠ¤íŠ¸ ë¶€ì¬(ìš´ì˜ì—ì„œ header ìœ„ì¡° ë¶ˆê°€ ë³´ì¥ í™•ì¸ í•„ìš”).
 
-## ¿ì¼±¼øÀ§ ½ÇÇà °èÈ¹
-1. ÀÎÁõ °æ·Î º¸°­(`X-User-Id` ½Å·Ú Á¦°Å, ¿î¿µ ÀÎÁõ ÄÁÅØ½ºÆ® Àû¿ë)
-2. È¸¿ø°¡ÀÔ/Å©¸®Ã³ ºÒº¯½ÄÀÇ µ¿½Ã¼º ¾ÈÀü¼º È®º¸
-3. Redis Å¥ stale ¸®½ºÆ® ¹®Á¦ °³¼±(½Ç¼­ºñ½º Redis ÀüÈ¯ Àü)
-4. Æ®·£Àè¼Ç °æ°è Á¤¸®(ÀĞ±â/¾²±â °æ·Î ºĞ¸®)
-5. ·Î±× payload »ı¼º ¹æ½Ä DTO Á÷·ÄÈ­·Î ÀüÈ¯
+## ìš°ì„ ìˆœìœ„ ì‹¤í–‰ ê³„íš
+1. ì¸ì¦ ê²½ë¡œ ë³´ê°•(`X-User-Id` ì‹ ë¢° ì œê±°, ìš´ì˜ ì¸ì¦ ì»¨í…ìŠ¤íŠ¸ ì ìš©)
+2. íšŒì›ê°€ì…/í¬ë¦¬ì²˜ ë¶ˆë³€ì‹ì˜ ë™ì‹œì„± ì•ˆì „ì„± í™•ë³´
+3. Redis í stale ë¦¬ìŠ¤íŠ¸ ë¬¸ì œ ê°œì„ (ì‹¤ì„œë¹„ìŠ¤ Redis ì „í™˜ ì „)
+4. íŠ¸ëœì­ì…˜ ê²½ê³„ ì •ë¦¬(ì½ê¸°/ì“°ê¸° ê²½ë¡œ ë¶„ë¦¬)
+5. ë¡œê·¸ payload ìƒì„± ë°©ì‹ DTO ì§ë ¬í™”ë¡œ ì „í™˜
