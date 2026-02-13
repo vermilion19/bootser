@@ -24,3 +24,40 @@ spring:
       hibernate:
         format_sql: true
 
+damagochi:
+  battle:
+    registry-type: memory
+  balance:
+    creature:
+      max-creature-count-per-user: 3
+      activate-cooldown-minutes: 30
+    action:
+      sleep-toggle-cooldown-minutes: 10
+      feed-hunger-gain: 20
+      feed-condition-gain: 5
+      feed-health-gain: 2
+      treat-health-gain: 15
+      treat-condition-gain: 10
+    state:
+      age-per-sleep-30-min: 1
+      age-per-awake-60-min: 1
+      hunger-decay-per-30-min: 1
+      health-decay-per-60-min: 1
+      condition-decay-per-20-min-at-zero: 1
+      night-condition-penalty-per-30-min: 1
+      night-start-hour: 23
+      night-end-hour-exclusive: 7
+    battle:
+      room-ttl-minutes: 10
+      room-code-length: 6
+      room-code-generate-attempts: 32
+      room-code-chars: ABCDEFGHJKLMNPQRSTUVWXYZ23456789
+      base-condition-weight: 2
+      base-health-weight: 1
+      base-hunger-weight: 1
+      base-win-rate-weight: 1
+      random-score-min-inclusive: 0
+      random-score-max-exclusive: 31
+      win-rate-delta-win: 3
+      win-rate-delta-lose: -3
+      win-rate-delta-draw: 0
