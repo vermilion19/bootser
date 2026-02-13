@@ -1,0 +1,7 @@
+npm error Lifecycle script `dev` failed with error:
+npm error code 4294967295
+npm error path C:\Users\NCand\Documents\bootser\frontends\damagochi-web
+npm error workspace @booster/damagochi-web@0.1.0
+npm error location C:\Users\NCand\Documents\bootser\frontends\damagochi-web
+npm error command failed
+npm error command C:\Windows\system32\cmd.exe /d /s /c vite --host 127.0.0.1 --port 5178

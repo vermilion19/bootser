@@ -1,0 +1,9 @@
+
+> @booster/damagochi-web@0.1.0 dev
+> vite --host 127.0.0.1 --port 5178
+
+Port 5178 is in use, trying another one...
+
+  [32m[1mVITE[22m v7.3.1[39m  [2mready in [0m[1m183[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5179[22m/[39m

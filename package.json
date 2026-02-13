@@ -8,6 +8,8 @@
     "dev:user-web": "npm run dev -w @booster/user-web",
     "build:user-web": "npm run build -w @booster/user-web",
     "dev:dday-web": "npm run dev -w @booster/dday-web",
-    "build:dday-web": "npm run build -w @booster/dday-web"
+    "build:dday-web": "npm run build -w @booster/dday-web",
+    "dev:damagochi-web": "npm run dev -w @booster/damagochi-web",
+    "build:damagochi-web": "npm run build -w @booster/damagochi-web"
   }
 }
