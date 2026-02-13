@@ -1,0 +1,36 @@
+{
+  "name": "juvenile_creature_v1",
+  "frame_size": {
+    "w": 32,
+    "h": 32
+  },
+  "animations": {
+    "idle": {
+      "sheet": "juvenile_idle_sheet_32.png",
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "frame_duration_ms": 140
+    },
+    "blink": {
+      "sheet": "juvenile_blink_sheet_32.png",
+      "frames": [
+        0,
+        1
+      ],
+      "frame_duration_ms": 120,
+      "note": "blink is usually triggered occasionally rather than looped"
+    },
+    "sleep": {
+      "sheet": "juvenile_sleep_sheet_32.png",
+      "frames": [
+        0,
+        1
+      ],
+      "frame_duration_ms": 350
+    }
+  }
+}

@@ -1,20 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError } from "../api/http";
-import {
-  feedCreature,
-  getCreatures,
-  sleepCreature,
-  treatCreature,
-} from "../api/creatureApi";
+import { feedCreature, getCreatures, sleepCreature, treatCreature } from "../api/creatureApi";
 import type { CreatureSummary } from "../api/types";
 import { CreatureCanvas } from "../components/CreatureCanvas";
 import { useAuth } from "../store/auth";
 
 const ALERTS = {
-  health: "체력이 낮아요. 치료를 먼저 해주세요.",
-  hunger: "배고픔 수치가 낮아요. 먹이를 주세요.",
-  condition: "컨디션이 낮아요. 치료 또는 휴식이 필요해요.",
+  health: "체력이 낮습니다. 치료를 먼저 해주세요.",
+  hunger: "배고픔 수치가 낮습니다. 먹이를 주세요.",
+  condition: "컨디션이 낮습니다. 치료 또는 휴식이 필요합니다.",
 };
 
 export function MainPage() {
@@ -22,9 +17,7 @@ export function MainPage() {
   const [creatures, setCreatures] = useState<CreatureSummary[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
-  const [actionHint, setActionHint] = useState<
-    "idle" | "feed" | "treat" | "sleep" | "battle"
-  >("idle");
+  const [actionHint, setActionHint] = useState<"idle" | "feed" | "treat" | "sleep" | "battle">("idle");
 
   const activeCreature = useMemo(
     () => creatures.find((c) => c.active) ?? null,
@@ -34,8 +27,7 @@ export function MainPage() {
   const refresh = async () => {
     if (!user) return;
     try {
-      const next = await getCreatures(user.userId);
-      setCreatures(next);
+      setCreatures(await getCreatures(user.userId));
     } catch (error) {
       const text =
         error instanceof ApiError
@@ -47,9 +39,7 @@ export function MainPage() {
 
   useEffect(() => {
     void refresh();
-    const id = window.setInterval(() => {
-      void refresh();
-    }, 15000);
+    const id = window.setInterval(() => void refresh(), 15000);
     return () => window.clearInterval(id);
   }, [user]);
 
@@ -82,16 +72,10 @@ export function MainPage() {
           sleeping: !activeCreature.state.sleeping,
         });
         setActionHint("sleep");
-        setMessage(
-          updated.state.sleeping
-            ? "크리처가 잠들었습니다."
-            : "크리처가 깨어났습니다."
-        );
+        setMessage(updated.state.sleeping ? "크리처가 잠들었습니다." : "크리처가 깨어났습니다.");
       }
 
-      setCreatures((prev) =>
-        prev.map((item) => (item.id === updated.id ? updated : item))
-      );
+      setCreatures((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     } catch (error) {
       const text =
         error instanceof ApiError
@@ -134,8 +118,8 @@ export function MainPage() {
           <span>{activeCreature.name}</span>
         </div>
         <div className="hud-item">
-          <strong>단계</strong>
-          <span>{activeCreature.stage}</span>
+          <strong>종</strong>
+          <span>{activeCreature.species}</span>
         </div>
         <div className="hud-item">
           <strong>승률</strong>
@@ -144,7 +128,11 @@ export function MainPage() {
       </div>
 
       <div className="panel main-panel">
-        <CreatureCanvas state={activeCreature.state} actionHint={actionHint} />
+        <CreatureCanvas
+          state={activeCreature.state}
+          species={activeCreature.species}
+          actionHint={actionHint}
+        />
 
         <div className="meter-grid">
           <Meter label="체력" value={health} />

@@ -256,6 +256,25 @@ button:disabled,
   gap: 0.8rem;
 }
 
+.preview-box {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 0.7rem;
+  background: #fff;
+}
+
+.preview-gif {
+  width: 140px;
+  height: 140px;
+  image-rendering: pixelated;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7f9f3;
+}
+
 label {
   display: grid;
   gap: 0.32rem;
