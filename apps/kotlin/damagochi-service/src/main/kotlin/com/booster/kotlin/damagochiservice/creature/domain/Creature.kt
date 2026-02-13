@@ -35,7 +35,7 @@ class Creature private constructor(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    var stage: CreatureStage = CreatureStage.EGG,
+    var stage: CreatureStage = CreatureStage.initial(),
 
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = false,
@@ -55,7 +55,15 @@ class Creature private constructor(
         this.isActive = false
     }
 
+    val level: Int get() = stage.level
+
+    fun ageDays(now: LocalDateTime): Long =
+        java.time.Duration.between(createdAt, now).toDays().coerceAtLeast(0)
+
     fun evolve(nextStage: CreatureStage) {
+        require(nextStage.level == this.stage.level + 1) {
+            "Can only evolve to the next stage. current=${this.stage}, requested=$nextStage"
+        }
         this.stage = nextStage
     }
 

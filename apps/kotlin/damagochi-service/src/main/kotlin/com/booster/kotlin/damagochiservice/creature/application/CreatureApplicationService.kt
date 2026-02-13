@@ -25,11 +25,13 @@ class CreatureApplicationService(
     private val clock: Clock,
     private val gameBalanceProperties: GameBalanceProperties
 ) {
-    fun findCreatures(userId: Long): List<CreatureSummary> =
-        creatureRepository.findAllByUserIdOrderByIdAsc(userId).map { creature ->
+    fun findCreatures(userId: Long): List<CreatureSummary> {
+        val now = now()
+        return creatureRepository.findAllByUserIdOrderByIdAsc(userId).map { creature ->
             val state = resolveAndPersistState(creature.id)
-            CreatureSummary.from(creature, state)
+            CreatureSummary.from(creature, state, now)
         }
+    }
 
     @Transactional
     fun createCreature(command: CreateCreatureCommand): CreatureSummary {
@@ -59,7 +61,7 @@ class CreatureApplicationService(
                 payloadJson = """{"name":"${command.name}","species":"${command.species}"}"""
             )
         )
-        return CreatureSummary.from(creature, creatureStateRepository.findById(creature.id).orElseThrow())
+        return CreatureSummary.from(creature, creatureStateRepository.findById(creature.id).orElseThrow(), now)
     }
 
     @Transactional
@@ -70,7 +72,7 @@ class CreatureApplicationService(
 
         if (target.isActive) {
             val state = resolveAndPersistState(target.id)
-            return CreatureSummary.from(target, state)
+            return CreatureSummary.from(target, state, now)
         }
 
         val latestSwitch = creatureRepository
@@ -100,7 +102,7 @@ class CreatureApplicationService(
         )
 
         val state = resolveAndPersistState(target.id)
-        return CreatureSummary.from(target, state)
+        return CreatureSummary.from(target, state, now)
     }
 
     @Transactional
@@ -122,7 +124,7 @@ class CreatureApplicationService(
             )
         )
 
-        return CreatureSummary.from(creature, state)
+        return CreatureSummary.from(creature, state, now)
     }
 
     @Transactional
@@ -158,7 +160,7 @@ class CreatureApplicationService(
             )
         )
 
-        return CreatureSummary.from(creature, state)
+        return CreatureSummary.from(creature, state, now)
     }
 
     @Transactional
@@ -186,7 +188,7 @@ class CreatureApplicationService(
             )
         )
 
-        return CreatureSummary.from(creature, state)
+        return CreatureSummary.from(creature, state, now)
     }
 
     private fun findUserCreature(userId: Long, creatureId: Long): Creature =
@@ -216,17 +218,21 @@ data class CreatureSummary(
     val name: String,
     val species: String,
     val stage: String,
+    val level: Int,
+    val ageDays: Long,
     val active: Boolean,
     val state: CreatureStateView
 ) {
     companion object {
-        fun from(creature: Creature, state: CreatureState): CreatureSummary =
+        fun from(creature: Creature, state: CreatureState, now: LocalDateTime): CreatureSummary =
             CreatureSummary(
                 id = creature.id,
                 userId = creature.userId,
                 name = creature.name,
                 species = creature.species,
                 stage = creature.stage.name,
+                level = creature.level,
+                ageDays = creature.ageDays(now),
                 active = creature.isActive,
                 state = CreatureStateView(
                     age = state.age,
