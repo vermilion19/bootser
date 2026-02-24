@@ -1,0 +1,28 @@
+networks:
+  booster-network:
+    name: booster-network
+    external: true
+
+services:
+
+  # ── D-Day Frontend (Vite + Nginx) ──────────────────────────
+  dday-web:
+    build:
+      context: ../../frontends/dday-web
+      dockerfile: Dockerfile
+    container_name: booster-dday-web
+    restart: unless-stopped
+    ports:
+      - "3303:80"
+    networks:
+      - booster-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
