@@ -33,12 +33,15 @@ class ChatService(
     private val listenerContainer: ReactiveRedisMessageListenerContainer,
     private val sessionRegistry: SessionRegistryService,
     @Value("\${chat.instance-id}") private val instanceId: String,
-    @Value("\${chat.graceful-shutdown-delay-ms:3000}") private val gracefulShutdownDelayMs: Long = 3000
+    @Value("\${chat.graceful-shutdown-delay-ms:3000}") private val gracefulShutdownDelayMs: Long = 3000,
+    @Value("\${chat.history.max-size:100}") private val historyMaxSize: Int = 100,
 ) {
     private val log = logger()
 
     companion object {
         fun roomChannel(roomId: String) = "chat.room.$roomId"
+        fun historyKey(roomId: String) = "chat.history.$roomId"
+        fun seqKey(roomId: String) = "chat.seq.$roomId"
     }
 
     // userId → SharedFlow (메시지 수신 스트림)
@@ -88,7 +91,10 @@ class ChatService(
     suspend fun handleMessage(message: ChatMessage) {
         when (message.type) {
             Type.PING -> return
-            Type.ENTER -> joinRoom(message.roomId, message.userId)
+            Type.ENTER -> {
+                joinRoom(message.roomId, message.userId)
+                if (message.lastSeq > 0) replayMissedMessages(message.roomId, message.userId, message.lastSeq)
+            }
             Type.LEAVE -> leaveRoom(message.roomId, message.userId)
             else -> {}
         }
@@ -189,12 +195,53 @@ class ChatService(
 
     private suspend fun publishToRedis(message: ChatMessage) {
         try {
-            val json = objectMapper.writeValueAsString(message)
-            redisTemplate.convertAndSend(roomChannel(message.roomId), json).awaitSingleOrNull()
+            val messageToPublish = if (message.type == Type.TALK) {
+                // TALK 메시지: seq 부여 후 방별 히스토리에 저장
+                val seq = redisTemplate.opsForValue()
+                    .increment(seqKey(message.roomId))
+                    .awaitSingleOrNull() ?: 0L
+                val withSeq = message.copy(seq = seq)
+                val json = objectMapper.writeValueAsString(withSeq)
+                redisTemplate.opsForList()
+                    .rightPush(historyKey(message.roomId), json)
+                    .awaitSingleOrNull()
+                redisTemplate.opsForList()
+                    .trim(historyKey(message.roomId), -historyMaxSize.toLong(), -1)
+                    .awaitSingleOrNull()
+                withSeq
+            } else {
+                message
+            }
+            val json = objectMapper.writeValueAsString(messageToPublish)
+            redisTemplate.convertAndSend(roomChannel(messageToPublish.roomId), json).awaitSingleOrNull()
             messagePublishedCounter.increment()
         } catch (e: Exception) {
             log.error("[REDIS] publish failed: {}", e.message)
         }
+    }
+
+    /**
+     * 재연결 복구: 히스토리에서 lastSeq 이후 메시지를 유저 Flow로 즉시 전송.
+     */
+    private suspend fun replayMissedMessages(roomId: String, userId: String, lastSeq: Long) {
+        val flow = localConnections[userId] ?: return
+        val jsonList = redisTemplate.opsForList()
+            .range(historyKey(roomId), 0, -1)
+            .collectList()
+            .awaitSingleOrNull()
+            ?: return
+
+        var replayed = 0
+        jsonList
+            .mapNotNull { json ->
+                runCatching { objectMapper.readValue(json, ChatMessage::class.java) }.getOrNull()
+            }
+            .filter { it.seq > lastSeq }
+            .forEach { msg ->
+                flow.tryEmit(msg)
+                replayed++
+            }
+        log.info("[REPLAY] roomId={}, userId={}, lastSeq={}, replayed={}개", roomId, userId, lastSeq, replayed)
     }
 
     /**

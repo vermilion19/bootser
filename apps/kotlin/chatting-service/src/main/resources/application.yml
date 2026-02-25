@@ -16,6 +16,8 @@ chat:
   rate-limit:
     max-tokens: 20        # 버스트 허용량: 최대 20개 연속 전송 가능
     refill-per-second: 10 # 지속 허용량: 초당 10개씩 토큰 보충
+  history:
+    max-size: 100         # 방별 메시지 히스토리 보관 개수 (TALK 메시지 기준)
 
 spring:
   application:

@@ -6,7 +6,9 @@ data class ChatMessage(
     val type: Type,
     val roomId: String,
     val userId: String,
-    val message: String = ""
+    val message: String = "",
+    val seq: Long = 0,      // 서버가 발행 시 부여하는 메시지 순번 (TALK 전용)
+    val lastSeq: Long = 0,  // 클라이언트가 ENTER 시 마지막으로 받은 seq (재연결 복구용)
 ) {
     enum class Type {
         ENTER, TALK, LEAVE, PING;

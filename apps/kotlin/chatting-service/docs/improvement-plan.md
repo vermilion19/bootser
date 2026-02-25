@@ -339,7 +339,7 @@ val rateLimiters = ConcurrentHashMap<String, RateLimiter>()
 | **Phase 2** | 방 기반 Redis 채널 라우팅 (동적 구독) | `ChatService.kt` + `RedisConfig.kt` | 중간 | ✅ 완료 |
 | **Phase 2** | Graceful Shutdown 개선 (Grace Period) | `ChatService.kt` + `application.yml` | 중간 | ✅ 완료 |
 | **Phase 3** | Rate Limiting per connection | `TokenBucketRateLimiter.kt` (신규) + `ChatWebSocketHandler.kt` | 중간 | ✅ 완료 |
-| **Phase 3** | 메시지 시퀀스 + 재연결 복구 | `ChatService.kt` + Redis | 높음 | 미구현 |
+| **Phase 3** | 메시지 시퀀스 + 재연결 복구 | `ChatMessage.kt` + `ChatService.kt` + Redis | 높음 | ✅ 완료 |
 
 ---
 
