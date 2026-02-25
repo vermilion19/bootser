@@ -1,7 +1,6 @@
 package com.booster.kotlin.chattingservice.domain
 
 import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
 
 data class ChatMessage(
     val type: Type,
