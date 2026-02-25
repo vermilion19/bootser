@@ -1,6 +1,7 @@
 package com.booster.kotlin.chattingservice.application
 
 import com.booster.kotlin.chattingservice.domain.ChatMessage
+import com.booster.kotlin.chattingservice.infrastructure.SessionRegistryService
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.async
@@ -17,6 +18,9 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
+import org.springframework.data.redis.listener.ChannelTopic
+import org.springframework.data.redis.listener.ReactiveRedisMessageListenerContainer
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 class ChatServiceTest {
@@ -30,7 +34,16 @@ class ChatServiceTest {
         `when`(redisTemplate.convertAndSend(any<String>(), any<String>()))
             .thenReturn(Mono.just(1L))
 
-        chatService = ChatService(redisTemplate, jacksonObjectMapper(), SimpleMeterRegistry())
+        val sessionRegistry = mock(SessionRegistryService::class.java)
+
+        val listenerContainer = mock(ReactiveRedisMessageListenerContainer::class.java)
+        `when`(listenerContainer.receive(any<ChannelTopic>())).thenReturn(Flux.empty())
+
+        chatService = ChatService(
+            redisTemplate, jacksonObjectMapper(), SimpleMeterRegistry(),
+            listenerContainer, sessionRegistry, "test-instance",
+            gracefulShutdownDelayMs = 0  // 테스트에서 Shutdown 대기 없음
+        )
     }
 
     @Nested

@@ -6,12 +6,20 @@ server:
     # 10만 동시 접속 시 non-blocking I/O로 소수 스레드로 처리
     connection-timeout: 5000
 
+chat:
+  # 서버 인스턴스 식별자 (환경변수 INSTANCE_ID로 주입, 기본값: instance-1)
+  # 멀티 인스턴스 환경에서 세션 레지스트리 라우팅에 사용
+  instance-id: ${INSTANCE_ID:instance-1}
+  # Graceful Shutdown 시 클라이언트 재연결 여유 시간 (ms)
+  graceful-shutdown-delay-ms: 3000
+
 spring:
   application:
     name: kotlin-chatting-service
 
   lifecycle:
-    timeout-per-shutdown-phase: 10s
+    # 배포 시 Thundering Herd 방지: 클라이언트가 다른 서버로 재연결할 시간 확보
+    timeout-per-shutdown-phase: 30s
 
   data:
     redis:

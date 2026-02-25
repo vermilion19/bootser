@@ -335,9 +335,9 @@ val rateLimiters = ConcurrentHashMap<String, RateLimiter>()
 | **Phase 1** | `runBlocking` → `flatMap+mono` 교체 | `ChatWebSocketHandler.kt` | 낮음 | ✅ 완료 |
 | **Phase 1** | 서버 → 클라이언트 Ping 구현 | `ChatWebSocketHandler.kt` | 낮음 | ✅ 완료 |
 | **Phase 1** | JWT 인증 (Handshake 검증) | `ChatWebSocketHandler.kt` + 신규 `JwtProvider.kt` | 낮음 | ⏸ TODO — 포트폴리오 환경 생략. 코드 내 TODO 주석 참고 |
-| **Phase 2** | 세션 레지스트리 (Redis: userId→instanceId) | `ChatService.kt` + `RedisConfig.kt` | 중간 | 미구현 |
-| **Phase 2** | 서버 ID 기반 Redis 채널 라우팅 | `ChatService.kt` + `RedisConfig.kt` | 중간 | 미구현 |
-| **Phase 2** | Graceful Shutdown 개선 (Grace Period) | `ChatService.kt` + `application.yml` | 중간 | 미구현 |
+| **Phase 2** | 세션 레지스트리 (Redis: userId→instanceId) | `SessionRegistryService.kt` (신규) + `ChatService.kt` | 중간 | ✅ 완료 |
+| **Phase 2** | 방 기반 Redis 채널 라우팅 (동적 구독) | `ChatService.kt` + `RedisConfig.kt` | 중간 | ✅ 완료 |
+| **Phase 2** | Graceful Shutdown 개선 (Grace Period) | `ChatService.kt` + `application.yml` | 중간 | ✅ 완료 |
 | **Phase 3** | Rate Limiting per connection | `ChatWebSocketHandler.kt` | 중간 | 미구현 |
 | **Phase 3** | 메시지 시퀀스 + 재연결 복구 | `ChatService.kt` + Redis | 높음 | 미구현 |
 
