@@ -12,6 +12,10 @@ chat:
   instance-id: ${INSTANCE_ID:instance-1}
   # Graceful Shutdown 시 클라이언트 재연결 여유 시간 (ms)
   graceful-shutdown-delay-ms: 3000
+  # 연결당 Rate Limiting (Token Bucket)
+  rate-limit:
+    max-tokens: 20        # 버스트 허용량: 최대 20개 연속 전송 가능
+    refill-per-second: 10 # 지속 허용량: 초당 10개씩 토큰 보충
 
 spring:
   application:

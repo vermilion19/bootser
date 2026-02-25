@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactor.asFlux
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketMessage
@@ -21,7 +22,9 @@ import java.time.Duration
 @Component
 class ChatWebSocketHandler(
     private val chatService: ChatService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    @Value("\${chat.rate-limit.max-tokens:20}") private val rateLimitMaxTokens: Int,
+    @Value("\${chat.rate-limit.refill-per-second:10}") private val rateLimitRefillPerSecond: Int,
 ) : WebSocketHandler {
 
     private val log = logger()
@@ -48,9 +51,19 @@ class ChatWebSocketHandler(
             // 3. Input: TEXT 프레임만 처리 (Pong 등 프로토콜 프레임 무시)
             //    flatMap + Dispatchers.Default: Netty 이벤트 루프 블로킹 없이 처리
             //    (기존 runBlocking 제거 → Netty 스레드 고갈 방지)
+            //    Rate Limiter: 연결당 토큰 버킷 적용 (버스트 허용 + 초과 시 드롭)
+            val rateLimiter = TokenBucketRateLimiter(rateLimitMaxTokens, rateLimitRefillPerSecond)
+
             val input = session.receive()
                 .filter { it.type == WebSocketMessage.Type.TEXT }
                 .map { it.payloadAsText }
+                .filter { payload ->
+                    if (rateLimiter.tryConsume()) true
+                    else {
+                        log.warn("[RATE_LIMIT] 메시지 드롭: userId={}, payload={}", userId, payload.take(50))
+                        false
+                    }
+                }
                 .flatMap { payload ->
                     mono(Dispatchers.Default) {
                         try {
