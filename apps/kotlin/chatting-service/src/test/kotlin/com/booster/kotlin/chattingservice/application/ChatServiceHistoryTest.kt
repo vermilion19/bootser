@@ -46,6 +46,8 @@ class ChatServiceHistoryTest {
 
         `when`(redisTemplate.convertAndSend(any<String>(), any<String>()))
             .thenReturn(Mono.just(1L))
+        `when`(redisTemplate.delete(any<String>(), any<String>()))
+            .thenReturn(Mono.just(2L))
         `when`(redisTemplate.opsForValue()).thenReturn(opsForValue)
         `when`(redisTemplate.opsForList()).thenReturn(opsForList)
         `when`(opsForValue.increment(any())).thenReturn(Mono.just(1L))
@@ -170,6 +172,81 @@ class ChatServiceHistoryTest {
 
             val message = withTimeout(2000) { received.await() }
             assertThat(message.message).isEqualTo("live message")
+        }
+    }
+
+    // --- C-1 수정 검증 ---
+
+    @Nested
+    inner class MembershipValidation {
+
+        @Test
+        fun `미입장 방으로 TALK를 보내면 히스토리에 저장되지 않는다`() = runTest {
+            chatService.register("user1")
+            // ENTER 없이 바로 TALK
+            chatService.handleMessage(ChatMessage.talk("room-1", "user1", "hello"))
+
+            verify(opsForList, never()).rightPush(any(), any())
+            verify(opsForValue, never()).increment(any())
+        }
+
+        @Test
+        fun `입장한 방으로 TALK를 보내면 히스토리에 저장된다`() = runTest {
+            chatService.register("user1")
+            chatService.handleMessage(ChatMessage.enter("room-1", "user1"))
+
+            chatService.handleMessage(ChatMessage.talk("room-1", "user1", "hello"))
+
+            verify(opsForList).rightPush(eq("chat.history.room-1"), any())
+        }
+    }
+
+    // --- H-1 수정 검증 ---
+
+    @Nested
+    inner class RoomKeyCleanup {
+
+        @Test
+        fun `마지막 유저가 방을 나가면 히스토리와 시퀀스 키가 삭제된다`() = runTest {
+            chatService.register("user1")
+            chatService.handleMessage(ChatMessage.enter("room-1", "user1"))
+
+            chatService.handleMessage(ChatMessage.leave("room-1", "user1"))
+
+            verify(redisTemplate).delete(any<String>(), any<String>())
+        }
+
+        @Test
+        fun `방에 유저가 남아있으면 키를 삭제하지 않는다`() = runTest {
+            chatService.register("user1")
+            chatService.register("user2")
+            chatService.handleMessage(ChatMessage.enter("room-1", "user1"))
+            chatService.handleMessage(ChatMessage.enter("room-1", "user2"))
+
+            // user1만 퇴장 → user2가 남아 있으므로 키 삭제 안 됨
+            chatService.handleMessage(ChatMessage.leave("room-1", "user1"))
+
+            verify(redisTemplate, never()).delete(any<String>(), any<String>())
+        }
+    }
+
+    // --- H-2 수정 검증 ---
+
+    @Nested
+    inner class SequenceFailure {
+
+        @Test
+        fun `Redis seq 조회 실패 시 TALK 메시지가 발행되지 않는다`() = runTest {
+            // Mono.empty() → awaitSingleOrNull()이 null 반환 → IllegalStateException throw
+            `when`(opsForValue.increment(any())).thenReturn(Mono.empty())
+
+            chatService.register("user1")
+            chatService.handleMessage(ChatMessage.enter("room-1", "user1"))
+            chatService.handleMessage(ChatMessage.talk("room-1", "user1", "hello"))
+
+            // ENTER 1회 발행 후, TALK는 seq 실패로 차단 → convertAndSend 1회만 호출
+            verify(redisTemplate, org.mockito.Mockito.times(1))
+                .convertAndSend(any<String>(), any<String>())
         }
     }
 }

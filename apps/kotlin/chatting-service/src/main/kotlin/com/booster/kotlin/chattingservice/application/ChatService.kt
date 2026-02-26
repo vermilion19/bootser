@@ -96,7 +96,12 @@ class ChatService(
                 if (message.lastSeq > 0) replayMissedMessages(message.roomId, message.userId, message.lastSeq)
             }
             Type.LEAVE -> leaveRoom(message.roomId, message.userId)
-            else -> {}
+            Type.TALK -> {
+                if (rooms[message.roomId]?.contains(message.userId) != true) {
+                    log.warn("[REJECT] 미입장 방 TALK 차단: userId={}, roomId={}", message.userId, message.roomId)
+                    return
+                }
+            }
         }
         publishToRedis(message)
     }
@@ -199,7 +204,8 @@ class ChatService(
                 // TALK 메시지: seq 부여 후 방별 히스토리에 저장
                 val seq = redisTemplate.opsForValue()
                     .increment(seqKey(message.roomId))
-                    .awaitSingleOrNull() ?: 0L
+                    .awaitSingleOrNull()
+                    ?: throw IllegalStateException("Redis seq increment returned null: roomId=${message.roomId}")
                 val withSeq = message.copy(seq = seq)
                 val json = objectMapper.writeValueAsString(withSeq)
                 redisTemplate.opsForList()
@@ -250,6 +256,7 @@ class ChatService(
      */
     private fun subscribeToRoomIfNeeded(roomId: String) {
         roomSubscriptions.computeIfAbsent(roomId) {
+            log.debug("[SUB] 방 구독 시작: roomId={}", roomId)
             listenerContainer.receive(ChannelTopic.of(roomChannel(roomId)))
                 .map { it.message }
                 .subscribe { json ->
@@ -263,14 +270,19 @@ class ChatService(
                     }
                 }
         }
-        log.debug("[SUB] 방 구독: roomId={}", roomId)
     }
 
     /**
-     * 방의 마지막 유저가 퇴장할 때 Redis 채널 구독 해제.
+     * 방의 마지막 유저가 퇴장할 때 Redis 채널 구독 해제 및 키 정리.
+     * - 히스토리 키(chat.history.{roomId}): 재연결 복구용 메시지 이력
+     * - 시퀀스 키(chat.seq.{roomId}): 메시지 순번 카운터
+     * 비활성 방 데이터가 Redis에 영구 누적되는 메모리 누수 방지.
      */
     private fun unsubscribeFromRoom(roomId: String) {
         roomSubscriptions.remove(roomId)?.dispose()
-        log.debug("[UNSUB] 방 구독 해제: roomId={}", roomId)
+        redisTemplate.delete(historyKey(roomId), seqKey(roomId))
+            .doOnError { e -> log.error("[REDIS] 방 키 삭제 실패: roomId={}, {}", roomId, e.message) }
+            .subscribe()
+        log.debug("[UNSUB] 방 구독 해제 및 키 삭제: roomId={}", roomId)
     }
 }

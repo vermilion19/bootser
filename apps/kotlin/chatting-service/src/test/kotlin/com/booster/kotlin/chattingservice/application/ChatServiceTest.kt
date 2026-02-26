@@ -15,6 +15,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
@@ -33,6 +36,8 @@ class ChatServiceTest {
         redisTemplate = mock(ReactiveStringRedisTemplate::class.java)
         `when`(redisTemplate.convertAndSend(any<String>(), any<String>()))
             .thenReturn(Mono.just(1L))
+        `when`(redisTemplate.delete(any<String>(), any<String>()))
+            .thenReturn(Mono.just(2L))
 
         val sessionRegistry = mock(SessionRegistryService::class.java)
 
@@ -231,6 +236,40 @@ class ChatServiceTest {
             chatService.cleanup()
 
             assertThat(chatService.getRoomCount()).isEqualTo(0)
+        }
+    }
+
+    @Nested
+    inner class MembershipValidation {
+
+        @Test
+        fun `ENTER 없이 TALK를 보내면 Redis에 발행하지 않는다`() = runTest {
+            chatService.register("user1")
+
+            chatService.handleMessage(ChatMessage.talk("room-1", "user1", "hello"))
+
+            verify(redisTemplate, never()).convertAndSend(any<String>(), any<String>())
+        }
+
+        @Test
+        fun `입장하지 않은 방으로 TALK를 보내면 차단된다`() = runTest {
+            chatService.register("user1")
+            chatService.handleMessage(ChatMessage.enter("room-1", "user1"))
+
+            // room-2에는 입장하지 않음
+            chatService.handleMessage(ChatMessage.talk("room-2", "user1", "hello"))
+
+            // ENTER 1회만 발행, room-2 TALK는 차단
+            verify(redisTemplate, times(1)).convertAndSend(any<String>(), any<String>())
+        }
+
+        @Test
+        fun `입장한 방으로 TALK를 보내면 차단되지 않는다`() = runTest {
+            chatService.register("user1")
+            chatService.handleMessage(ChatMessage.enter("room-1", "user1"))
+
+            // room-1에 입장한 상태에서 TALK → 멤버십 통과
+            assertThat(chatService.getRoomUserCount("room-1")).isEqualTo(1)
         }
     }
 }
