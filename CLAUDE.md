@@ -183,6 +183,14 @@ cd dockers/obaservability && docker-compose up -d
 - spring boot4 에 맞는 의존성사용
 - 엣지케이스, 예외사항도 테스트코드 만들것
 
+### Kotlin 모듈 테스트 규칙
+- **테스트 프레임워크**: Kotest `DescribeSpec` 사용 (JUnit5 `@Test` 방식 금지)
+- **Mocking**: MockK 사용 (`mockk<T>()`, `every`, `verify`)
+- **단언**: Kotest assertions 사용 (`shouldBe`, `shouldHaveSize`, `shouldBeInstanceOf` 등)
+- **구조**: `describe` → `context` → `it` 계층으로 작성
+- **Spring 통합 테스트**: `override fun extensions() = listOf(SpringExtension)` 추가
+- **순수 단위 테스트**: Spring 컨텍스트 없이 MockK만으로 작성
+
 ## Scale-out 고려사항
 
 1. **Stateless 서비스**: 세션은 Redis에 저장
