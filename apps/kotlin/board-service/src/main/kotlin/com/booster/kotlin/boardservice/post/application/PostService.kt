@@ -1,9 +1,10 @@
 package com.booster.kotlin.boardservice.post.application
 
 import com.booster.kotlin.boardservice.post.domain.Post
+import com.booster.kotlin.boardservice.post.domain.PostDeleteResult
 import com.booster.kotlin.boardservice.post.domain.PostRepository
+import com.booster.kotlin.boardservice.post.domain.PostResult
 import com.booster.kotlin.boardservice.post.domain.PostSummary
-import com.booster.kotlin.boardservice.post.exception.PostNotFoundException
 import com.booster.kotlin.boardservice.post.infrastructure.PostJdbcRepository
 import com.booster.kotlin.boardservice.post.infrastructure.PostRow
 import org.springframework.data.domain.Page
@@ -23,8 +24,10 @@ class PostService(
     }
 
     @Transactional(readOnly = true)
-    fun getById(id: Long): Post {
-        return postRepository.findById(id).orElseThrow { PostNotFoundException(id) }
+    fun getById(id: Long): PostResult {
+        val post = postRepository.findById(id).orElse(null)
+            ?: return PostResult.NotFound(id)
+        return PostResult.Success(post)
     }
 
     @Transactional(readOnly = true)
@@ -32,14 +35,17 @@ class PostService(
         return postRepository.findAll(pageable)
     }
 
-    fun update(id: Long, title: String, content: String): Post {
-        val post = getById(id)
+    fun update(id: Long, title: String, content: String): PostResult {
+        val post = postRepository.findById(id).orElse(null)
+            ?: return PostResult.NotFound(id)
         post.update(title, content)
-        return post
+        return PostResult.Success(post)
     }
 
-    fun delete(id: Long) {
+    fun delete(id: Long): PostDeleteResult {
+        if (!postRepository.existsById(id)) return PostDeleteResult.NotFound(id)
         postRepository.deleteById(id)
+        return PostDeleteResult.Deleted
     }
 
     // --- JPA Native Query ---

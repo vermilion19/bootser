@@ -1,13 +1,14 @@
 package com.booster.kotlin.boardservice.post.application
 
 import com.booster.kotlin.boardservice.post.domain.Post
+import com.booster.kotlin.boardservice.post.domain.PostDeleteResult
 import com.booster.kotlin.boardservice.post.domain.PostRepository
-import com.booster.kotlin.boardservice.post.exception.PostNotFoundException
+import com.booster.kotlin.boardservice.post.domain.PostResult
 import com.booster.kotlin.boardservice.post.infrastructure.PostJdbcRepository
 import com.booster.kotlin.boardservice.post.infrastructure.PostRow
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -40,70 +41,94 @@ class PostServiceTest : DescribeSpec({
     }
 
     // =========================================================================
-    // getById
+    // getById — PostResult 반환
     // =========================================================================
     describe("getById") {
         context("존재하는 id를 요청하면") {
-            it("Post를 반환한다") {
+            it("PostResult.Success에 Post를 담아 반환한다") {
                 val post = Post.create("제목", "내용", "홍길동")
                 every { postRepository.findById(1L) } returns Optional.of(post)
 
                 val result = postService.getById(1L)
 
-                result shouldBe post
-                verify(exactly = 1) { postRepository.findById(1L) }
+                // shouldBeInstanceOf로 타입 검증 + smart cast
+                result.shouldBeInstanceOf<PostResult.Success>()
+                result.post shouldBe post
             }
         }
 
         context("존재하지 않는 id를 요청하면") {
-            it("PostNotFoundException을 던진다") {
+            it("PostResult.NotFound에 id를 담아 반환한다") {
                 every { postRepository.findById(999L) } returns Optional.empty()
 
-                shouldThrow<PostNotFoundException> { postService.getById(999L) }
+                val result = postService.getById(999L)
+
+                result.shouldBeInstanceOf<PostResult.NotFound>()
+                result.id shouldBe 999L
             }
         }
     }
 
     // =========================================================================
-    // update
+    // update — PostResult 반환
     // =========================================================================
     describe("update") {
         context("존재하는 id를 요청하면") {
-            it("title과 content가 변경된 Post를 반환한다") {
+            it("title, content가 변경된 Post를 PostResult.Success에 담아 반환한다") {
                 val post = Post.create("원래 제목", "원래 내용", "홍길동")
                 every { postRepository.findById(1L) } returns Optional.of(post)
 
                 val result = postService.update(1L, "새 제목", "새 내용")
 
-                result.title shouldBe "새 제목"
-                result.content shouldBe "새 내용"
+                result.shouldBeInstanceOf<PostResult.Success>()
+                result.post.title shouldBe "새 제목"
+                result.post.content shouldBe "새 내용"
             }
         }
 
         context("존재하지 않는 id를 요청하면") {
-            it("PostNotFoundException을 던진다") {
+            it("PostResult.NotFound에 id를 담아 반환한다") {
                 every { postRepository.findById(999L) } returns Optional.empty()
 
-                shouldThrow<PostNotFoundException> { postService.update(999L, "제목", "내용") }
+                val result = postService.update(999L, "제목", "내용")
+
+                result.shouldBeInstanceOf<PostResult.NotFound>()
+                result.id shouldBe 999L
             }
         }
     }
 
     // =========================================================================
-    // delete
+    // delete — PostDeleteResult 반환
     // =========================================================================
     describe("delete") {
-        it("postRepository.deleteById를 호출한다") {
-            every { postRepository.deleteById(1L) } returns Unit
+        context("존재하는 id를 요청하면") {
+            it("삭제 후 PostDeleteResult.Deleted를 반환한다") {
+                every { postRepository.existsById(1L) } returns true
+                every { postRepository.deleteById(1L) } returns Unit
 
-            postService.delete(1L)
+                val result = postService.delete(1L)
 
-            verify(exactly = 1) { postRepository.deleteById(1L) }
+                result.shouldBeInstanceOf<PostDeleteResult.Deleted>()
+                verify(exactly = 1) { postRepository.deleteById(1L) }
+            }
+        }
+
+        context("존재하지 않는 id를 요청하면") {
+            it("PostDeleteResult.NotFound에 id를 담아 반환하고 deleteById는 호출하지 않는다") {
+                every { postRepository.existsById(999L) } returns false
+
+                val result = postService.delete(999L)
+
+                result.shouldBeInstanceOf<PostDeleteResult.NotFound>()
+                result.id shouldBe 999L
+                verify(exactly = 0) { postRepository.deleteById(any()) }
+            }
         }
     }
 
     // =========================================================================
-    // findByAuthor (JPA Native Query)
+    // findByAuthor
     // =========================================================================
     describe("findByAuthor") {
         it("author로 게시글 목록을 반환한다") {
@@ -121,7 +146,7 @@ class PostServiceTest : DescribeSpec({
     }
 
     // =========================================================================
-    // searchByKeyword (JPA Native Query + Pageable)
+    // searchByKeyword
     // =========================================================================
     describe("searchByKeyword") {
         it("키워드로 게시글 페이지를 반환한다") {
