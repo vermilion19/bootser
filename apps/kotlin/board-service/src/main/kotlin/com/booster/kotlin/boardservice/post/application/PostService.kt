@@ -23,14 +23,12 @@ class PostService(
         return postRepository.save(Post.create(title, content, author))
     }
 
-    @Transactional(readOnly = true)
     fun getById(id: Long): PostResult {
         val post = postRepository.findById(id).orElse(null)
             ?: return PostResult.NotFound(id)
         return PostResult.Success(post)
     }
 
-    @Transactional(readOnly = true)
     fun getAll(pageable: Pageable): Page<Post> {
         return postRepository.findAll(pageable)
     }
@@ -50,22 +48,18 @@ class PostService(
 
     // --- JPA Native Query ---
 
-    @Transactional(readOnly = true)
     fun findByAuthor(author: String): List<Post> {
         return postRepository.findAllByAuthor(author)
     }
 
-    @Transactional(readOnly = true)
     fun searchByKeyword(keyword: String, pageable: Pageable): Page<Post> {
         return postRepository.searchByKeyword(keyword, pageable)
     }
 
-    @Transactional(readOnly = true)
     fun findSummaryByAuthor(author: String): List<PostSummary> {
         return postRepository.findSummaryByAuthor(author)
     }
 
-    @Transactional(readOnly = true)
     fun countByAuthor(author: String): Long {
         return postRepository.countByAuthor(author)
     }
@@ -76,17 +70,14 @@ class PostService(
 
     // --- JdbcTemplate ---
 
-    @Transactional(readOnly = true)
     fun findRecentPosts(limit: Int): List<PostRow> {
         return postJdbcRepository.findTopN(limit)
     }
 
-    @Transactional(readOnly = true)
     fun searchByKeywordWithJdbc(keyword: String): List<PostRow> {
         return postJdbcRepository.searchByKeyword(keyword)
     }
 
-    @Transactional(readOnly = true)
     fun countAllWithJdbc(): Long {
         return postJdbcRepository.countAll()
     }
