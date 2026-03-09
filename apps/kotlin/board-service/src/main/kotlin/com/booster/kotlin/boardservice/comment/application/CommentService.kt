@@ -6,6 +6,9 @@ import com.booster.kotlin.boardservice.comment.domain.Comment
 import com.booster.kotlin.boardservice.comment.domain.CommentDeleteResult
 import com.booster.kotlin.boardservice.comment.domain.CommentRepository
 import com.booster.kotlin.boardservice.comment.domain.CommentResult
+import com.booster.kotlin.boardservice.config.CacheNames
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -17,6 +20,10 @@ class CommentService(
     private val commentRepository: CommentRepository,
 ) {
 
+    @CacheEvict(
+        cacheNames = [CacheNames.COMMENTS],
+        key = "#command.postId + '_0'",
+    )
     fun create(command: CreateCommentCommand): CommentResult {
         if (command.parentId != null) {
             val parent = commentRepository.findById(command.parentId).orElse(null)
@@ -29,6 +36,10 @@ class CommentService(
         return CommentResult.Success(commentRepository.save(comment))
     }
 
+    @Cacheable(
+        cacheNames = [CacheNames.COMMENTS],
+        key = "#postId + '_' + #pageable.pageNumber"
+        )
     @Transactional(readOnly = true)
     fun findAllByPostId(postId: Long, pageable: Pageable): Page<Comment> {
         return commentRepository.findAllByPostIdAndParentIdIsNull(postId, pageable)
