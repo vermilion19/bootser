@@ -13,6 +13,7 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -27,15 +28,18 @@ class CommentService(
         key = "#command.postId + '_0'",
     )
     fun create(command: CreateCommentCommand): CommentResult {
-        if (command.parentId != null) {
-            val parent = commentRepository.findById(command.parentId).orElse(null)
-                ?: return CommentResult.NotFound(command.parentId)
-            if (parent.isReply()) return CommentResult.InvalidParent(command.parentId)
-            val reply = Comment.createReply(command.postId, command.content, command.author, command.parentId)
-            return CommentResult.Success(commentRepository.save(reply))
+        val parentId: Long? = command.parentId
+        if (parentId != null) {
+            val parent = commentRepository.findByIdOrNull(parentId)
+                ?: return CommentResult.NotFound(parentId)
+            if (parent.isReply()) return CommentResult.InvalidParent(parentId)
+            return Comment.createReply(command.postId, command.content, command.author, parentId)
+                .let { commentRepository.save(it) }
+                .let { CommentResult.Success(it) }
         }
-        val comment = Comment.create(command.postId, command.content, command.author)
-        return CommentResult.Success(commentRepository.save(comment))
+        return Comment.create(command.postId, command.content, command.author)
+            .let { commentRepository.save(it) }
+            .let { CommentResult.Success(it) }
     }
 
     @Cacheable(
@@ -53,7 +57,7 @@ class CommentService(
     }
 
     fun update(command: UpdateCommentCommand): CommentResult {
-        val comment = commentRepository.findById(command.commentId).orElse(null)
+        val comment = commentRepository.findByIdOrNull(command.commentId)
             ?: return CommentResult.NotFound(command.commentId)
         if (comment.author != command.author) return CommentResult.Forbidden(command.commentId)
         comment.update(command.content)
@@ -61,11 +65,12 @@ class CommentService(
     }
 
     fun delete(commentId: Long, author: String): CommentDeleteResult {
-        val comment = commentRepository.findById(commentId).orElse(null)
+        val comment = commentRepository.findByIdOrNull(commentId)
             ?: return CommentDeleteResult.NotFound(commentId)
         if (comment.author != author) return CommentDeleteResult.Forbidden(commentId)
-        commentRepository.delete(comment)
-        return CommentDeleteResult.Deleted
+        return comment
+            .also { commentRepository.delete(it) }
+            .let { CommentDeleteResult.Deleted }
     }
 
     fun findByPostIdWithCursor(postId: Long, lastId: Long, size: Int): CursorResult {
