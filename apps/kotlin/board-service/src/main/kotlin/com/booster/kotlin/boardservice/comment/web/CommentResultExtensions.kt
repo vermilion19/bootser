@@ -10,6 +10,7 @@ fun CommentResult.toResponseEntity(): ResponseEntity<CommentResponse> = when (th
     is CommentResult.Success -> ResponseEntity.ok(CommentResponse.from(comment))
     is CommentResult.NotFound -> ResponseEntity.notFound().build()
     is CommentResult.Forbidden -> ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+    is CommentResult.InvalidParent -> ResponseEntity.badRequest().build()
 }
 
 fun CommentDeleteResult.toResponseEntity(): ResponseEntity<Unit> = when (this) {

@@ -5,7 +5,9 @@ import com.booster.kotlin.boardservice.comment.web.dto.request.CreateCommentRequ
 import com.booster.kotlin.boardservice.comment.web.dto.request.UpdateCommentRequest
 import com.booster.kotlin.boardservice.comment.web.dto.response.CommentResponse
 import com.booster.kotlin.boardservice.comment.web.toResponseEntity
-import org.springframework.http.HttpStatus
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -27,15 +29,25 @@ class CommentController(
     fun create(
         @PathVariable postId: Long,
         @RequestBody request: CreateCommentRequest,
-    ): ResponseEntity<CommentResponse> {
-        val comment = commentService.create(request.toCommand())
-        return ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.from(comment))
-    }
+    ): ResponseEntity<CommentResponse> =
+        commentService.create(request.toCommand()).toResponseEntity()
 
     @GetMapping
-    fun getAll(@PathVariable postId: Long): ResponseEntity<List<CommentResponse>> {
-        val comments = commentService.findAllByPostId(postId)
-        return ResponseEntity.ok(comments.map { CommentResponse.from(it) })
+    fun getAll(
+        @PathVariable postId: Long,
+        @PageableDefault(size = 10) pageable: Pageable,
+    ): ResponseEntity<Page<CommentResponse>> {
+        val page = commentService.findAllByPostId(postId, pageable)
+        return ResponseEntity.ok(page.map { CommentResponse.from(it) })
+    }
+
+    @GetMapping("/{commentId}/replies")
+    fun getReplies(
+        @PathVariable postId: Long,
+        @PathVariable commentId: Long,
+    ): ResponseEntity<List<CommentResponse>> {
+        val replies = commentService.findReplies(commentId)
+        return ResponseEntity.ok(replies.map { CommentResponse.from(it) })
     }
 
     @PutMapping("/{commentId}")

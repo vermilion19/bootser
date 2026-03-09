@@ -6,6 +6,7 @@ data class CreateCommentRequest(
     val postId: Long,
     val content: String,
     val author: String,
-){
-    fun toCommand() = CreateCommentCommand(postId, content, author)
+    val parentId: Long? = null,
+) {
+    fun toCommand() = CreateCommentCommand(postId, content, author, parentId)
 }

@@ -13,6 +13,8 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import java.util.Optional
 
 class CommentServiceTest : DescribeSpec({
@@ -23,42 +25,115 @@ class CommentServiceTest : DescribeSpec({
     afterEach { clearAllMocks() }
 
     // =========================================================================
-    // create
+    // create — 일반 댓글
     // =========================================================================
     describe("create") {
-        it("댓글을 저장하고 반환한다") {
-            val command = CreateCommentCommand(postId = 1L, content = "댓글 내용", author = "홍길동")
-            val comment = Comment.create(1L, "댓글 내용", "홍길동")
-            every { commentRepository.save(any()) } returns comment
+        context("parentId가 없으면") {
+            it("일반 댓글을 저장하고 CommentResult.Success를 반환한다") {
+                val command = CreateCommentCommand(postId = 1L, content = "댓글 내용", author = "홍길동")
+                val comment = Comment.create(1L, "댓글 내용", "홍길동")
+                every { commentRepository.save(any()) } returns comment
 
-            val result = commentService.create(command)
+                val result = commentService.create(command)
 
-            result shouldBe comment
-            verify(exactly = 1) { commentRepository.save(any()) }
+                result.shouldBeInstanceOf<CommentResult.Success>()
+                verify(exactly = 1) { commentRepository.save(any()) }
+            }
+        }
+
+        context("parentId가 있고 부모 댓글이 존재하면") {
+            it("대댓글을 저장하고 CommentResult.Success를 반환한다") {
+                val parent = Comment.create(1L, "부모 댓글", "홍길동")
+                val reply = Comment.createReply(1L, "대댓글 내용", "김철수", 1L)
+                val command = CreateCommentCommand(postId = 1L, content = "대댓글 내용", author = "김철수", parentId = 1L)
+                every { commentRepository.findById(1L) } returns Optional.of(parent)
+                every { commentRepository.save(any()) } returns reply
+
+                val result = commentService.create(command)
+
+                result.shouldBeInstanceOf<CommentResult.Success>()
+                result.comment.parentId shouldBe 1L
+            }
+        }
+
+        context("parentId가 있지만 부모 댓글이 존재하지 않으면") {
+            it("CommentResult.NotFound를 반환한다") {
+                val command = CreateCommentCommand(postId = 1L, content = "대댓글", author = "김철수", parentId = 999L)
+                every { commentRepository.findById(999L) } returns Optional.empty()
+
+                val result = commentService.create(command)
+
+                result.shouldBeInstanceOf<CommentResult.NotFound>()
+                result.id shouldBe 999L
+            }
+        }
+
+        context("parentId가 이미 대댓글인 댓글을 가리키면") {
+            it("CommentResult.InvalidParent를 반환한다") {
+                val reply = Comment.createReply(1L, "대댓글", "홍길동", 1L)
+                val command = CreateCommentCommand(postId = 1L, content = "대대댓글", author = "김철수", parentId = 2L)
+                every { commentRepository.findById(2L) } returns Optional.of(reply)
+
+                val result = commentService.create(command)
+
+                result.shouldBeInstanceOf<CommentResult.InvalidParent>()
+                result.id shouldBe 2L
+            }
         }
     }
 
     // =========================================================================
-    // findAllByPostId
+    // findAllByPostId — 페이징
     // =========================================================================
     describe("findAllByPostId") {
-        it("postId에 해당하는 댓글 목록을 반환한다") {
+        it("최상위 댓글 목록을 페이지로 반환한다") {
+            val pageable = PageRequest.of(0, 10)
             val comments = listOf(
                 Comment.create(1L, "댓글1", "홍길동"),
                 Comment.create(1L, "댓글2", "김철수"),
             )
-            every { commentRepository.findAllByPostId(1L) } returns comments
+            val page = PageImpl(comments, pageable, 2)
+            every { commentRepository.findAllByPostIdAndParentIdIsNull(1L, pageable) } returns page
 
-            val result = commentService.findAllByPostId(1L)
+            val result = commentService.findAllByPostId(1L, pageable)
 
-            result.size shouldBe 2
-            verify(exactly = 1) { commentRepository.findAllByPostId(1L) }
+            result.totalElements shouldBe 2
+            result.content.size shouldBe 2
+            verify(exactly = 1) { commentRepository.findAllByPostIdAndParentIdIsNull(1L, pageable) }
         }
 
-        it("댓글이 없으면 빈 리스트를 반환한다") {
-            every { commentRepository.findAllByPostId(999L) } returns emptyList()
+        it("댓글이 없으면 빈 페이지를 반환한다") {
+            val pageable = PageRequest.of(0, 10)
+            val page = PageImpl(emptyList<Comment>(), pageable, 0)
+            every { commentRepository.findAllByPostIdAndParentIdIsNull(999L, pageable) } returns page
 
-            val result = commentService.findAllByPostId(999L)
+            val result = commentService.findAllByPostId(999L, pageable)
+
+            result.totalElements shouldBe 0
+        }
+    }
+
+    // =========================================================================
+    // findReplies
+    // =========================================================================
+    describe("findReplies") {
+        it("해당 댓글의 대댓글 목록을 반환한다") {
+            val replies = listOf(
+                Comment.createReply(1L, "대댓글1", "홍길동", 1L),
+                Comment.createReply(1L, "대댓글2", "김철수", 1L),
+            )
+            every { commentRepository.findAllByParentId(1L) } returns replies
+
+            val result = commentService.findReplies(1L)
+
+            result.size shouldBe 2
+            result.all { it.parentId == 1L } shouldBe true
+        }
+
+        it("대댓글이 없으면 빈 리스트를 반환한다") {
+            every { commentRepository.findAllByParentId(999L) } returns emptyList()
+
+            val result = commentService.findReplies(999L)
 
             result.size shouldBe 0
         }

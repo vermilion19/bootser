@@ -4,6 +4,7 @@ sealed class CommentResult {
     data class Success(val comment: Comment) : CommentResult()
     data class NotFound(val id: Long) : CommentResult()
     data class Forbidden(val id: Long) : CommentResult()
+    data class InvalidParent(val id: Long) : CommentResult()
 }
 
 sealed class CommentDeleteResult {

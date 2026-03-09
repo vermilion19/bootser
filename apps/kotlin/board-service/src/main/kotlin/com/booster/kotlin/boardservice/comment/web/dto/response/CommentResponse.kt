@@ -7,6 +7,7 @@ data class CommentResponse(
     val postId: Long,
     val content: String,
     val author: String,
+    val parentId: Long?,
 ) {
     companion object {
         fun from(comment: Comment) = CommentResponse(
@@ -14,6 +15,7 @@ data class CommentResponse(
             postId = comment.postId,
             content = comment.content,
             author = comment.author,
+            parentId = comment.parentId,
         )
     }
 }
