@@ -4,6 +4,7 @@ import com.booster.kotlin.boardservice.comment.application.CommentService
 import com.booster.kotlin.boardservice.comment.web.dto.request.CreateCommentRequest
 import com.booster.kotlin.boardservice.comment.web.dto.request.UpdateCommentRequest
 import com.booster.kotlin.boardservice.comment.web.dto.response.CommentResponse
+import com.booster.kotlin.boardservice.comment.web.dto.response.CursorResponse
 import com.booster.kotlin.boardservice.comment.web.toResponseEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -65,4 +66,20 @@ class CommentController(
         @RequestParam author: String,
     ): ResponseEntity<Unit> =
         commentService.delete(commentId, author).toResponseEntity()
+
+    @GetMapping("/v2")
+    fun getAllV2(
+        @PathVariable postId: Long,
+        @RequestParam(defaultValue = "${Long.MAX_VALUE}") lastId: Long,
+        @RequestParam(defaultValue = "10") size: Int,
+    ): ResponseEntity<CursorResponse<CommentResponse>> {
+        val result = commentService.findByPostIdWithCursor(postId, lastId, size)
+        return ResponseEntity.ok(
+            CursorResponse(
+                content = result.comments.map { CommentResponse.from(it)},
+                nextCursor = result.nextCursor,
+                hasNext = result.hasNext,
+            )
+        )
+    }
 }

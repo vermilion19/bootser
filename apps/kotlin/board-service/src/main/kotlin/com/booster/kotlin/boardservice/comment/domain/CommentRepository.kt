@@ -14,5 +14,12 @@ interface CommentRepository : JpaRepository<Comment, Long> {
     @Modifying
     @Query("DELETE FROM Comment c WHERE c.postId = :postId")
     fun deleteAllByPostId(@Param("postId") postId: Long): Int
+
+    fun findByPostIdAndParentIdIsNullAndIdLessThanOrderByIdDesc(
+        postId: Long,
+        lastId: Long,
+        pageable: Pageable,
+    ): List<Comment>
+
 }
 

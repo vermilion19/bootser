@@ -1,6 +1,7 @@
 package com.booster.kotlin.boardservice.comment.application
 
 import com.booster.kotlin.boardservice.comment.application.dto.CreateCommentCommand
+import com.booster.kotlin.boardservice.comment.application.dto.CursorResult
 import com.booster.kotlin.boardservice.comment.application.dto.UpdateCommentCommand
 import com.booster.kotlin.boardservice.comment.domain.Comment
 import com.booster.kotlin.boardservice.comment.domain.CommentDeleteResult
@@ -10,6 +11,7 @@ import com.booster.kotlin.boardservice.config.CacheNames
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -64,5 +66,14 @@ class CommentService(
         if (comment.author != author) return CommentDeleteResult.Forbidden(commentId)
         commentRepository.delete(comment)
         return CommentDeleteResult.Deleted
+    }
+
+    fun findByPostIdWithCursor(postId: Long, lastId: Long, size: Int): CursorResult {
+        val pageable = PageRequest.of(0,size)
+        val comments = commentRepository
+            .findByPostIdAndParentIdIsNullAndIdLessThanOrderByIdDesc(postId, lastId,pageable)
+
+        val nextCursor = if(comments.size == size) comments.last().id else null
+        return CursorResult(comments,nextCursor,nextCursor != null)
     }
 }
