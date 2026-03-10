@@ -76,4 +76,11 @@ interface PostRepository : JpaRepository<Post, Long> {
         @Param("oldAuthor") oldAuthor: String,
         @Param("newAuthor") newAuthor: String
     ): Int
+
+
+    @Query("SELECT p FROM Post p JOIN FETCH p.postTags pt JOIN FETCH pt.tag where p.id = :id")
+    fun findByIdWithTags(@Param("id") id: Long): Post?
+
+    @Query("SELECT DISTINCT p FROM Post p LEFT JOIN FETCH p.postTags pt LEFT JOIN FETCH pt.tag")
+    fun findAllWithTags(): List<Post>
 }
