@@ -51,12 +51,16 @@
 
 ### 1-2. 인증/회원 (auth / user 도메인)
 
-- [ ] `User` 엔티티 + `UserAddress` 엔티티
+- [x] `User` 엔티티 + `UserAddress` 엔티티
+- [x] `UserRepository` + `UserAddressRepository`
+- [x] `UserException`, `UserService`, `UserController`
+- [x] `SignupRequest`, `UpdateProfileRequest`, `UserResponse`
+- [x] `SecurityConfig` (PasswordEncoder Bean, FilterChain 기본 설정)
 - [ ] `Role` / `UserRole` — RBAC (USER, ADMIN 역할 분리)
 - [ ] 회원가입 `POST /api/v1/auth/signup`
 - [ ] 로그인 `POST /api/v1/auth/login` → Access Token + Refresh Token 발급
 - [ ] 토큰 재발급 `POST /api/v1/auth/refresh`
-- [ ] Spring Security 필터 체인 구성
+- [ ] JWT 필터 구성 (JwtProvider, JwtAuthenticationFilter)
 - [ ] 내 프로필 조회/수정 `GET /api/v1/users/me`, `PATCH /api/v1/users/me`
 - [ ] 배송지 관리 `GET|POST /api/v1/users/me/addresses`
 
