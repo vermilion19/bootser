@@ -44,10 +44,10 @@
 
 ### 1-1. 공통 응답/예외 구조
 
-- [ ] `ApiResponse<T>` 공통 응답 래퍼
-- [ ] `ErrorCode` enum (도메인별 에러 코드 정의)
-- [ ] `GlobalExceptionHandler` (`@RestControllerAdvice`)
-- [ ] `BaseEntity` (createdAt, updatedAt, softDelete)
+- [x] `ApiResponse<T>` 공통 응답 래퍼
+- [x] `ErrorCode` enum (도메인별 에러 코드 정의)
+- [x] `GlobalExceptionHandler` (`@RestControllerAdvice`)
+- [x] `BaseEntity` (createdAt, updatedAt, softDelete)
 
 ### 1-2. 인증/회원 (auth / user 도메인)
 
@@ -219,7 +219,7 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 
 | Phase | 내용 | 상태 |
 |-------|------|------|
-| Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | 🔲 대기 |
+| Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | 🔄 진행 중 |
 | Phase 2 | 카탈로그 + 재고 | 🔲 대기 |
 | Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | 🔲 대기 |
 | Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔲 대기 |
