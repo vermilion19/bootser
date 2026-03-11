@@ -419,10 +419,10 @@ MVP 이후 단계적으로 추가한다.
 ## 11. 기술 스택 제안
 
 ### 11.1 백엔드
-- Language: Java 21 또는 Kotlin
+- Language: Kotlin
 - Framework: Spring Boot
 - Build: Gradle
-- ORM: Spring Data JPA + QueryDSL
+- ORM: Spring Data JPA + JOOQ(현재 숙련도 낮음)
 
 ### 11.2 데이터
 - RDBMS: PostgreSQL
@@ -442,7 +442,7 @@ MVP 이후 단계적으로 추가한다.
 - ELK / Loki (확장)
 
 ### 11.5 테스트
-- JUnit5
+- kotest
 - MockK 또는 Mockito
 - Testcontainers
 - RestAssured 또는 MockMvc
