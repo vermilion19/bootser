@@ -18,4 +18,13 @@ enum class ErrorCode(
     // Auth
     INVALID_TOKEN(401, "유효하지 않은 토큰입니다"),
     EXPIRED_TOKEN(401, "만료된 토큰입니다"),
+
+    // Catalog
+    CATEGORY_NOT_FOUND(404, "카테고리를 찾을 수 없습니다"),
+    PRODUCT_NOT_FOUND(404, "상품을 찾을 수 없습니다"),
+    PRODUCT_VARIANT_NOT_FOUND(404, "상품 옵션을 찾을 수 없습니다"),
+
+    // Inventory
+    INVENTORY_NOT_FOUND(404, "재고 정보를 찾을 수 없습니다"),
+
 }

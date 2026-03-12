@@ -74,32 +74,32 @@
 
 ### 2-1. 카테고리 (catalog 도메인)
 
-- [ ] `Category` 엔티티 (parent_id 기반 계층 구조)
-- [ ] 카테고리 목록 조회 `GET /api/v1/categories`
-- [ ] 관리자 카테고리 등록/수정 `POST|PATCH /admin/v1/categories`
+- [x] `Category` 엔티티 (parent_id 기반 계층 구조)
+- [x] 카테고리 목록 조회 `GET /api/v1/categories`
+- [x] 관리자 카테고리 등록/수정 `POST|PATCH /admin/v1/categories`
 
 ### 2-2. 상품 / 옵션 / Variant (catalog 도메인)
 
-- [ ] `Product` 엔티티 (판매 상태: ON_SALE, SOLD_OUT, HIDDEN)
-- [ ] `ProductOptionGroup` + `ProductOptionValue` 엔티티
-- [ ] `ProductVariant` 엔티티 (SKU 단위)
-- [ ] `ProductVariantOptionValue` (Variant ↔ OptionValue 매핑)
-- [ ] `ProductImage` 엔티티
-- [ ] 상품 목록 조회 `GET /api/v1/products` (필터링, 페이지네이션)
-- [ ] 상품 상세 조회 `GET /api/v1/products/{productId}`
-- [ ] 관리자 상품 등록/수정 `POST|PATCH /admin/v1/products`
-- [ ] 관리자 옵션 관리 `POST /admin/v1/products/{productId}/options`
+- [x] `Product` 엔티티 (판매 상태: ON_SALE, SOLD_OUT, HIDDEN)
+- [x] `ProductOptionGroup` + `ProductOptionValue` 엔티티
+- [x] `ProductVariant` 엔티티 (SKU 단위)
+- [x] `ProductVariantOptionValue` (Variant ↔ OptionValue 매핑)
+- [x] `ProductImage` 엔티티
+- [x] 상품 목록 조회 `GET /api/v1/products` (필터링, 페이지네이션)
+- [x] 상품 상세 조회 `GET /api/v1/products/{productId}`
+- [x] 관리자 상품 등록/수정 `POST|PATCH /admin/v1/products`
+- [x] 관리자 옵션 관리 `POST /admin/v1/products/{productId}/options`
 
 ### 2-3. 재고 (inventory 도메인)
 
-- [ ] `Inventory` 엔티티 (variant 단위, `version` 컬럼으로 낙관적 락 준비)
-- [ ] `InventoryHistory` 엔티티 (변경 이력)
-- [ ] 관리자 재고 수정 `PATCH /admin/v1/inventories/{inventoryId}`
-- [ ] 재고 조회 API
+- [x] `Inventory` 엔티티 (variant 단위, `version` 컬럼으로 낙관적 락 준비)
+- [x] `InventoryHistory` 엔티티 (변경 이력)
+- [x] 관리자 재고 수정 `PATCH /admin/v1/inventories/{inventoryId}`
+- [x] 재고 조회 API
 
 ### 2-4. 상품 목록 캐싱
 
-- [ ] 상품 목록 / 카테고리 Redis 캐싱 적용 (`@Cacheable`)
+- [x] 상품 목록 / 카테고리 Redis 캐싱 적용 (`@Cacheable`)
 
 **핵심 난이도**: Variant/SKU 구조 (Product → Variant → Inventory 1:1 관계 설계)
 
@@ -224,7 +224,7 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 | Phase | 내용 | 상태 |
 |-------|------|------|
 | Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | ✅ 완료 |
-| Phase 2 | 카탈로그 + 재고 | 🔲 대기 |
+| Phase 2 | 카탈로그 + 재고 | ✅ 완료 |
 | Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | 🔲 대기 |
 | Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔲 대기 |
 | Phase 5 | 품질 강화 (테스트 / 성능 / 배포) | 🔲 대기 |
