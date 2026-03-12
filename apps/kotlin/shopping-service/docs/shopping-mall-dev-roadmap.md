@@ -56,13 +56,13 @@
 - [x] `UserException`, `UserService`, `UserController`
 - [x] `SignupRequest`, `UpdateProfileRequest`, `UserResponse`
 - [x] `SecurityConfig` (PasswordEncoder Bean, FilterChain 기본 설정)
-- [ ] `Role` / `UserRole` — RBAC (USER, ADMIN 역할 분리)
-- [ ] 회원가입 `POST /api/v1/auth/signup`
-- [ ] 로그인 `POST /api/v1/auth/login` → Access Token + Refresh Token 발급
-- [ ] 토큰 재발급 `POST /api/v1/auth/refresh`
-- [ ] JWT 필터 구성 (JwtProvider, JwtAuthenticationFilter)
-- [ ] 내 프로필 조회/수정 `GET /api/v1/users/me`, `PATCH /api/v1/users/me`
-- [ ] 배송지 관리 `GET|POST /api/v1/users/me/addresses`
+- [x] `Role` / `UserRole` — RBAC (USER, ADMIN 역할 분리)
+- [x] 회원가입 `POST /api/v1/auth/signup`
+- [x] 로그인 `POST /api/v1/auth/login` → Access Token + Refresh Token 발급
+- [x] 토큰 재발급 `POST /api/v1/auth/refresh`
+- [x] JWT 필터 구성 (JwtProvider, JwtAuthenticationFilter)
+- [x] 내 프로필 조회/수정 `GET /api/v1/users/me`, `PATCH /api/v1/users/me`
+- [x] 배송지 관리 `GET|POST /api/v1/users/me/addresses`
 
 **핵심 난이도**: JWT 필터 구성, Refresh Token 저장 전략 (Redis or DB)
 
@@ -223,7 +223,7 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 
 | Phase | 내용 | 상태 |
 |-------|------|------|
-| Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | 🔄 진행 중 |
+| Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | ✅ 완료 |
 | Phase 2 | 카탈로그 + 재고 | 🔲 대기 |
 | Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | 🔲 대기 |
 | Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔲 대기 |

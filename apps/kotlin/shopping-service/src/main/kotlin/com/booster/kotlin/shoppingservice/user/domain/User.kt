@@ -19,6 +19,7 @@ class User(
     passwordHash: String,
     name: String,
     phone: String,
+    role: Role = Role.USER
 ) : BaseEntity() {
 
     @Id
@@ -46,6 +47,11 @@ class User(
     var status: UserStatus = UserStatus.ACTIVE
         private set
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var role: Role = role
+        private set
+
     @OneToMany(mappedBy = "user",cascade = [CascadeType.ALL], orphanRemoval = true)
     val addresses: MutableList<UserAddress> = mutableListOf()
 
@@ -60,13 +66,17 @@ class User(
     }
 
     companion object {
-        fun create(email: String, passwordHash: String, name: String, phone: String): User =
-            User(email, passwordHash, name, phone)
+        fun create(email: String, passwordHash: String, name: String, phone: String, role: Role = Role.USER): User =
+            User(email, passwordHash, name, phone, role)
     }
 
 }
 
 enum class UserStatus {
     ACTIVE, INACTIVE
+}
+
+enum class Role {
+    USER, ADMIN
 }
 

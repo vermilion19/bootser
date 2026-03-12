@@ -1,9 +1,11 @@
 package com.booster.kotlin.shoppingservice.user.application
 
 import com.booster.kotlin.shoppingservice.common.exception.ErrorCode
+import com.booster.kotlin.shoppingservice.user.application.dto.AddAddressCommand
 import com.booster.kotlin.shoppingservice.user.application.dto.CreateUserCommand
 import com.booster.kotlin.shoppingservice.user.application.dto.UpdateUserCommand
 import com.booster.kotlin.shoppingservice.user.domain.User
+import com.booster.kotlin.shoppingservice.user.domain.UserAddress
 import com.booster.kotlin.shoppingservice.user.domain.UserRepository
 import com.booster.kotlin.shoppingservice.user.exception.UserException
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -48,5 +50,27 @@ class UserService (
         user.updateProfile(name = command.name, phone = command.phone)
         return user
     }
+
+    fun addAddress(command: AddAddressCommand): UserAddress {
+        val user = getById(command.userId)
+        if (command.isDefault) {
+            user.addresses.forEach { it.unmarkAsDefault() }
+        }
+        val address = UserAddress.create(
+            user = user,
+            label = command.label,
+            recipientName = command.recipientName,
+            recipientPhone = command.recipientPhone,
+            zipCode = command.zipCode,
+            address1 = command.address1,
+            address2 = command.address2,
+        )
+        if (command.isDefault) address.markAsDefault()
+        user.addresses.add(address)
+        return address
+    }
+
+    @Transactional(readOnly = true)
+    fun getAddresses(userId: Long): List<UserAddress> = getById(userId).addresses
 
 }

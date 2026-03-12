@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: shopping-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
   datasource:
     url: jdbc:h2:mem:shoppingservicedb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
@@ -23,4 +27,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+jwt:
+  secret: bW9ja1NlY3JldEtleUZvckRldmVsb3BtZW50T25seUF0TGVhc3QyNTZCaXRzTG9uZw==
+  access-token-expiry: 1800000    # 30분 (ms)
+  refresh-token-expiry: 604800000 # 7일 (ms)
+
 
