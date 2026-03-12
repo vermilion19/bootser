@@ -6,6 +6,7 @@ import com.booster.kotlin.shoppingservice.catalog.domain.Category
 import com.booster.kotlin.shoppingservice.catalog.domain.CategoryRepository
 import com.booster.kotlin.shoppingservice.catalog.exception.CatalogException
 import com.booster.kotlin.shoppingservice.common.exception.ErrorCode
+import com.booster.kotlin.shoppingservice.common.exception.orThrow
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
@@ -22,8 +23,7 @@ class CategoryService(
 
     @Transactional(readOnly = true)
     fun getById(id: Long): Category =
-        categoryRepository.findById(id)
-            .orElseThrow { CatalogException(ErrorCode.CATEGORY_NOT_FOUND) }
+        categoryRepository.findById(id).orThrow { CatalogException(ErrorCode.CATEGORY_NOT_FOUND) }
 
     @CacheEvict(value = ["categories"], allEntries = true)
     fun create(command: CreateCategoryCommand): Category {

@@ -1,6 +1,7 @@
 package com.booster.kotlin.shoppingservice.user.application
 
 import com.booster.kotlin.shoppingservice.common.exception.ErrorCode
+import com.booster.kotlin.shoppingservice.common.exception.orThrow
 import com.booster.kotlin.shoppingservice.user.application.dto.AddAddressCommand
 import com.booster.kotlin.shoppingservice.user.application.dto.CreateUserCommand
 import com.booster.kotlin.shoppingservice.user.application.dto.UpdateUserCommand
@@ -25,7 +26,7 @@ class UserService (
         }
         val user = User.create(
             email = command.email,
-            passwordHash = passwordEncoder.encode(command.password)!!,
+            passwordHash = requireNotNull(passwordEncoder.encode(command.password)),
             name = command.name,
             phone = command.phone,
         )
@@ -33,11 +34,8 @@ class UserService (
     }
 
     @Transactional(readOnly = true)
-    fun getById(userId: Long): User {
-        return userRepository.findById(userId).orElseThrow {
-            UserException(ErrorCode.USER_NOT_FOUND)
-        }
-    }
+    fun getById(userId: Long): User =
+        userRepository.findById(userId).orThrow { UserException(ErrorCode.USER_NOT_FOUND) }
 
     @Transactional(readOnly = true)
     fun getByEmail(email: String): User {

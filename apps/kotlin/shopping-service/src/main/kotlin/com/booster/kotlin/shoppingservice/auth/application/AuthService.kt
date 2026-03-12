@@ -6,6 +6,7 @@ import com.booster.kotlin.shoppingservice.auth.domain.RefreshToken
 import com.booster.kotlin.shoppingservice.auth.domain.RefreshTokenRepository
 import com.booster.kotlin.shoppingservice.common.exception.BusinessException
 import com.booster.kotlin.shoppingservice.common.exception.ErrorCode
+import com.booster.kotlin.shoppingservice.common.exception.orThrow
 import com.booster.kotlin.shoppingservice.config.jwt.JwtProvider
 import com.booster.kotlin.shoppingservice.user.application.UserService
 import org.springframework.beans.factory.annotation.Value
@@ -43,7 +44,7 @@ class AuthService(
     fun refresh(refreshToken: String): TokenResult {
         val userId = jwtProvider.getUserId(refreshToken)
         val stored = refreshTokenRepository.findById(userId)
-            .orElseThrow { BusinessException(ErrorCode.INVALID_TOKEN) }
+            .orThrow { BusinessException(ErrorCode.INVALID_TOKEN) }
         if (stored.token != refreshToken) {
             throw BusinessException(ErrorCode.INVALID_TOKEN)
         }

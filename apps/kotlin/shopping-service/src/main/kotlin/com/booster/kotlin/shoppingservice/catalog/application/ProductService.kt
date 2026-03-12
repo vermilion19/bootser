@@ -10,6 +10,7 @@ import com.booster.kotlin.shoppingservice.catalog.domain.ProductRepository
 import com.booster.kotlin.shoppingservice.catalog.domain.ProductStatus
 import com.booster.kotlin.shoppingservice.catalog.exception.CatalogException
 import com.booster.kotlin.shoppingservice.common.exception.ErrorCode
+import com.booster.kotlin.shoppingservice.common.exception.orThrow
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -27,8 +28,7 @@ class ProductService(
 
     @Transactional(readOnly = true)
     fun getById(productId: Long): Product =
-        productRepository.findById(productId)
-            .orElseThrow { CatalogException(ErrorCode.PRODUCT_NOT_FOUND) }
+        productRepository.findById(productId).orThrow { CatalogException(ErrorCode.PRODUCT_NOT_FOUND) }
 
     fun create(command: CreateProductCommand): Product {
         val category = categoryService.getById(command.categoryId)
@@ -58,15 +58,16 @@ class ProductService(
             name = command.name,
             displayOrder = command.displayOrder,
         )
-        command.optionValues.forEach { item ->
-            val optionValue = ProductOptionValue.create(
-                optionGroup = group,
-                value = item.value,
-                additionalPrice = item.additionalPrice,
-                displayOrder = item.displayOrder,
-            )
-            group.optionValues.add(optionValue)
-        }
+        group.optionValues.addAll(
+            command.optionValues.map { item ->
+                ProductOptionValue.create(
+                    optionGroup = group,
+                    value = item.value,
+                    additionalPrice = item.additionalPrice,
+                    displayOrder = item.displayOrder,
+                )
+            }
+        )
         product.optionGroups.add(group)
         return product
     }

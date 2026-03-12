@@ -1,6 +1,7 @@
 package com.booster.kotlin.shoppingservice.inventory.application
 
 import com.booster.kotlin.shoppingservice.common.exception.ErrorCode
+import com.booster.kotlin.shoppingservice.common.exception.orThrow
 import com.booster.kotlin.shoppingservice.inventory.application.dto.AdjustInventoryCommand
 import com.booster.kotlin.shoppingservice.inventory.domain.Inventory
 import com.booster.kotlin.shoppingservice.inventory.domain.InventoryHistory
@@ -25,7 +26,7 @@ class InventoryService (
 
     fun adjust(command: AdjustInventoryCommand): Inventory {
         val inventory = inventoryRepository.findById(command.inventoryId)
-            .orElseThrow { InventoryException(ErrorCode.INVENTORY_NOT_FOUND) }
+            .orThrow { InventoryException(ErrorCode.INVENTORY_NOT_FOUND) }
 
         if (command.amount > 0) inventory.increase(command.amount)
         else inventory.decrease(-command.amount)
