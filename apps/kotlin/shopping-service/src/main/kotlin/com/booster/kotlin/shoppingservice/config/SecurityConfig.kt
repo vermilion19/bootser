@@ -28,6 +28,7 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it
                     .requestMatchers("/api/v1/auth/**").permitAll()
+                    .requestMatchers("/api/v1/payments/webhook").permitAll()
                     .requestMatchers("/h2-console/**").permitAll()
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                     .requestMatchers("/admin/**").hasRole("ADMIN")

@@ -143,15 +143,23 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 
 ### 3-3. 결제 (payment 도메인)
 
-- [ ] `Payment` + `PaymentEvent` 엔티티
-- [ ] Mock 결제 구현 (실제 PG 연동 없이 성공/실패 시뮬레이션)
-- [ ] 결제 요청/확인 `POST /api/v1/payments/confirm`
-- [ ] Webhook 수신 `POST /api/v1/payments/webhook`
-- [ ] `idempotency_key` 적용 (중복 결제 방지)
-- [ ] 결제 성공 → 재고 차감 + 주문 상태 PAID 전이
-- [ ] 결제 실패 → 주문 상태 PAYMENT_FAILED 전이 + 재고 복구
+- [x] `Payment` + `PaymentEvent` 엔티티
+- [x] Mock 결제 구현 (실제 PG 연동 없이 성공/실패 시뮬레이션)
+- [x] 결제 요청/확인 `POST /api/v1/payments/confirm`
+- [x] Webhook 수신 `POST /api/v1/payments/webhook`
+- [x] `idempotency_key` 적용 (중복 결제 방지)
+- [x] 결제 성공 → 재고 차감 + 주문 상태 PAID 전이
+- [x] 결제 실패 → 주문 상태 PAYMENT_FAILED 전이 + 재고 복구
 
 **핵심 난이도**: 재고 동시성 (낙관적 락 `@Version`), 결제 멱등성, 상태 전이 정합성
+
+### ⚠️ 동시성 취약 지점 (Phase 5에서 보완 예정)
+
+| 시나리오 | 현재 방어 | 취약점 | 보완 방향 |
+|----------|-----------|--------|-----------|
+| 동시 주문 → 재고 차감 | `@Version` 낙관적 락 | `OptimisticLockException` 발생 시 재시도 로직 없음 | 재시도 or 비관적 락 (`SELECT FOR UPDATE`) |
+| 동일 `idempotencyKey` 동시 결제 | DB UNIQUE + 선체크 | check → insert 사이 Race Condition 존재 | DB UNIQUE가 최후 방어선 (현 구조로 충분하나 명시적 lock 고려 가능) |
+| 같은 주문에 결제 동시 2건 | `check(status == CREATED)` 상태 검증 | 트랜잭션 격리 수준에만 의존, 동시 진입 시 둘 다 통과 가능 | 주문 row에 비관적 락 or Redis 분산 락 적용 |
 
 ---
 
@@ -225,6 +233,6 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 |-------|------|------|
 | Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | ✅ 완료 |
 | Phase 2 | 카탈로그 + 재고 | ✅ 완료 |
-| Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | 🔄 진행중 (3-1, 3-2 완료) |
+| Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | ✅ 완료 |
 | Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔲 대기 |
 | Phase 5 | 품질 강화 (테스트 / 성능 / 배포) | 🔲 대기 |
