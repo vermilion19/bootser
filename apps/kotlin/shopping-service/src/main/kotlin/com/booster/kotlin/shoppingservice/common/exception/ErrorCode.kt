@@ -32,6 +32,11 @@ enum class ErrorCode(
     CART_ITEM_NOT_FOUND(404, "장바구니 항목을 찾을 수 없습니다"),
     INSUFFICIENT_STOCK(409, "재고가 부족합니다"),
 
+    // Order
+    ORDER_NOT_FOUND(404, "주문을 찾을 수 없습니다"),
+    CART_EMPTY(400, "장바구니가 비어 있습니다"),
+    ADDRESS_NOT_FOUND(404, "배송지를 찾을 수 없습니다"),
+    ORDER_CANCEL_NOT_ALLOWED(409, "취소할 수 없는 주문 상태입니다"),
 
 
 }

@@ -3,6 +3,7 @@ package com.booster.kotlin.shoppingservice.common.exception
 import com.booster.kotlin.shoppingservice.common.response.ApiResponse
 import com.booster.kotlin.shoppingservice.common.response.ErrorResponse
 import org.springframework.http.ResponseEntity
+import org.springframework.orm.ObjectOptimisticLockingFailureException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -32,6 +33,15 @@ class GlobalExceptionHandler {
         return ResponseEntity
             .status(400)
             .body(ApiResponse.fail(error))
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException::class)
+    fun handleOptimisticLock(e: ObjectOptimisticLockingFailureException): ResponseEntity<ApiResponse<Nothing>> {
+        val error = ErrorResponse(
+            code = ErrorCode.INSUFFICIENT_STOCK.name,
+            message = ErrorCode.INSUFFICIENT_STOCK.message,
+        )
+        return ResponseEntity.status(409).body(ApiResponse.fail(error))
     }
 
     @ExceptionHandler(Exception::class)

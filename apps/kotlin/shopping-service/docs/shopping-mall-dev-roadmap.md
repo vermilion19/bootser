@@ -121,14 +121,14 @@
 
 ### 3-2. 주문 (order 도메인)
 
-- [ ] `Order` + `OrderItem` 엔티티 (스냅샷 컬럼 포함)
-- [ ] `OrderStatusHistory` 엔티티
-- [ ] 주문 생성 `POST /api/v1/orders`
+- [x] `Order` + `OrderItem` 엔티티 (스냅샷 컬럼 포함)
+- [x] `OrderStatusHistory` 엔티티
+- [x] 주문 생성 `POST /api/v1/orders`
   - 재고 검증
   - 가격 재검증 (장바구니 가격 신뢰 금지)
   - OrderItem 스냅샷 저장
-  - 재고 `reserved_quantity` 증가 또는 차감 정책 결정
-- [ ] 주문 상태 전이 정의
+  - 재고 직접 차감 (주문 시), 복구 (취소 시)
+- [x] 주문 상태 전이 정의
 
 ```
 CREATED → PAYMENT_PENDING → PAID → PREPARING → SHIPPED → DELIVERED
@@ -137,9 +137,9 @@ CREATED|PAYMENT_PENDING|PAID → CANCELED
 DELIVERED → REFUND_REQUESTED → REFUNDED
 ```
 
-- [ ] 주문 목록 조회 `GET /api/v1/orders`
-- [ ] 주문 상세 조회 `GET /api/v1/orders/{orderId}`
-- [ ] 주문 취소 `POST /api/v1/orders/{orderId}/cancel`
+- [x] 주문 목록 조회 `GET /api/v1/orders`
+- [x] 주문 상세 조회 `GET /api/v1/orders/{orderId}`
+- [x] 주문 취소 `POST /api/v1/orders/{orderId}/cancel`
 
 ### 3-3. 결제 (payment 도메인)
 
@@ -225,6 +225,6 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 |-------|------|------|
 | Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | ✅ 완료 |
 | Phase 2 | 카탈로그 + 재고 | ✅ 완료 |
-| Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | 🔄 진행중 (3-1 완료) |
+| Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | 🔄 진행중 (3-1, 3-2 완료) |
 | Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔲 대기 |
 | Phase 5 | 품질 강화 (테스트 / 성능 / 배포) | 🔲 대기 |
