@@ -38,5 +38,14 @@ enum class ErrorCode(
     ADDRESS_NOT_FOUND(404, "배송지를 찾을 수 없습니다"),
     ORDER_CANCEL_NOT_ALLOWED(409, "취소할 수 없는 주문 상태입니다"),
 
+    // Payment
+    PAYMENT_NOT_FOUND(404, "결제 정보를 찾을 수 없습니다"),
+    PAYMENT_DUPLICATE(409, "이미 처리된 결제 요청입니다"),
+    PAYMENT_AMOUNT_MISMATCH(400, "결제 금액이 일치하지 않습니다"),
+    PAYMENT_INVALID_STATUS(409, "현재 결제 상태에서 허용되지 않는 작업입니다"),
+    PAYMENT_CANCEL_NOT_ALLOWED(409, "취소할 수 없는 결제 상태입니다"),
+    PAYMENT_REFUND_NOT_ALLOWED(409, "환불할 수 없는 결제 상태입니다"),
+    PAYMENT_PROVIDER_ERROR(502, "결제 처리 중 오류가 발생했습니다"),
+    PAYMENT_WEBHOOK_DUPLICATE(409, "이미 처리된 웹훅 이벤트입니다"),
 
 }
