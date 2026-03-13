@@ -4,6 +4,7 @@ import com.booster.kotlin.shoppingservice.cart.domain.CartRepository
 import com.booster.kotlin.shoppingservice.catalog.domain.ProductVariantRepository
 import com.booster.kotlin.shoppingservice.common.exception.ErrorCode
 import com.booster.kotlin.shoppingservice.common.exception.orThrow
+import com.booster.kotlin.shoppingservice.coupon.application.CouponService
 import com.booster.kotlin.shoppingservice.inventory.domain.InventoryRepository
 import com.booster.kotlin.shoppingservice.order.application.dto.CancelOrderCommand
 import com.booster.kotlin.shoppingservice.order.application.dto.CreateOrderCommand
@@ -29,6 +30,7 @@ class OrderService(
     private val variantRepository: ProductVariantRepository,
     private val inventoryRepository: InventoryRepository,
     private val userAddressRepository: UserAddressRepository,
+    private val couponService: CouponService,
 ) {
     @Transactional(readOnly = true)
     fun getOrders(userId: Long, pageable: Pageable): Page<Order> =
@@ -63,7 +65,7 @@ class OrderService(
         )
         orderRepository.save(order)
 
-        for (cartItem in activeItems) {
+        activeItems.forEach { cartItem ->
             val variant = variantRepository.findById(cartItem.variantId)
                 .orThrow { OrderException(ErrorCode.PRODUCT_VARIANT_NOT_FOUND) }
 
@@ -75,19 +77,23 @@ class OrderService(
                 ?: throw OrderException(ErrorCode.INVENTORY_NOT_FOUND)
             inventory.decrease(cartItem.quantity)
 
-            val orderItem = OrderItem.create(
-                order = order,
-                variantId = variant.id,
-                productName = variant.product.name,
-                variantSku = variant.sku,
-                unitPrice = currentPrice,
-                quantity = cartItem.quantity,
+            order.addItem(
+                OrderItem.create(
+                    order = order,
+                    variantId = variant.id,
+                    productName = variant.product.name,
+                    variantSku = variant.sku,
+                    unitPrice = currentPrice,
+                    quantity = cartItem.quantity,
+                )
             )
-            order.addItem(orderItem)
 
             // 장바구니 항목 제거
             cartItem.softDelete()
         }
+
+        // 쿠폰 적용 (선택 사항)
+        command.userCouponId?.let { couponService.applyToOrder(command.userId, it, order) }
 
         orderStatusHistoryRepository.save(
             OrderStatusHistory.create(order.id, null, OrderStatus.CREATED)

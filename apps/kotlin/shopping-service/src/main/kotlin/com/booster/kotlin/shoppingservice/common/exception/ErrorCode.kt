@@ -38,6 +38,15 @@ enum class ErrorCode(
     ADDRESS_NOT_FOUND(404, "배송지를 찾을 수 없습니다"),
     ORDER_CANCEL_NOT_ALLOWED(409, "취소할 수 없는 주문 상태입니다"),
 
+    // Coupon
+    COUPON_NOT_FOUND(404, "쿠폰을 찾을 수 없습니다"),
+    COUPON_CODE_DUPLICATE(409, "이미 사용 중인 쿠폰 코드입니다"),
+    COUPON_NOT_AVAILABLE(409, "사용 가능한 쿠폰이 아닙니다"),
+    COUPON_EXPIRED(410, "만료된 쿠폰입니다"),
+    COUPON_ALREADY_ISSUED(409, "이미 발급받은 쿠폰입니다"),
+    COUPON_MIN_ORDER_AMOUNT_NOT_MET(400, "최소 주문 금액을 충족하지 못했습니다"),
+    USER_COUPON_NOT_FOUND(404, "보유 쿠폰을 찾을 수 없습니다"),
+
     // Payment
     PAYMENT_NOT_FOUND(404, "결제 정보를 찾을 수 없습니다"),
     PAYMENT_DUPLICATE(409, "이미 처리된 결제 요청입니다"),

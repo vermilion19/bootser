@@ -37,7 +37,7 @@ class PaymentService(
      */
     fun confirm(command: ConfirmPaymentCommand): Payment {
         // 멱등성 체크: 동일한 키가 이미 존재하면 기존 결과 반환
-        paymentRepository.findByIdempotencyKey(command.idempotencyKey).ifPresent { existing ->
+        if (paymentRepository.existsByIdempotencyKey(command.idempotencyKey)) {
             throw PaymentException(ErrorCode.PAYMENT_DUPLICATE)
         }
 
@@ -46,8 +46,8 @@ class PaymentService(
 
         if (order.userId != command.userId) throw PaymentException(ErrorCode.FORBIDDEN)
 
-        // 주문 금액 검증
-        if (order.totalPrice != command.requestedAmount) {
+        // 주문 금액 검증 (쿠폰 할인 반영된 실결제 금액 기준)
+        if (order.paymentAmount != command.requestedAmount) {
             throw PaymentException(ErrorCode.PAYMENT_AMOUNT_MISMATCH)
         }
 
@@ -79,7 +79,10 @@ class PaymentService(
 
         if (result.success) {
             // 결제 승인
-            payment.approve(result.paymentKey!!, result.approvedAmount!!)
+            require(result.paymentKey != null && result.approvedAmount != null) {
+                "Mock PG 성공 응답에 paymentKey 또는 approvedAmount가 없습니다"
+            }
+            payment.approve(result.paymentKey, result.approvedAmount)
             payment.addEvent(
                 PaymentEvent.create(payment, PaymentEventType.PAYMENT_APPROVED)
             )

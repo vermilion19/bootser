@@ -3,6 +3,7 @@ package com.booster.kotlin.shoppingservice.order.application.dto
 data class CreateOrderCommand(
     val userId: Long,
     val addressId: Long,
+    val userCouponId: Long? = null,
 )
 
 data class CancelOrderCommand(

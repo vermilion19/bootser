@@ -35,8 +35,14 @@ class Order(
         private set
 
     @Column(nullable = false)
-    var totalPrice: Long = 0
+    var totalPrice: Long = 0       // 상품 금액 합계
         private set
+
+    @Column(nullable = false)
+    var discountAmount: Long = 0   // 쿠폰 할인 금액
+        private set
+
+    val paymentAmount: Long get() = totalPrice - discountAmount
 
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], orphanRemoval = true)
     val items: MutableList<OrderItem> = mutableListOf()
@@ -44,6 +50,12 @@ class Order(
     fun addItem(item: OrderItem) {
         items.add(item)
         totalPrice += item.totalPrice
+    }
+
+    fun applyDiscount(amount: Long) {
+        require(amount > 0) { "할인 금액은 0보다 커야 합니다" }
+        require(amount <= totalPrice) { "할인 금액이 주문 금액을 초과할 수 없습니다" }
+        discountAmount = amount
     }
 
     fun toPaymentPending() {

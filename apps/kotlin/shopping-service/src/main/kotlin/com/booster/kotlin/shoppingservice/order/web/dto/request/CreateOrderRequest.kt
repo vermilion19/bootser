@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull
 
 data class CreateOrderRequest(
     @field:NotNull val addressId: Long,
+    val userCouponId: Long? = null,
 ) {
-    fun toCommand(userId: Long) = CreateOrderCommand(userId, addressId)
+    fun toCommand(userId: Long) = CreateOrderCommand(userId, addressId, userCouponId)
 }

@@ -169,13 +169,13 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 
 ### 4-1. 쿠폰 (coupon 도메인)
 
-- [ ] `Coupon` + `UserCoupon` + `OrderCouponUsage` 엔티티
-- [ ] 쿠폰 타겟 매핑 (`CouponProductTarget`, `CouponCategoryTarget`)
-- [ ] 쿠폰 발급 `POST /api/v1/coupons/{couponId}/issue`
-- [ ] 내 쿠폰 목록 `GET /api/v1/coupons/me`
-- [ ] 주문 시 쿠폰 적용 (정액/정률 할인 계산)
-- [ ] 중복 사용 방지 (Redis SETNX 또는 DB UNIQUE 제약)
-- [ ] 관리자 쿠폰 생성/발급 `POST /admin/v1/coupons`
+- [x] `Coupon` + `UserCoupon` + `OrderCouponUsage` 엔티티
+- [x] 쿠폰 타겟 매핑 (`CouponProductTarget`, `CouponCategoryTarget`)
+- [x] 쿠폰 발급 `POST /api/v1/coupons/{couponId}/issue`
+- [x] 내 쿠폰 목록 `GET /api/v1/coupons/me`
+- [x] 주문 시 쿠폰 적용 (정액/정률 할인 계산)
+- [x] 중복 사용 방지 (DB UNIQUE 제약 — `user_coupons(user_id, coupon_id)`, `order_coupon_usages(user_coupon_id)`)
+- [x] 관리자 쿠폰 생성 `POST /admin/v1/coupons`
 
 ### 4-2. 배송 (shipment 도메인)
 
@@ -234,5 +234,5 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 | Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | ✅ 완료 |
 | Phase 2 | 카탈로그 + 재고 | ✅ 완료 |
 | Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | ✅ 완료 |
-| Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔲 대기 |
+| Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔄 진행중 (4-1 완료) |
 | Phase 5 | 품질 강화 (테스트 / 성능 / 배포) | 🔲 대기 |
