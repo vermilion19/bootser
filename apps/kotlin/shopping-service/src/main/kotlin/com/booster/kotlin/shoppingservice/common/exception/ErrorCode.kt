@@ -27,4 +27,11 @@ enum class ErrorCode(
     // Inventory
     INVENTORY_NOT_FOUND(404, "재고 정보를 찾을 수 없습니다"),
 
+    // Cart
+    CART_NOT_FOUND(404, "장바구니를 찾을 수 없습니다"),
+    CART_ITEM_NOT_FOUND(404, "장바구니 항목을 찾을 수 없습니다"),
+    INSUFFICIENT_STOCK(409, "재고가 부족합니다"),
+
+
+
 }

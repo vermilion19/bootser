@@ -112,12 +112,12 @@
 
 ### 3-1. 장바구니 (cart 도메인)
 
-- [ ] `Cart` + `CartItem` 엔티티
-- [ ] 장바구니 조회 `GET /api/v1/cart`
-- [ ] 상품 담기 `POST /api/v1/cart/items`
-- [ ] 수량 수정 `PATCH /api/v1/cart/items/{cartItemId}`
-- [ ] 삭제 `DELETE /api/v1/cart/items/{cartItemId}`
-- [ ] 장바구니 예상 결제 금액 계산 (가격 스냅샷 포함)
+- [x] `Cart` + `CartItem` 엔티티
+- [x] 장바구니 조회 `GET /api/v1/cart`
+- [x] 상품 담기 `POST /api/v1/cart/items`
+- [x] 수량 수정 `PATCH /api/v1/cart/items/{cartItemId}`
+- [x] 삭제 `DELETE /api/v1/cart/items/{cartItemId}`
+- [x] 장바구니 예상 결제 금액 계산 (가격 스냅샷 포함)
 
 ### 3-2. 주문 (order 도메인)
 
@@ -225,6 +225,6 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 |-------|------|------|
 | Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | ✅ 완료 |
 | Phase 2 | 카탈로그 + 재고 | ✅ 완료 |
-| Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | 🔲 대기 |
+| Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | 🔄 진행중 (3-1 완료) |
 | Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔲 대기 |
 | Phase 5 | 품질 강화 (테스트 / 성능 / 배포) | 🔲 대기 |
