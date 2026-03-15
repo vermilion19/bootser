@@ -78,6 +78,21 @@ class Order(
         status = OrderStatus.CANCELED
     }
 
+    fun prepare() {
+        check(status == OrderStatus.PAID) { "상품 준비 상태로 전환할 수 없습니다" }
+        status = OrderStatus.PREPARING
+    }
+
+    fun ship() {
+        check(status == OrderStatus.PREPARING) { "배송 시작 처리할 수 없습니다" }
+        status = OrderStatus.SHIPPED
+    }
+
+    fun deliver() {
+        check(status == OrderStatus.SHIPPED) { "배송 완료 처리할 수 없습니다" }
+        status = OrderStatus.DELIVERED
+    }
+
     companion object {
         fun create(
             userId: Long,

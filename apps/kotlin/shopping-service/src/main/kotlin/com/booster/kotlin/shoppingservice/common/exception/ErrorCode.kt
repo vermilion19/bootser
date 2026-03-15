@@ -57,4 +57,16 @@ enum class ErrorCode(
     PAYMENT_PROVIDER_ERROR(502, "결제 처리 중 오류가 발생했습니다"),
     PAYMENT_WEBHOOK_DUPLICATE(409, "이미 처리된 웹훅 이벤트입니다"),
 
+    // Shipment
+    SHIPMENT_NOT_FOUND(404, "배송 정보를 찾을 수 없습니다"),
+    TRACKING_NUMBER_REQUIRED(400, "송장번호는 필수입니다"),
+    INVALID_SHIPMENT_STATUS(400, "유효하지 않은 배송 상태입니다"),
+    SHIPMENT_STATUS_TRANSITION_NOT_ALLOWED(409, "허용되지 않는 배송 상태 전이입니다"),
+
+    // Review
+    REVIEW_NOT_FOUND(404, "리뷰를 찾을 수 없습니다"),
+    REVIEW_ALREADY_EXISTS(409, "이미 리뷰를 작성한 주문 항목입니다"),
+    REVIEW_NOT_ALLOWED(409, "배송 완료 후에만 리뷰를 작성할 수 있습니다"),
+    REVIEW_PERMISSION_DENIED(403, "본인의 주문에 대해서만 리뷰를 작성할 수 있습니다"),
+
 }

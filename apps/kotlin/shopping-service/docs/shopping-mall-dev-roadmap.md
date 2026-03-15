@@ -179,24 +179,25 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 
 ### 4-2. 배송 (shipment 도메인)
 
-- [ ] `Shipment` + `ShipmentItem` 엔티티
-- [ ] 배송지 스냅샷 저장 (주문 시점 주소 복사)
-- [ ] 배송 상태 관리 (READY → SHIPPED → DELIVERED)
-- [ ] 송장번호 저장
-- [ ] 관리자 배송 상태 변경 API
+- [x] `Shipment` + `ShipmentHistory` 엔티티
+- [x] 배송지 스냅샷 저장 (주문 시점 주소 복사)
+- [x] 배송 상태 관리 (READY → SHIPPED → DELIVERED)
+- [x] 송장번호 저장
+- [x] 관리자 배송 상태 변경 API (`PATCH /admin/v1/shipments/{shipmentId}/status`)
+- [x] 결제 성공 시 자동 Shipment 생성 (Order: PAID → PREPARING)
 
 ### 4-3. 리뷰 (review 도메인)
 
-- [ ] `Review` 엔티티 (`order_item_id` 연결로 구매 검증)
-- [ ] 리뷰 작성 `POST /api/v1/reviews` (배송 완료 후에만 허용)
-- [ ] 리뷰 목록 조회 `GET /api/v1/products/{productId}/reviews`
-- [ ] 동일 `order_item_id` 기준 중복 작성 방지 (UNIQUE 제약)
-- [ ] 관리자 리뷰 숨김 처리
+- [x] `Review` 엔티티 (`order_item_id` 연결로 구매 검증)
+- [x] 리뷰 작성 `POST /api/v1/reviews` (배송 완료 후에만 허용)
+- [x] 리뷰 목록 조회 `GET /api/v1/products/{productId}/reviews`
+- [x] 동일 `order_item_id` 기준 중복 작성 방지 (UNIQUE 제약)
+- [x] 관리자 리뷰 숨김/공개 처리 (`PATCH /admin/v1/reviews/{reviewId}/hide|show`)
 
 ### 4-4. 관리자 통합 API
 
-- [ ] 주문 목록/상태 변경 `GET|PATCH /admin/v1/orders`
-- [ ] 대시보드 요약 `GET /admin/v1/dashboard/summary`
+- [x] 주문 목록/상태 변경 `GET|PATCH /admin/v1/orders`
+- [x] 대시보드 요약 `GET /admin/v1/dashboard/summary`
 
 ---
 
@@ -234,5 +235,5 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 | Phase 1 | 기반 구축 (공통 구조 + 인증/회원) | ✅ 완료 |
 | Phase 2 | 카탈로그 + 재고 | ✅ 완료 |
 | Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | ✅ 완료 |
-| Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | 🔄 진행중 (4-1 완료) |
+| Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | ✅ 완료 |
 | Phase 5 | 품질 강화 (테스트 / 성능 / 배포) | 🔲 대기 |

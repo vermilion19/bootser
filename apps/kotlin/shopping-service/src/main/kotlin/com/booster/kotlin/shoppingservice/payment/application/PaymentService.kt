@@ -17,6 +17,7 @@ import com.booster.kotlin.shoppingservice.payment.domain.PaymentEventType
 import com.booster.kotlin.shoppingservice.payment.domain.PaymentRepository
 import com.booster.kotlin.shoppingservice.payment.exception.PaymentException
 import com.booster.kotlin.shoppingservice.payment.infrastructure.MockPaymentGateway
+import com.booster.kotlin.shoppingservice.shipment.application.ShipmentService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -29,6 +30,7 @@ class PaymentService(
     private val orderStatusHistoryRepository: OrderStatusHistoryRepository,
     private val inventoryRepository: InventoryRepository,
     private val mockPaymentGateway: MockPaymentGateway,
+    private val shipmentService: ShipmentService,
 ) {
 
     /**
@@ -93,6 +95,9 @@ class PaymentService(
             orderStatusHistoryRepository.save(
                 OrderStatusHistory.create(order.id, pendingStatus, OrderStatus.PAID)
             )
+
+            // 배송 정보 생성 (Order: PAID → PREPARING)
+            shipmentService.createForOrder(order)
         } else {
             // 결제 실패
             payment.fail()
