@@ -9,15 +9,8 @@ include 'apps:promotion-service'
 include 'apps:coin'
 include 'apps:coin:gatherer-service'
 include 'apps:coin:coin-service'
-include 'apps:webflux:massive-sse-service'
-include 'apps:webflux:mini-zuul-service'
-include 'apps:webflux:logstream-service'
-include 'apps:webflux:logstream-virtualt'
-include 'apps:webflux:chatting-service'
-include 'apps:webflux:chatting-service-vt'
-include 'apps:webflux:firstcome-firstserved'
-include 'apps:webflux:chatting-service-t'
-include 'apps:d-day'
+
+include 'apps:d-day'/
 include 'apps:d-day:d-day-service'
 
 // Kotlin 전용 서비스
