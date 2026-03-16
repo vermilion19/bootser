@@ -207,6 +207,13 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 
 ### 5-1. 핵심 테스트 (Kotest + Testcontainers)
 
+#### 도메인 단위 테스트 (DescribeSpec, MockK)
+- [x] `InventoryTest` — 재고 증가/차감 정상 흐름 + 예외 케이스 (`inventory/InventoryTest.kt`)
+- [x] `CartTest` — addItem(신규/중복 합산), findActiveItems(소프트삭제 제외), totalPrice 계산 (`cart/CartTest.kt`)
+- [x] `OrderTest` — addItem, applyDiscount(유효/예외), 상태 전이 전체 흐름 + 잘못된 전이 예외 (`order/OrderTest.kt`)
+- [x] `ProductTest` — create 기본값, update 필드 수정, changeStatus 전환 (`catalog/ProductTest.kt`)
+
+#### 통합 테스트
 - [ ] 재고 차감 동시성 테스트 (스레드 다수로 동시 주문 시뮬레이션)
 - [ ] 결제 상태 전이 테스트
 - [ ] 쿠폰 중복 사용 방지 테스트
@@ -236,4 +243,5 @@ DELIVERED → REFUND_REQUESTED → REFUNDED
 | Phase 2 | 카탈로그 + 재고 | ✅ 완료 |
 | Phase 3 | 구매 핵심 플로우 (장바구니 → 주문 → 결제) | ✅ 완료 |
 | Phase 4 | 운영 기능 (쿠폰 / 배송 / 리뷰) | ✅ 완료 |
-| Phase 5 | 품질 강화 (테스트 / 성능 / 배포) | 🔲 대기 |
+| Phase 5 | 품질 강화 (테스트 / 성능 / 배포) | 🚧 진행 중 |
+| Phase 5-1 | 도메인 단위 테스트 (Inventory/Cart/Order/Product) | ✅ 완료 |
