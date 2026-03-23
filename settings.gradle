@@ -6,10 +6,6 @@ include 'apps:restaurant-service'
 include 'apps:notification-service'
 include 'apps:auth-service'
 include 'apps:promotion-service'
-include 'apps:coin'
-include 'apps:coin:gatherer-service'
-include 'apps:coin:coin-service'
-
 include 'apps:d-day'
 include 'apps:d-day:d-day-service'
 
