@@ -70,7 +70,7 @@ class WaitingControllerTest {
         given(waitingRegisterFacade.register(any(RegisterWaitingRequest.class))).willReturn(response);
 
         // when & then
-        mockMvc.perform(post("/api/v1/waitings")
+        mockMvc.perform(post("/waitings/v1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print()) // 테스트 로그 출력
@@ -87,7 +87,7 @@ class WaitingControllerTest {
         RegisterWaitingRequest request = new RegisterWaitingRequest(1L, "010-1234-5678", 0);
 
         // when & then
-        mockMvc.perform(post("/api/v1/waitings")
+        mockMvc.perform(post("/waitings/v1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -106,7 +106,7 @@ class WaitingControllerTest {
         given(waitingService.getWaiting(waitingId)).willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/v1/waitings/{waitingId}", waitingId))
+        mockMvc.perform(get("/waitings/v1/{waitingId}", waitingId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("SUCCESS"))
@@ -126,7 +126,7 @@ class WaitingControllerTest {
         given(waitingRegisterFacade.postpone(any(PostponeCommand.class))).willReturn(response);
 
         // when & then
-        mockMvc.perform(patch("/api/v1/waitings/{waitingId}/postpone", waitingId)
+        mockMvc.perform(patch("/waitings/v1/{waitingId}/postpone", waitingId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -142,7 +142,7 @@ class WaitingControllerTest {
         Long waitingId = 100L;
 
         // when & then
-        mockMvc.perform(patch("/api/v1/waitings/{waitingId}/cancel", waitingId))
+        mockMvc.perform(patch("/waitings/v1/{waitingId}/cancel", waitingId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("SUCCESS"))
@@ -158,7 +158,7 @@ class WaitingControllerTest {
         Long waitingId = 100L;
 
         // when & then
-        mockMvc.perform(patch("/api/v1/waitings/{waitingId}/enter", waitingId))
+        mockMvc.perform(patch("/waitings/v1/{waitingId}/enter", waitingId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("SUCCESS"));
@@ -189,7 +189,7 @@ class WaitingControllerTest {
                 .willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/v1/waitings/restaurants/{restaurantId}", restaurantId))
+        mockMvc.perform(get("/waitings/v1/restaurants/{restaurantId}", restaurantId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("SUCCESS"))
@@ -227,7 +227,7 @@ class WaitingControllerTest {
                 .willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/v1/waitings/restaurants/{restaurantId}", restaurantId)
+        mockMvc.perform(get("/waitings/v1/restaurants/{restaurantId}", restaurantId)
                         .param("cursor", String.valueOf(cursor))
                         .param("size", String.valueOf(size)))
                 .andDo(print())
@@ -256,7 +256,7 @@ class WaitingControllerTest {
                 .willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/v1/waitings/restaurants/{restaurantId}", restaurantId))
+        mockMvc.perform(get("/waitings/v1/restaurants/{restaurantId}", restaurantId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("SUCCESS"))
@@ -286,7 +286,7 @@ class WaitingControllerTest {
                 .willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/v1/waitings/restaurants/{restaurantId}", restaurantId)
+        mockMvc.perform(get("/waitings/v1/restaurants/{restaurantId}", restaurantId)
                         .param("cursor", String.valueOf(cursor)))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -315,7 +315,7 @@ class WaitingControllerTest {
                 .willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/v1/waitings/restaurants/{restaurantId}", restaurantId))
+        mockMvc.perform(get("/waitings/v1/restaurants/{restaurantId}", restaurantId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].id").value(100))

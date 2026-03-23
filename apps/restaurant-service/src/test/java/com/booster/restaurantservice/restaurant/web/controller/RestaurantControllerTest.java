@@ -56,7 +56,7 @@ class RestaurantControllerTest {
             given(restaurantService.register(any(RegisterRestaurantRequest.class))).willReturn(response);
 
             // when & then
-            mockMvc.perform(post("/restaurants")
+            mockMvc.perform(post("/restaurants/v1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andDo(print())
@@ -78,7 +78,7 @@ class RestaurantControllerTest {
             String invalidRequest = "{\"name\":\"\",\"capacity\":50,\"maxWaitingLimit\":10}";
 
             // when & then
-            mockMvc.perform(post("/restaurants")
+            mockMvc.perform(post("/restaurants/v1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(invalidRequest))
                     .andDo(print())
@@ -94,7 +94,7 @@ class RestaurantControllerTest {
             String invalidRequest = "{\"name\":\"테스트식당\",\"capacity\":0,\"maxWaitingLimit\":10}";
 
             // when & then
-            mockMvc.perform(post("/restaurants")
+            mockMvc.perform(post("/restaurants/v1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(invalidRequest))
                     .andDo(print())
@@ -118,7 +118,7 @@ class RestaurantControllerTest {
             given(restaurantService.getRestaurant(restaurantId)).willReturn(response);
 
             // when & then
-            mockMvc.perform(get("/restaurants/{restaurantId}", restaurantId))
+            mockMvc.perform(get("/restaurants/v1/{restaurantId}", restaurantId))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result").value("SUCCESS"))
@@ -140,7 +140,7 @@ class RestaurantControllerTest {
 
             // when & then
             org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
-                    mockMvc.perform(get("/restaurants/{restaurantId}", nonExistentId)));
+                    mockMvc.perform(get("/restaurants/v1/{restaurantId}", nonExistentId)));
         }
     }
 
@@ -159,7 +159,7 @@ class RestaurantControllerTest {
             given(restaurantService.update(eq(restaurantId), any(UpdateRestaurantRequest.class))).willReturn(response);
 
             // when & then
-            mockMvc.perform(patch("/restaurants/{restaurantId}", restaurantId)
+            mockMvc.perform(patch("/restaurants/v1/{restaurantId}", restaurantId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andDo(print())
@@ -183,7 +183,7 @@ class RestaurantControllerTest {
             given(restaurantService.update(eq(restaurantId), any(UpdateRestaurantRequest.class))).willReturn(response);
 
             // when & then
-            mockMvc.perform(patch("/restaurants/{restaurantId}", restaurantId)
+            mockMvc.perform(patch("/restaurants/v1/{restaurantId}", restaurantId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(partialRequest))
                     .andDo(print())
@@ -204,7 +204,7 @@ class RestaurantControllerTest {
             doNothing().when(restaurantService).open(restaurantId);
 
             // when & then
-            mockMvc.perform(post("/restaurants/{restaurantId}/open", restaurantId))
+            mockMvc.perform(post("/restaurants/v1/{restaurantId}/open", restaurantId))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result").value("SUCCESS"));
@@ -221,7 +221,7 @@ class RestaurantControllerTest {
                     .when(restaurantService).open(nonExistentId);
 
             // when & then
-            mockMvc.perform(post("/restaurants/{restaurantId}/open", nonExistentId))
+            mockMvc.perform(post("/restaurants/v1/{restaurantId}/open", nonExistentId))
                     .andDo(print())
                     .andExpect(status().is4xxClientError());
         }
@@ -239,7 +239,7 @@ class RestaurantControllerTest {
             doNothing().when(restaurantService).close(restaurantId);
 
             // when & then
-            mockMvc.perform(post("/restaurants/{restaurantId}/close", restaurantId))
+            mockMvc.perform(post("/restaurants/v1/{restaurantId}/close", restaurantId))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result").value("SUCCESS"));
@@ -261,7 +261,7 @@ class RestaurantControllerTest {
             doNothing().when(restaurantService).enter(restaurantId, partySize);
 
             // when & then
-            mockMvc.perform(post("/restaurants/{restaurantId}/entry", restaurantId)
+            mockMvc.perform(post("/restaurants/v1/{restaurantId}/entry", restaurantId)
                             .param("partySize", String.valueOf(partySize)))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -280,7 +280,7 @@ class RestaurantControllerTest {
                     .when(restaurantService).enter(restaurantId, partySize);
 
             // when & then
-            mockMvc.perform(post("/restaurants/{restaurantId}/entry", restaurantId)
+            mockMvc.perform(post("/restaurants/v1/{restaurantId}/entry", restaurantId)
                             .param("partySize", String.valueOf(partySize)))
                     .andDo(print())
                     .andExpect(status().is4xxClientError());
@@ -293,7 +293,7 @@ class RestaurantControllerTest {
             Long restaurantId = 1L;
 
             // when & then
-            mockMvc.perform(post("/restaurants/{restaurantId}/entry", restaurantId))
+            mockMvc.perform(post("/restaurants/v1/{restaurantId}/entry", restaurantId))
                     .andDo(print())
                     .andExpect(status().isBadRequest());
 
@@ -314,7 +314,7 @@ class RestaurantControllerTest {
             doNothing().when(restaurantService).exit(restaurantId, partySize);
 
             // when & then
-            mockMvc.perform(post("/restaurants/{restaurantId}/exit", restaurantId)
+            mockMvc.perform(post("/restaurants/v1/{restaurantId}/exit", restaurantId)
                             .param("partySize", String.valueOf(partySize)))
                     .andDo(print())
                     .andExpect(status().isOk())
@@ -333,7 +333,7 @@ class RestaurantControllerTest {
                     .when(restaurantService).exit(restaurantId, partySize);
 
             // when & then
-            mockMvc.perform(post("/restaurants/{restaurantId}/exit", restaurantId)
+            mockMvc.perform(post("/restaurants/v1/{restaurantId}/exit", restaurantId)
                             .param("partySize", String.valueOf(partySize)))
                     .andDo(print())
                     .andExpect(status().is4xxClientError());
@@ -356,7 +356,7 @@ class RestaurantControllerTest {
             given(restaurantService.getAllRestaurants()).willReturn(responses);
 
             // when & then
-            mockMvc.perform(get("/restaurants"))
+            mockMvc.perform(get("/restaurants/v1"))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result").value("SUCCESS"))
@@ -379,7 +379,7 @@ class RestaurantControllerTest {
             given(restaurantService.getAllRestaurants()).willReturn(List.of());
 
             // when & then
-            mockMvc.perform(get("/restaurants"))
+            mockMvc.perform(get("/restaurants/v1"))
                     .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result").value("SUCCESS"))
