@@ -1,0 +1,45 @@
+networks:
+  booster-network:
+    name: booster-network
+    external: true
+
+services:
+  auth-service:
+    build:
+      context: ../..
+      dockerfile: apps/auth-service/Dockerfile
+    image: booster/auth-service:local
+    container_name: booster-auth
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Kafka
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Eureka
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      # JWT
+      APP_JWT_SECRET: ${JWT_SECRET:-vMFZ7YkY5+JjK3Hq8Lw9XzC2Vb4N/mQaR1TsD6EfG8UoWpI0OxLrYtZ3V5KjH9NcXyZ1QaW2EcR4VtB6NkM8==}
+      # OAuth (로컬 테스트 시 실제 값 필요)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      OAUTH_REDIRECT_URI: ${OAUTH_REDIRECT_URI:-http://localhost:3000}
+    networks:
+      - booster-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

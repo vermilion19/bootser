@@ -1,0 +1,44 @@
+networks:
+  booster-network:
+    name: booster-network
+    external: true
+
+services:
+  waiting-service:
+    build:
+      context: ../..
+      dockerfile: apps/waiting-service/Dockerfile
+    image: booster/waiting-service:local
+    container_name: booster-waiting
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8081
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/waiting_service_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # Kafka
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Eureka
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      # Feign (Gateway 경유)
+      APP_FEIGN_RESTAURANT_URL: http://gateway-service:6000/restaurants
+    networks:
+      - booster-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
