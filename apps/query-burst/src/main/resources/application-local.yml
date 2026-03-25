@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:query_burst;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  h2:
+    console:
+      enabled: true   # http://localhost:8090/h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop

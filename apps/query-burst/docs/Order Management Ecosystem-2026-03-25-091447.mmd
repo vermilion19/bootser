@@ -1,0 +1,58 @@
+  erDiagram                                                                                                                                                                                                                                                                                                         
+      CATEGORY {                                                                                                                                                                                                                                                                                                    
+          Long id PK                                                                                                                                                                                                                                                                                                
+          String name                                                                                                                                                                                                                                                                                               
+          Long parent_id FK
+          int depth
+          LocalDateTime created_at
+          LocalDateTime updated_at
+      }
+
+      MEMBER {
+          Long id PK
+          String email UK
+          String name
+          MemberGrade grade
+          String region
+          LocalDateTime created_at
+          LocalDateTime updated_at
+      }
+
+      PRODUCT {
+          Long id PK
+          String name
+          Long price
+          int stock
+          ProductStatus status
+          Long category_id FK
+          Long seller_id FK
+          LocalDateTime created_at
+          LocalDateTime updated_at
+      }
+
+      ORDERS {
+          Long id PK
+          Long member_id FK
+          OrderStatus status
+          Long totalAmount
+          LocalDateTime orderedAt
+          LocalDateTime created_at
+          LocalDateTime updated_at
+      }
+
+      ORDER_ITEM {
+          Long id PK
+          Long order_id FK
+          Long product_id FK
+          int quantity
+          Long unitPrice
+          LocalDateTime created_at
+          LocalDateTime updated_at
+      }
+
+      CATEGORY ||--o{ CATEGORY : "parent(셀프 조인)"
+      CATEGORY ||--o{ PRODUCT : "category_id"
+      MEMBER ||--o{ PRODUCT : "seller_id(판매자)"
+      MEMBER ||--o{ ORDERS : "member_id(구매자)"
+      ORDERS ||--o{ ORDER_ITEM : "order_id"
+      PRODUCT ||--o{ ORDER_ITEM : "product_id"
