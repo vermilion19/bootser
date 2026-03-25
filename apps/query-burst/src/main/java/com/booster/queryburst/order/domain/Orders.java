@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 주문 테이블
@@ -59,6 +61,21 @@ public class Orders extends BaseEntity {
     /** 주문 시각 (created_at과 별도로 비즈니스 주문 시각) */
     @Column(nullable = false)
     private LocalDateTime orderedAt;
+
+    /**
+     * [학습용 양방향 관계]
+     *
+     * 주의사항:
+     * 1. N+1 문제: orders 목록 조회 후 getOrderItems() 호출 시 주문 수만큼 추가 쿼리 발생
+     *    → 해결: fetch join 또는 @EntityGraph 사용
+     *
+     * 2. 무한 직렬화: Jackson이 Orders → OrderItem → Orders → ... 순환 참조
+     *    → 해결: DTO 변환 후 반환 (엔티티 직접 반환 금지)
+     *
+     * 3. 컬렉션 초기화: new ArrayList<>() 필수 (null이면 add 시 NPE)
+     */
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     public static Orders create(Long id, Member member, Long totalAmount, LocalDateTime orderedAt) {
         Orders orders = new Orders();
