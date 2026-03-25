@@ -1,5 +1,7 @@
 package com.booster.queryburst.member.application;
 
+import com.booster.queryburst.member.application.dto.MemberCreateCommand;
+import com.booster.queryburst.member.domain.Member;
 import com.booster.queryburst.member.domain.MemberQueryRepository;
 import com.booster.queryburst.member.domain.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,5 +15,13 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final MemberQueryRepository memberQueryRepository;
+
+    public Long createMember(MemberCreateCommand command) {
+        if (memberRepository.existsByEmail(command.email())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+        Member member = Member.create(command);
+        return memberRepository.save(member).getId();
+    }
 
 }

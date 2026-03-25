@@ -1,6 +1,7 @@
 package com.booster.queryburst.member.domain;
 
 import com.booster.common.SnowflakeGenerator;
+import com.booster.queryburst.member.application.dto.MemberCreateCommand;
 import com.booster.storage.db.core.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -48,13 +49,13 @@ public class Member extends BaseEntity {
     @Column(nullable = false, length = 20)
     private String region;
 
-    public static Member create(String email, String name, MemberGrade grade, String region) {
+    public static Member create(MemberCreateCommand command) {
         Member member = new Member();
         member.id = SnowflakeGenerator.nextId();
-        member.email = email;
-        member.name = name;
-        member.grade = grade;
-        member.region = region;
+        member.email = command.email();
+        member.name = command.name();
+        member.grade = command.grade();
+        member.region = command.region();
         return member;
     }
 
