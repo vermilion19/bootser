@@ -37,7 +37,7 @@ public class WaitingService {
     private final OutboxRepository outboxRepository;
     private final JsonMapper jsonMapper = JsonUtils.MAPPER;
 
-    public RegisterWaitingResponse registerInternal(RegisterWaitingRequest request) {
+    public RegisterWaitingResponse registerInternal(RegisterWaitingRequest request, String restaurantName) {
         validateDuplicate(request.restaurantId(), request.guestPhone());
 
         int nextWaitingNumber = getNextWaitingNumber(request.restaurantId());
@@ -59,7 +59,7 @@ public class WaitingService {
         rankingRepository.add(waitingUser);
         Long rank = rankingRepository.getRank(waitingUser);
 
-        publishEvent(waiting, rank, WaitingEvent.EventType.REGISTER);
+        publishEvent(waiting, rank, WaitingEvent.EventType.REGISTER, restaurantName);
 
         return RegisterWaitingResponse.of(waiting, rank);
     }
@@ -99,11 +99,12 @@ public class WaitingService {
      */
     public void enter(Long waitingId) {
         Waiting waiting = findById(waitingId);
+        String restaurantName = restaurantCacheService.getRestaurantName(waiting.getRestaurantId());
         waiting.enter();
 
         WaitingUser waitingUser = WaitingUser.of(waiting.getRestaurantId(), waiting.getId(), waiting.getWaitingNumber());
         rankingRepository.remove(waitingUser);
-        publishEvent(waiting, null, WaitingEvent.EventType.ENTER);
+        publishEvent(waiting, null, WaitingEvent.EventType.ENTER, restaurantName);
     }
 
     /**
@@ -111,11 +112,12 @@ public class WaitingService {
      */
     public void cancel(Long waitingId) {
         Waiting waiting = findById(waitingId);
+        String restaurantName = restaurantCacheService.getRestaurantName(waiting.getRestaurantId());
         waiting.cancel();
 
         WaitingUser waitingUser = WaitingUser.of(waiting.getRestaurantId(), waiting.getId(), waiting.getWaitingNumber());
         rankingRepository.remove(waitingUser);
-        publishEvent(waiting, null, WaitingEvent.EventType.CANCEL);
+        publishEvent(waiting, null, WaitingEvent.EventType.CANCEL, restaurantName);
     }
 
     /**
@@ -123,7 +125,7 @@ public class WaitingService {
      * 로직: 기존 대기 취소 -> 맨 뒤로 재등록
      * 주의: Facade에서 락을 잡고 들어와야 함
      */
-    public RegisterWaitingResponse postponeInternal(Long waitingId) {
+    public RegisterWaitingResponse postponeInternal(Long waitingId, String restaurantName) {
         // 1. 기존 대기 조회
         Waiting originalWaiting = findById(waitingId);
 
@@ -135,7 +137,7 @@ public class WaitingService {
                 originalWaiting.getWaitingNumber()
         );
         rankingRepository.remove(oldUser);
-        publishEvent(originalWaiting, null, WaitingEvent.EventType.CANCEL);
+        publishEvent(originalWaiting, null, WaitingEvent.EventType.CANCEL, restaurantName);
 
         // 3. 새로운 번호 채번 (맨 뒤)
         int nextNumber = getNextWaitingNumber(originalWaiting.getRestaurantId());
@@ -159,14 +161,15 @@ public class WaitingService {
         );
         rankingRepository.add(newUser);
         Long rank = rankingRepository.getRank(newUser);
-        publishEvent(newWaiting, rank, WaitingEvent.EventType.REGISTER);
+        publishEvent(newWaiting, rank, WaitingEvent.EventType.REGISTER, restaurantName);
         return RegisterWaitingResponse.of(newWaiting, rank);
     }
 
     public void call(Long waitingId) {
         Waiting waiting = findById(waitingId);
+        String restaurantName = restaurantCacheService.getRestaurantName(waiting.getRestaurantId());
         waiting.call();
-        publishEvent(waiting, null, WaitingEvent.EventType.CALLED);
+        publishEvent(waiting, null, WaitingEvent.EventType.CALLED, restaurantName);
         createOutboxEvent(waiting);
     }
 
@@ -191,8 +194,7 @@ public class WaitingService {
         return (maxNumber == null) ? 1 : maxNumber + 1;
     }
 
-    private void publishEvent(Waiting waiting, Long rank, WaitingEvent.EventType type) {
-        String restaurantName = restaurantCacheService.getRestaurantName(waiting.getRestaurantId());
+    private void publishEvent(Waiting waiting, Long rank, WaitingEvent.EventType type, String restaurantName) {
         eventPublisher.publishEvent(
                 WaitingEvent.of(
                         waiting.getRestaurantId(),

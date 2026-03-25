@@ -45,7 +45,7 @@ public class RestaurantService {
         );
         Restaurant saved = restaurantRepository.save(restaurant);
 
-        createOutboxEvent(saved);
+        createOutboxEvent(saved, "RESTAURANT_CREATED");
 
         // [Redis] 식당 이름 캐시 등록 (Write-Through)
         String key = KEY_PREFIX + saved.getId();
@@ -70,6 +70,8 @@ public class RestaurantService {
         String key = KEY_PREFIX + restaurantId;
         redisTemplate.opsForValue().set(key, restaurant.getName(), CACHE_TTL);
         log.info("Redis Cache Updated: id={}, name={}", restaurantId, restaurant.getName());
+
+        createOutboxEvent(restaurant, "RESTAURANT_UPDATED");
         return RestaurantResponse.from(restaurant);
     }
 
@@ -112,6 +114,10 @@ public class RestaurantService {
     }
 
     public void deleteRestaurant(Long restaurantId) {
+        Restaurant restaurant = findByIdOrThrow(restaurantId);
+
+        createOutboxEvent(restaurant, "RESTAURANT_DELETED");
+
         restaurantRepository.deleteById(restaurantId);
 
         //  [Redis] 캐시 삭제 (Evict)
@@ -125,23 +131,19 @@ public class RestaurantService {
                 .orElseThrow(() -> new RestaurantException("식당을 찾을 수 없습니다. ID: " + id));
     }
 
-    private void createOutboxEvent(Restaurant restaurant) {
-        // 이벤트 페이로드 생성 (별도 DTO 사용 권장)
-        RestaurantCreatedEvent event = new RestaurantCreatedEvent(
-                restaurant.getId(),
-                restaurant.getName()
-        );
+    private void createOutboxEvent(Restaurant restaurant, String eventType) {
+        RestaurantEvent event = new RestaurantEvent(eventType, restaurant.getId(), restaurant.getName());
         String payload = objectMapper.writeValueAsString(event);
 
         OutboxEvent outbox = OutboxEvent.builder()
                 .aggregateType("RESTAURANT")
                 .aggregateId(restaurant.getId())
-                .eventType("RESTAURANT_CREATED")
+                .eventType(eventType)
                 .payload(payload)
                 .build();
 
         outboxRepository.save(outbox);
-
     }
-    public record RestaurantCreatedEvent(Long id, String name) {}
+
+    public record RestaurantEvent(String eventType, Long id, String name) {}
 }

@@ -1,8 +1,6 @@
 package com.booster.waitingservice.waiting.application;
 
-import com.booster.waitingservice.waiting.infastructure.RestaurantClient;
-import io.github.resilience4j.bulkhead.BulkheadFullException;
-import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import com.booster.waitingservice.waiting.domain.RestaurantSnapshotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -14,59 +12,49 @@ import java.time.Duration;
 @Service
 @RequiredArgsConstructor
 public class RestaurantCacheService {
+
     private final StringRedisTemplate redisTemplate;
-    private final RestaurantClient restaurantClient;
+    private final RestaurantSnapshotRepository snapshotRepository;
 
     private static final String KEY_PREFIX = "restaurant:name:";
+    private static final Duration CACHE_TTL = Duration.ofHours(24);
 
-    // 1. name: yml에 설정한 'restaurantService'와 정확히 일치해야 함
-    // 2. type: SEMAPHORE (스레드 풀 생성이 아닌 세마포어 방식 사용 - 일반적인 스프링 MVC 권장)
-    // 3. fallbackMethod: 격벽이 꽉 차거나 에러 발생 시 실행할 메서드 이름
-    @Bulkhead(name = "restaurantService", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallbackGetRestaurant")
+    /**
+     * 식당명 조회 (Redis → Local DB → Fallback 순서)
+     * 런타임 Feign 호출 없음 - Restaurant Service 장애와 완전히 격리됨
+     */
     public String getRestaurantName(Long restaurantId) {
         String key = KEY_PREFIX + restaurantId;
 
-        // ⚡️ Redis 조회 (DB 조회 X)
-        String cachedName = redisTemplate.opsForValue().get(key);
-
-        if (cachedName != null) {
-            return cachedName;
+        // 1. Redis 조회 (L1 캐시)
+        String cached = redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return cached;
         }
 
-        // 2. Cache Miss -> Feign으로 원본 서비스 호출 (Read-Through)
-        try {
-            log.info("Cache Miss! Fetching from Restaurant Service. ID={}", restaurantId);
-
-            // HTTP 요청 발생 📡
-            RestaurantClient.RestaurantResponse response = restaurantClient.getRestaurant(restaurantId);
-
-            String realName = response.name();
-
-            // 3. Redis에 적재 (다음엔 캐시 쓰도록)
-            redisTemplate.opsForValue().set(key, realName, Duration.ofHours(24));
-
-            return realName;
-
-        } catch (Exception e) {
-            // 🚨 식당 서비스가 죽었거나 에러가 난 경우
-            log.error("식당 서비스 호출 실패: {}", e.getMessage());
-            return "알 수 없는 식당 (일시적 오류)"; // Fallback
-        }
+        // 2. Local DB 조회 (L2 캐시) - Redis 유실 시 복구 경로
+        log.info("Redis Cache Miss. DB에서 복구 시도: restaurantId={}", restaurantId);
+        return snapshotRepository.findById(restaurantId)
+                .map(snapshot -> {
+                    // Redis 재적재
+                    redisTemplate.opsForValue().set(key, snapshot.getName(), CACHE_TTL);
+                    log.info("Redis 복구 완료: restaurantId={}, name={}", restaurantId, snapshot.getName());
+                    return snapshot.getName();
+                })
+                .orElseGet(() -> {
+                    // 3. Graceful Degradation - 사용자에게 노출되지 않는 임시값
+                    // Bootstrap 또는 Kafka 이벤트로 곧 채워질 예정
+                    log.warn("식당 정보 없음 (Bootstrap 미완료 또는 신규 식당): restaurantId={}", restaurantId);
+                    return "식당 #" + restaurantId;
+                });
     }
 
-    public void updateCache(Long restaurantId, String newName) {
+    public void updateCache(Long restaurantId, String name) {
         String key = KEY_PREFIX + restaurantId;
-        redisTemplate.opsForValue().set(key, newName, Duration.ofHours(24));
+        redisTemplate.opsForValue().set(key, name, CACHE_TTL);
     }
 
-    // Fallback 메서드 구현
-    // 조건: 원본 메서드와 파라미터가 같아야 하고, 마지막에 예외 파라미터를 추가해야 함
-    public String fallbackGetRestaurant(Long restaurantId, Throwable t) {
-        if (t instanceof BulkheadFullException) {
-            log.error("식당 조회 Bulkhead 가득 참! (요청 차단): restaurantId={}", restaurantId);
-            return "서버가 바쁩니다. 잠시 후 시도해주세요.";
-        }
-        log.error("식당 조회 실패 (Circuit/Unknown Error): {}", t.getMessage());
-        return "알 수 없는 식당";
+    public void evictCache(Long restaurantId) {
+        redisTemplate.delete(KEY_PREFIX + restaurantId);
     }
 }
