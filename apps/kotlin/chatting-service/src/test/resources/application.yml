@@ -1,4 +1,0 @@
-chat:
-  redis:
-    enabled: false
-  instance-id: test-instance
