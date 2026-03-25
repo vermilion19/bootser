@@ -1,5 +1,6 @@
 package com.booster.queryburst.order.domain;
 
+import com.booster.common.SnowflakeGenerator;
 import com.booster.queryburst.member.domain.Member;
 import com.booster.storage.db.core.BaseEntity;
 import jakarta.persistence.*;
@@ -77,9 +78,9 @@ public class Orders extends BaseEntity {
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    public static Orders create(Long id, Member member, Long totalAmount, LocalDateTime orderedAt) {
+    public static Orders create(Member member, Long totalAmount, LocalDateTime orderedAt) {
         Orders orders = new Orders();
-        orders.id = id;
+        orders.id = SnowflakeGenerator.nextId();
         orders.member = member;
         orders.status = OrderStatus.PENDING;
         orders.totalAmount = totalAmount;

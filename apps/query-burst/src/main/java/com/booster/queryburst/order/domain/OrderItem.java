@@ -1,5 +1,6 @@
 package com.booster.queryburst.order.domain;
 
+import com.booster.common.SnowflakeGenerator;
 import com.booster.queryburst.product.domain.Product;
 import com.booster.storage.db.core.BaseEntity;
 import jakarta.persistence.*;
@@ -59,9 +60,9 @@ public class OrderItem extends BaseEntity {
     @Column(nullable = false)
     private Long unitPrice;
 
-    public static OrderItem create(Long id, Orders order, Product product, int quantity, Long unitPrice) {
+    public static OrderItem create(Orders order, Product product, int quantity, Long unitPrice) {
         OrderItem item = new OrderItem();
-        item.id = id;
+        item.id = SnowflakeGenerator.nextId();
         item.order = order;
         item.product = product;
         item.quantity = quantity;

@@ -1,5 +1,6 @@
 package com.booster.queryburst.product.domain;
 
+import com.booster.common.SnowflakeGenerator;
 import com.booster.queryburst.member.domain.Member;
 import com.booster.storage.db.core.BaseEntity;
 import jakarta.persistence.*;
@@ -63,10 +64,10 @@ public class Product extends BaseEntity {
     @JoinColumn(name = "seller_id", nullable = false)
     private Member seller;
 
-    public static Product create(Long id, String name, Long price, int stock,
+    public static Product create(String name, Long price, int stock,
                                  ProductStatus status, Category category, Member seller) {
         Product product = new Product();
-        product.id = id;
+        product.id = SnowflakeGenerator.nextId();
         product.name = name;
         product.price = price;
         product.stock = stock;

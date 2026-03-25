@@ -1,5 +1,6 @@
 package com.booster.queryburst.product.domain;
 
+import com.booster.common.SnowflakeGenerator;
 import com.booster.storage.db.core.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -47,18 +48,18 @@ public class Category extends BaseEntity {
     @Column(nullable = false)
     private int depth;
 
-    public static Category createRoot(Long id, String name) {
+    public static Category createRoot(String name) {
         Category category = new Category();
-        category.id = id;
+        category.id = SnowflakeGenerator.nextId();
         category.name = name;
         category.parent = null;
         category.depth = 1;
         return category;
     }
 
-    public static Category createChild(Long id, String name, Category parent) {
+    public static Category createChild(String name, Category parent) {
         Category category = new Category();
-        category.id = id;
+        category.id = SnowflakeGenerator.nextId();
         category.name = name;
         category.parent = parent;
         category.depth = parent.depth + 1;
