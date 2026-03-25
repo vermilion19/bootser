@@ -1,0 +1,35 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: query-burst
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/query_burst
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: update        # 개발 시 create, 운영 시 validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 100   # N+1 방지용 IN 절 배치 사이즈
+        jdbc:
+          batch_size: 1000              # 벌크 인서트 배치 사이즈
+          order_inserts: true
+          order_updates: true
+    open-in-view: false
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG            # 쿼리 로깅 (성능 분석 시 활성화)
+    org.hibernate.orm.jdbc.bind: TRACE  # 바인딩 파라미터 로깅

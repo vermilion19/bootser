@@ -37,3 +37,5 @@ include 'agents:TestMakerAgent'
 
 
 
+
+include 'apps:query-burst'

@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+dependencies {
+    implementation project(':libs:common')
+    implementation project(':libs:core-web')
+    implementation project(':libs:storage-db')  // JPA, QueryDSL, PostgreSQL 포함
+
+    // QueryDSL Q클래스 생성 (annotationProcessor는 상속 안 되므로 모듈별 선언 필요)
+    annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'com.h2database:h2'
+}
+
+// QueryDSL QClass 생성 경로
+def querydslDir = "$buildDir/generated/querydsl"
+
+tasks.withType(JavaCompile) {
+    options.getGeneratedSourceOutputDirectory().set(file(querydslDir))
+}
+
+sourceSets {
+    main.java.srcDirs += [querydslDir]
+}
+
+clean {
+    delete file(querydslDir)
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
