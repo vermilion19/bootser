@@ -1,6 +1,7 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/query_burst
+    # reWriteBatchedInserts=true: N개 단건 INSERT → 단일 multi-row INSERT 변환 (핵심 성능 옵션)
+    url: jdbc:postgresql://localhost:5432/query_burst?reWriteBatchedInserts=true
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -12,3 +13,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+
+# 더미 데이터 적재 설정 (POST /api/data-init 으로 수동 실행)
+data:
+  init:
+    member-count: 10000000  # 1,000만
+    product-count: 1000000  # 100만
+    order-count: 30000000   # 3,000만
+    order-item-per-order: 3 # 주문당 평균 3건 → order_item 총 9,000만
+    batch-size: 5000        # 배치당 레코드 수
+    thread-count: 8         # 병렬 스레드 수 (hikari pool size 20 이하 권장)
