@@ -9,6 +9,9 @@ spring:
     console:
       enabled: true   # http://localhost:8090/h2-console
 
+  flyway:
+    enabled: false   # local은 H2 create-drop으로 관리
+
   jpa:
     hibernate:
       ddl-auto: create-drop
