@@ -18,16 +18,19 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Kafka Message Broker                       │
 ├─────────────────────────────────────────────────────────────────┤
-│  waiting-events          (REGISTER, CALLED, ENTER, CANCEL)     │
-│  booster.restaurant.events (RESTAURANT_UPDATED)                │
-│  coupon.issue.request    (userId:couponId)                     │
-│  member-events           (SIGNIN, SIGNUP, UPDATE, DELETE)      │
-│  waiting-events.DLT      (Dead Letter Queue)                   │
+│  waiting-events            (REGISTER, CALLED, ENTER, CANCEL)   │
+│  booster.restaurant.events (CREATED, UPDATED, DELETED)         │
+│  coupon.issue.request      (userId:couponId)                   │
+│  member-events             (SIGNIN, SIGNUP, UPDATE, DELETE)    │
+│  waiting-events.DLT        (Dead Letter Queue)                 │
 └───────────┬─────────────────────────────────────────────────────┘
             │
-    ┌───────▼────────┐   Feign(동기)    ┌──────────────────┐
-    │ Waiting Service│ ───GET /restaurants/{id}──► Restaurant │
-    │                │ ◄──────────────── │     Service      │
+    ┌───────▼────────┐                  ┌──────────────────┐
+    │ Waiting Service│                  │  Restaurant      │
+    │                │  ◄─ Kafka ──────  │  Service         │
+    │ restaurant_    │  (CREATED/       │                  │
+    │ snapshot (DB)  │   UPDATED/       │  Outbox → Kafka  │
+    │ Redis Cache    │   DELETED)       │                  │
     └───────┬────────┘                  └────────┬─────────┘
             │                                    │
             │ waiting-events (pub)   restaurant.events (pub, Outbox)
@@ -48,6 +51,10 @@
     │  → member-events │
     │    (Outbox, pub) │
     └──────────────────┘
+
+    [Bootstrap - 기동 시 1회]
+    Waiting Service ──GET /restaurants/v1──► Restaurant Service
+    (ApplicationReadyEvent, restaurant_snapshot 초기 적재 후 Feign 미사용)
 ```
 
 ---
@@ -75,15 +82,16 @@
 
 | 방향 | 대상 | 방식 | 목적 |
 |------|------|------|------|
-| 호출 | Restaurant Service | Feign (동기) | 식당 존재 확인, 캐시 갱신 |
 | 발행 | `waiting-events` | Kafka + ApplicationEvent | 웨이팅 생명주기 이벤트 |
-| 구독 | `booster.restaurant.events` | Kafka | 식당 정보 변경 캐시 갱신 |
+| 구독 | `booster.restaurant.events` | Kafka | 식당 정보 변경 → DB + Redis 갱신 |
+| 호출 | Restaurant Service | Feign (기동 시 1회만) | `restaurant_snapshot` 초기 적재 (Bootstrap) |
 
 **핵심 패턴**
 - Redis SortedSet으로 실시간 대기 순위 관리
 - Self-Healing: Redis 유실 시 DB COUNT 쿼리로 복구
 - Outbox Pattern: 이벤트 발행 보장
 - ShedLock (Redis): Outbox 스케줄러 중복 실행 방지
+- Event-Carried State Transfer: 식당 정보를 `restaurant_snapshot` 테이블에 로컬 보관, 런타임 Feign 의존 없음
 
 ---
 
@@ -109,11 +117,17 @@
 
 | 방향 | 대상 | 방식 | 목적 |
 |------|------|------|------|
-| 발행 | `booster.restaurant.events` | Kafka (Outbox) | 식당 정보 변경 알림 |
+| 발행 | `booster.restaurant.events` | Kafka (Outbox) | 식당 CRUD 이벤트 발행 |
 | 구독 | `waiting-events` | Kafka | 입장/취소 이벤트로 occupancy 조정 |
+
+**이벤트 페이로드 (통합 포맷)**
+```json
+{ "eventType": "RESTAURANT_CREATED|UPDATED|DELETED", "id": 1, "name": "맛집" }
+```
 
 **핵심 패턴**
 - Transactional Outbox: DB에 OutboxEvent 저장 후 3초마다 Kafka 발행
+- 등록/수정/삭제 모두 이벤트 발행하여 Waiting Service가 식당 정보 변경을 실시간 반영
 
 ---
 
@@ -192,7 +206,7 @@
 | 토픽 | Producer | Consumer | 이벤트 타입 |
 |------|----------|----------|-----------|
 | `waiting-events` | Waiting Service | Restaurant Service, Notification Service | REGISTER, CALLED, ENTER, CANCEL |
-| `booster.restaurant.events` | Restaurant Service | Waiting Service | RESTAURANT_UPDATED |
+| `booster.restaurant.events` | Restaurant Service | Waiting Service | RESTAURANT_CREATED, RESTAURANT_UPDATED, RESTAURANT_DELETED |
 | `coupon.issue.request` | 외부 or Promotion API | Promotion Service | 쿠폰 발급 요청 |
 | `member-events` | Auth Service | (다른 시스템) | SIGNIN, SIGNUP, UPDATE, DELETE |
 | `waiting-events.DLT` | Kafka (자동) | Notification Service | 재시도 최종 실패 메시지 |
@@ -234,23 +248,43 @@ record MemberEvent(
 
 ---
 
-## 6. Feign 동기 통신
+## 6. 식당 정보 조회 전략 (Event-Carried State Transfer)
 
+런타임 Feign 동기 호출을 제거하고, 이벤트 기반으로 식당 정보를 로컬에서 관리합니다.
+
+**조회 우선순위 (RestaurantCacheService)**
 ```
-Waiting Service ──GET /restaurants/v1/{restaurantId}──► Restaurant Service
+1. Redis Cache  (L1, TTL 24h)
+       ↓ Miss
+2. restaurant_snapshot 테이블  (L2, Waiting Service 로컬 DB)
+       ↓ 없음
+3. Fallback: "식당 #{id}"  (Bootstrap/이벤트로 곧 채워짐)
 ```
 
-**설정 (application.yml)**
-```yaml
-app:
-  feign:
-    restaurant:
-      url: "http://localhost:6000/restaurants"
+**갱신 경로**
+```
+Restaurant Service
+  등록/수정/삭제
+     │
+     └─ Outbox → Kafka(booster.restaurant.events)
+                      │
+                      └─ RestaurantEventConsumer
+                            ├─ restaurant_snapshot upsert/delete (DB)
+                            └─ Redis updateCache/evictCache
 ```
 
-**Resilience4j 적용**
-- Bulkhead: `maxConcurrentCalls=20`, `maxWaitDuration=100ms`
-- CircuitBreaker: 슬라이딩 윈도우 크기 20
+**Bootstrap (기동 시 1회)**
+```
+ApplicationReadyEvent
+  └─ RestaurantBootstrapService
+       └─ GET /restaurants/v1  (Feign, 1회성)
+            └─ restaurant_snapshot 전체 적재 + Redis 워밍
+```
+
+**효과**
+- Restaurant Service 장애 시 Waiting Service 정상 동작 (완전한 장애 격리)
+- Redis 유실 시 로컬 DB에서 복구
+- 식당명 반영 지연: Outbox polling 주기(3초) 이내
 
 ---
 
@@ -272,7 +306,8 @@ WaitingService.register()
 
 ```
 1. [Client] POST /waitings/v1  →  Waiting Service
-   ├─ RestaurantClient.getRestaurant()  (Feign → Restaurant Service)
+   ├─ RestaurantCacheService.getRestaurantName()
+   │    └─ Redis → restaurant_snapshot DB → Fallback  (Feign 없음)
    ├─ Waiting.create() + DB 저장
    ├─ Redis SortedSet에 순위 등록
    └─ ApplicationEvent 발행 (REGISTER)
@@ -318,6 +353,7 @@ WaitingService.register()
 |--------|---------|
 | `waiting` | id, restaurant_id, guest_phone, waiting_number, status, created_at |
 | `outbox_events` | id, aggregate_type, aggregate_id, event_type, payload, published |
+| `restaurant_snapshot` | id (=restaurantId), name, created_at, updated_at |
 
 ### restaurant-service
 | 테이블 | 주요 컬럼 |
@@ -350,7 +386,8 @@ WaitingService.register()
 AOP 어노테이션(`@Cacheable`, `@Transactional`, `@Async`)이 붙은 메서드를 같은 클래스 내에서 호출하면 프록시가 동작하지 않아 AOP가 무시됨. 반드시 다른 Bean에서 호출해야 함.
 
 ### Redis 유실 대비 (Waiting Service)
-Redis에 대기 순위 데이터가 없으면 DB COUNT 쿼리로 재계산 후 Redis에 복구 (Self-Healing).
+- **대기 순위**: Redis 없으면 DB COUNT 쿼리로 재계산 후 Redis에 복구 (Self-Healing)
+- **식당 정보**: Redis 없으면 `restaurant_snapshot` 테이블에서 조회 후 Redis 재적재
 
 ### DLQ 처리 (Notification Service)
 Kafka 재시도 후 최종 실패한 메시지는 `waiting-events.DLT` 토픽으로 자동 라우팅되며, `DltEventListener`가 `Notification.markAsFailed()`로 상태를 기록함.
