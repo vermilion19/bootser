@@ -2,6 +2,7 @@ package com.booster.queryburst.member.domain;
 
 import com.booster.common.SnowflakeGenerator;
 import com.booster.queryburst.member.application.dto.MemberCreateCommand;
+import com.booster.queryburst.member.application.dto.MemberUpdateCommand;
 import com.booster.storage.db.core.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -59,7 +60,13 @@ public class Member extends BaseEntity {
         return member;
     }
 
-    public void upgrade(MemberGrade grade) {
+    public void chaneGrade(MemberGrade grade) {
         this.grade = grade;
+    }
+
+    public void update(MemberUpdateCommand command) {
+        if (command.name() != null) this.name = command.name();
+        if (command.grade() != null) this.grade = command.grade();
+        if (command.region() != null) this.region = command.region();
     }
 }

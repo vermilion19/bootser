@@ -1,6 +1,7 @@
 package com.booster.queryburst.member.application;
 
 import com.booster.queryburst.member.application.dto.MemberCreateCommand;
+import com.booster.queryburst.member.application.dto.MemberUpdateCommand;
 import com.booster.queryburst.member.domain.Member;
 import com.booster.queryburst.member.domain.MemberQueryRepository;
 import com.booster.queryburst.member.domain.MemberRepository;
@@ -24,4 +25,13 @@ public class MemberService {
         return memberRepository.save(member).getId();
     }
 
+    public void deleteMember(Long memberId) {
+        memberRepository.deleteById(memberId);
+    }
+
+    public void updateMember(Long memberId, MemberUpdateCommand command) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. id=" + memberId));
+        member.update(command);
+    }
 }
