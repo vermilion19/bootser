@@ -6,8 +6,13 @@ import com.booster.queryburst.member.domain.Member;
 import com.booster.queryburst.member.domain.MemberQueryRepository;
 import com.booster.queryburst.member.domain.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @Transactional
@@ -16,6 +21,21 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final MemberQueryRepository memberQueryRepository;
+
+    @Transactional(readOnly = true)
+    public Page<Member> getMembers(Pageable pageable) {
+        return memberRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Slice<Member> getMembersSlice(Pageable pageable) {
+        return memberRepository.findSliceBy(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Member> getMembersByCursor(Long cursorId, int size) {
+        return memberQueryRepository.findByCursor(cursorId, size);
+    }
 
     public Long createMember(MemberCreateCommand command) {
         if (memberRepository.existsByEmail(command.email())) {
