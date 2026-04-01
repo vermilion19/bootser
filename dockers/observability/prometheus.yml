@@ -20,3 +20,12 @@ scrape_configs:
       # 인스턴스 ID 라벨 추가
       - source_labels: [__meta_eureka_app_instance_id]
         target_label: instance_id
+
+  # query-burst (Eureka 미등록 독립 서비스) - host.docker.internal로 호스트 접근
+  - job_name: 'query-burst'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8090']
+        labels:
+          application: query-burst
