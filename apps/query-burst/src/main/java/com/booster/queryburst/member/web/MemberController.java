@@ -58,7 +58,7 @@ public class MemberController {
 
         boolean hasNext = fetched.size() > size;
         List<MemberSummaryResponse> content = hasNext ? fetched.subList(0, size) : fetched;
-        Long nextCursor = hasNext ? content.get(content.size() - 1).id() : null;
+        Long nextCursor = hasNext ? content.getLast().id() : null;
 
         return ResponseEntity.ok(CursorPageResponse.of(content, hasNext, nextCursor));
     }
