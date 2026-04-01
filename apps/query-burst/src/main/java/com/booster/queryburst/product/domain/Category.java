@@ -65,4 +65,8 @@ public class Category extends BaseEntity {
         category.depth = parent.depth + 1;
         return category;
     }
+
+    public boolean isHighest() {
+        return parent == null;
+    }
 }
