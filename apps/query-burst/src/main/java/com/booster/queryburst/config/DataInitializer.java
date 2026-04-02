@@ -107,16 +107,16 @@ public class DataInitializer {
     // ─── SQL ────────────────────────────────────────────────────────────────
 
     private static final String MEMBER_SQL =
-        "INSERT INTO member (id, email, name, grade, region, created_at, updated_at) VALUES (?,?,?,?,?,?,?)";
+        "INSERT INTO member (id, email, name, grade, region, created_at, updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
 
     private static final String PRODUCT_SQL =
-        "INSERT INTO product (id, name, price, stock, status, category_id, seller_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)";
+        "INSERT INTO product (id, name, price, stock, status, category_id, seller_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
 
     private static final String ORDER_SQL =
-        "INSERT INTO orders (id, member_id, status, total_amount, ordered_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?)";
+        "INSERT INTO orders (id, member_id, status, total_amount, ordered_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
 
     private static final String ORDER_ITEM_SQL =
-        "INSERT INTO order_item (id, order_id, product_id, quantity, unit_price, created_at, updated_at) VALUES (?,?,?,?,?,?,?)";
+        "INSERT INTO order_item (id, order_id, product_id, quantity, unit_price, created_at, updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
 
     // ─── 진입점 ──────────────────────────────────────────────────────────────
 
@@ -163,7 +163,7 @@ public class DataInitializer {
             {"헬스", "등산", "수영", "구기종목", "사이클"}
         };
 
-        String sql = "INSERT INTO category (id, name, parent_id, depth, created_at, updated_at) VALUES (?,?,?,?,?,?)";
+        String sql = "INSERT INTO category (id, name, parent_id, depth, created_at, updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
         LocalDateTime now = LocalDateTime.now();
         long id = 1;
         List<Long> depth3Ids = new ArrayList<>();
