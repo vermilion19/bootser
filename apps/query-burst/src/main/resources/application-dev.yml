@@ -17,6 +17,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate   # Flyway가 스키마 관리, JPA는 검증만
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 # 더미 데이터 적재 설정 (POST /api/data-init 으로 수동 실행)
 data:
