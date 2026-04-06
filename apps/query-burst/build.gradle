@@ -8,6 +8,7 @@ dependencies {
     implementation project(':libs:common')
     implementation project(':libs:core-web')
     implementation project(':libs:storage-db')  // JPA, QueryDSL, PostgreSQL 포함
+    implementation project(':libs:storage-redis')  // Redisson, RedisTemplate 포함
 
     // QueryDSL Q클래스 생성 (annotationProcessor는 상속 안 되므로 모듈별 선언 필요)
     annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"

@@ -115,4 +115,8 @@ public class Orders extends BaseEntity {
         }
         this.status = OrderStatus.CANCELED;
     }
+
+    public void updateTotalAmount(Long totalAmount) {
+        this.totalAmount = totalAmount;
+    }
 }

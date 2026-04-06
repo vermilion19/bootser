@@ -51,6 +51,15 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private int stock;
 
+    /**
+     * 마지막으로 적용된 펜싱 토큰.
+     *
+     * 재고 차감 시 요청의 fencingToken > lastFenceToken 인 경우에만 처리한다.
+     * 이를 통해 오래된 락 보유자(stale writer)의 쓰기를 DB 레벨에서 거부한다.
+     */
+    @Column(nullable = false)
+    private long lastFenceToken = 0L;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private ProductStatus status;
@@ -81,7 +90,30 @@ public class Product extends BaseEntity {
         this.price = price;
     }
 
-    public void decreaseStock(int quantity) {
+    public void decreaseStock(int quantity, long fenceToken) {
+        if (fenceToken <= this.lastFenceToken) {
+            throw new StaleTokenException(
+                    "오래된 요청입니다. productId=%d, 요청 token=%d, 마지막 적용 token=%d"
+                            .formatted(this.id, fenceToken, this.lastFenceToken));
+        }
+        if (this.stock < quantity) {
+            throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + this.stock);
+        }
+        this.stock -= quantity;
+        this.lastFenceToken = fenceToken;
+        if (this.stock == 0) {
+            this.status = ProductStatus.SOLD_OUT;
+        }
+    }
+
+    /**
+     * Redis 장애 Fallback 전용 재고 차감.
+     *
+     * 호출 전제: DB 비관적 락(SELECT FOR UPDATE)이 이미 획득된 상태.
+     * DB 락이 동시성을 보장하므로 fencing token 검증을 생략한다.
+     * lastFenceToken은 갱신하지 않아 Redis 복구 후 Redis 경로와 호환된다.
+     */
+    public void decreaseStockFallback(int quantity) {
         if (this.stock < quantity) {
             throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + this.stock);
         }
