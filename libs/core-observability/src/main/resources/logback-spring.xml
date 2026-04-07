@@ -38,8 +38,8 @@
         </root>
     </springProfile>
 
-    <!-- Docker 프로파일: 콘솔 + Loki -->
-    <springProfile name="docker">
+    <!-- Dev/Docker 프로파일: 콘솔 + Loki -->
+    <springProfile name="dev,docker">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="LOKI"/>

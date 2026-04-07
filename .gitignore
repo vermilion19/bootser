@@ -48,5 +48,10 @@ tmpclaude*
 
 ### OS artifacts ###
 nul
-/dockers/d-day/.env
 /lib/
+
+### Environment files (민감한 정보 보호) ###
+.env
+!.env.example
+/dockers/**/.env
+!/dockers/**/.env.example
