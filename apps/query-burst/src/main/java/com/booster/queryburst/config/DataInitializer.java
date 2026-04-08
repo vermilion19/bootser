@@ -279,6 +279,7 @@ public class DataInitializer {
                 PRODUCT_STATUSES[rnd.nextInt(PRODUCT_STATUSES.length)],
                 depth3CategoryIds[rnd.nextInt(depth3CategoryIds.length)],
                 rnd.nextLong(1, memberCount + 1),
+                0L,  // last_fence_token 초기값
                 now, now
             });
         }
