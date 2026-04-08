@@ -110,7 +110,7 @@ public class DataInitializer {
         "INSERT INTO member (id, email, name, grade, region, created_at, updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
 
     private static final String PRODUCT_SQL =
-        "INSERT INTO product (id, name, price, stock, status, category_id, seller_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
+        "INSERT INTO product (id, name, price, stock, status, category_id, seller_id, last_fence_token, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
 
     private static final String ORDER_SQL =
         "INSERT INTO orders (id, member_id, status, total_amount, ordered_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
@@ -128,6 +128,10 @@ public class DataInitializer {
         CompletableFuture.runAsync(() -> {
             try {
                 initialize();
+            } catch (Exception e) {
+                String errorMsg = "에러 발생: " + e.getMessage();
+                status.set(errorMsg);
+                log.error("데이터 적재 중 에러 발생", e);
             } finally {
                 running.set(false);
             }
