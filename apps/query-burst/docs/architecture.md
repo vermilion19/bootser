@@ -457,6 +457,8 @@ SELECT * FROM member WHERE id < :cursor ORDER BY id DESC LIMIT 21
 | 2026-04-09 | **Phase 2**: 실시간 인기 상품 랭킹 (Redis Sorted Set + Kafka Consumer) |
 | 2026-04-09 | **Phase 3**: CQRS 통계 (비정규화 테이블 + Kafka Consumer) |
 | 2026-04-09 | **Consumer 멱등성**: Kafka At-Least-Once 중복 수신 방어 로직 추가 |
+| 2026-04-09 | **분산 Rate Limiter**: `@DistributedRateLimit` AOP + Redis Token Bucket 적용 |
+| 2026-04-09 | **Outbox 정리 스케줄러**: 7일 지난 PUBLISHED 정리 + FAILED 조회/재처리 API 추가 |
 
 ---
 
@@ -466,14 +468,14 @@ SELECT * FROM member WHERE id < :cursor ORDER BY id DESC LIMIT 21
 
 | 순서 | 항목 | 난이도 | 설명 |
 |------|------|--------|------|
-| 1 | **분산 Rate Limiter** | 중 | Redis Token Bucket + 커스텀 `@DistributedRateLimit` AOP |
-| 2 | **Outbox 정리 스케줄러** | 하 | PUBLISHED 이벤트 주기 삭제, FAILED 이벤트 관리 API |
+| 1 | **분산 Rate Limiter** | 완료 | Redis Token Bucket + 커스텀 `@DistributedRateLimit` AOP |
+| 2 | **Outbox 정리 스케줄러** | 완료 | PUBLISHED 이벤트 주기 삭제, FAILED 이벤트 관리 API |
 | 3 | **Flash Sale** | 중~상 | Redis Lua Script 재고 사전 차감 + Kafka 비동기 주문 |
 | 4 | **테스트 코드** | 중 | 핵심 패턴별 단위/통합 테스트 |
 
 ---
 
-### [다음] 분산 Rate Limiter
+### [완료] 분산 Rate Limiter
 
 **문제**: Resilience4j `RateLimiter`는 단일 인스턴스 기준. Scale-out 시 인스턴스 N개 → 실제 허용량 N배 뻥튀기.
 
@@ -498,7 +500,7 @@ Redis Lua Script (Token Bucket):
 
 ---
 
-### [이후] Outbox 정리 스케줄러
+### [완료] Outbox 정리 스케줄러
 
 **문제**: PUBLISHED 이벤트가 무한 누적되어 `outbox_event` 테이블 비대화.
 
@@ -509,7 +511,7 @@ Redis Lua Script (Token Bucket):
 
 ---
 
-### [이후] Flash Sale
+### [다음] Flash Sale
 
 **문제**: 한정 수량 상품에 수만 TPS가 몰릴 때 분산 락 방식은 Lock Contention으로 처리량이 급락.
 

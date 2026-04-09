@@ -89,4 +89,13 @@ public class OutboxEvent extends BaseEntity {
             this.status = OutboxStatus.FAILED;
         }
     }
+
+    public void retry() {
+        if (this.status != OutboxStatus.FAILED) {
+            throw new IllegalStateException("FAILED 상태의 이벤트만 재처리할 수 있습니다.");
+        }
+        this.status = OutboxStatus.PENDING;
+        this.retryCount = 0;
+        this.publishedAt = null;
+    }
 }
