@@ -1,5 +1,6 @@
 package com.booster.queryburst.ranking.event;
 
+import com.booster.queryburst.common.kafka.ConsumerIdempotencyService;
 import com.booster.queryburst.order.event.OrderEventPayload;
 import com.booster.queryburst.ranking.application.RankingService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Component;
  *
  * Consumer Group: ranking-consumer-group
  * → order-events 토픽을 statistics-consumer-group과 독립적으로 소비한다.
- *   동일 토픽을 두 Consumer Group이 구독하면 각 그룹이 모든 메시지를 받는다.
  *
  * 처리:
  *   ORDER_CREATED  → Redis Sorted Set 판매량 증가 (ZINCRBY O(log N))
@@ -20,24 +20,32 @@ import org.springframework.stereotype.Component;
  *   기타           → 무시
  *
  * 멱등성:
- *   ZINCRBY/감소는 항상 같은 결과를 내지 않으므로(중복 시 과다 집계),
- *   Outbox At-Least-Once 특성상 중복 메시지 가능성을 감안한 설계가 필요하다.
- *   실습 단계에서는 단순 구현, 실제 운영 시 orderId 기반 Redis 처리 여부 추적 권장.
+ *   Outbox At-Least-Once 특성상 동일 메시지가 중복 수신될 수 있다.
+ *   ConsumerIdempotencyService로 orderId + eventType 기반 중복 처리를 차단한다.
+ *   Key: "CONSUMER:ranking-consumer-group:{orderId}:{eventType}", TTL=25h
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class RankingEventConsumer {
 
+    private static final String GROUP_ID = "ranking-consumer-group";
+
     private final RankingService rankingService;
+    private final ConsumerIdempotencyService idempotencyService;
 
     @KafkaListener(
             topics = "order-events",
-            groupId = "ranking-consumer-group",
+            groupId = GROUP_ID,
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void consume(OrderEventPayload payload) {
         log.debug("[RankingConsumer] 이벤트 수신. type={}, orderId={}", payload.eventType(), payload.orderId());
+
+        // 멱등성 체크: 이미 처리된 이벤트면 스킵
+        if (idempotencyService.isDuplicate(GROUP_ID, payload.orderId(), payload.eventType())) {
+            return;
+        }
 
         switch (payload.eventType()) {
             case "ORDER_CREATED" -> payload.items().forEach(item ->
@@ -46,7 +54,13 @@ public class RankingEventConsumer {
             case "ORDER_CANCELED" -> payload.items().forEach(item ->
                     rankingService.decrementSales(item.productId(), item.quantity())
             );
-            default -> log.debug("[RankingConsumer] 처리 대상 아님. type={}", payload.eventType());
+            default -> {
+                log.debug("[RankingConsumer] 처리 대상 아님. type={}", payload.eventType());
+                return;  // 미처리 이벤트는 마킹 불필요
+            }
         }
+
+        // 처리 성공 후 마킹 (처리 전 마킹 시 장애 발생 후 재시도 불가)
+        idempotencyService.markProcessed(GROUP_ID, payload.orderId(), payload.eventType());
     }
 }
