@@ -72,7 +72,7 @@ public class OrderService {
                 SnowflakeGenerator.nextId(),
                 command.memberId(),
                 command.items(),
-                item -> productRepository.findById(item.productId())
+                item -> productRepository.findByIdWithLock(item.productId())
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. id=" + item.productId())),
                 (product, item) -> {
                     long fenceToken = command.fencingTokens().getOrDefault(item.productId(), 0L);

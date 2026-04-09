@@ -23,10 +23,10 @@ public class FlashSaleOrderConsumer {
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void consume(FlashSaleOrderPayload payload) {
-        log.info("[FlashSaleConsumer] 이벤트 수신. orderId={}, productId={}, quantity={}",
+        log.info("[FlashSaleConsumer] event received. orderId={}, productId={}, quantity={}",
                 payload.orderId(), payload.productId(), payload.quantity());
 
-        if (idempotencyService.isDuplicate(GROUP_ID, payload.orderId(), payload.eventType())) {
+        if (!idempotencyService.tryStartProcessing(GROUP_ID, payload.orderId(), payload.eventType())) {
             return;
         }
 
@@ -35,8 +35,8 @@ public class FlashSaleOrderConsumer {
             idempotencyService.markProcessed(GROUP_ID, payload.orderId(), payload.eventType());
         } catch (Exception e) {
             flashSaleService.compensateStock(payload.productId(), payload.quantity());
-            idempotencyService.markProcessed(GROUP_ID, payload.orderId(), payload.eventType());
-            log.error("[FlashSaleConsumer] 주문 생성 실패. orderId={}", payload.orderId(), e);
+            idempotencyService.clearProcessing(GROUP_ID, payload.orderId(), payload.eventType());
+            log.error("[FlashSaleConsumer] order creation failed. orderId={}", payload.orderId(), e);
         }
     }
 }
