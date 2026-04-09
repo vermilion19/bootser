@@ -4,6 +4,12 @@ spring:
       host: localhost
       port: 6379
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: query-burst-group
+      auto-offset-reset: earliest
+
   datasource:
     url: jdbc:h2:mem:query_burst;MODE=PostgreSQL
     username: sa
