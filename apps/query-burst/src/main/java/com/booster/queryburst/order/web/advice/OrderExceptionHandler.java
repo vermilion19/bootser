@@ -1,6 +1,7 @@
 package com.booster.queryburst.order.web.advice;
 
 import com.booster.core.web.response.ApiResponse;
+import com.booster.queryburst.common.ratelimit.RateLimitExceededException;
 import com.booster.queryburst.lock.LockAcquisitionException;
 import com.booster.queryburst.order.exception.DuplicateRequestException;
 import com.booster.queryburst.product.domain.StaleTokenException;
@@ -16,6 +17,19 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
 public class OrderExceptionHandler {
+
+    /**
+     * Rate Limit 초과 → 429 Too Many Requests.
+     *
+     * 단위 시간 내 허용된 요청 수를 초과. Kafka abuse-detection 토픽에 이벤트도 발행된다.
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceededException(RateLimitExceededException e) {
+        log.warn("[주문] Rate Limit 초과: key={}", e.getRateLimitKey());
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiResponse.error("요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요."));
+    }
 
     /**
      * 중복 요청 (동일 Idempotency-Key 처리 중) → 409 Conflict.

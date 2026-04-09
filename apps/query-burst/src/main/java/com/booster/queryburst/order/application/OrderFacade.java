@@ -1,5 +1,6 @@
 package com.booster.queryburst.order.application;
 
+import com.booster.queryburst.common.ratelimit.DistributedRateLimit;
 import com.booster.queryburst.lock.DistributedLock;
 import com.booster.queryburst.lock.FencingToken;
 import com.booster.queryburst.lock.RedisUnavailableException;
@@ -56,6 +57,13 @@ public class OrderFacade {
     private final IdempotencyService idempotencyService;
     private final MeterRegistry meterRegistry;
 
+    /**
+     * 멤버별 분산 Rate Limit: 60초 내 최대 5회.
+     *
+     * key: "order:{memberId}" — Redis Hash에 토큰 상태 저장
+     * 초과 시 RateLimitExceededException (HTTP 429) + Kafka abuse-detection 발행
+     */
+    @DistributedRateLimit(key = "'order:' + #request.memberId()", permits = 5, windowSeconds = 60)
     public OrderResult placeOrder(OrderCreateRequest request, String idempotencyKey) {
 
         // ── 1. 멱등성 검사 ─────────────────────────────────────────
