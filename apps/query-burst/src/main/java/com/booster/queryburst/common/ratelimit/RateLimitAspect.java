@@ -18,8 +18,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
-import java.time.Instant;
 import java.util.List;
+import java.time.Instant;
 
 @Slf4j
 @Aspect
@@ -32,11 +32,12 @@ public class RateLimitAspect {
 
     private static final String TOKEN_BUCKET_SCRIPT = """
             local key = KEYS[1]
-            local now = tonumber(ARGV[1])
-            local maxTokens = tonumber(ARGV[2])
-            local refillRate = tonumber(ARGV[3])
-            local requested = tonumber(ARGV[4])
-            local ttl = tonumber(ARGV[5])
+            local timeResult = redis.call('TIME')
+            local now = tonumber(timeResult[1]) * 1000 + math.floor(tonumber(timeResult[2]) / 1000)
+            local maxTokens = tonumber(ARGV[1])
+            local refillRate = tonumber(ARGV[2])
+            local requested = tonumber(ARGV[3])
+            local ttl = tonumber(ARGV[4])
 
             local data = redis.call('HMGET', key, 'tokens', 'lastRefill')
             local tokens = tonumber(data[1])
@@ -90,11 +91,10 @@ public class RateLimitAspect {
     private boolean tryAcquire(String resolvedKey, int permits, int windowSeconds) {
         String redisKey = KEY_PREFIX + resolvedKey;
         double refillRate = (double) permits / windowSeconds;
-        long now = Instant.now().toEpochMilli();
         int ttl = windowSeconds * 2;
 
         try {
-            return executeTokenBucket(redisKey, now, permits, refillRate, ttl);
+            return executeTokenBucket(redisKey, permits, refillRate, ttl);
         } catch (Exception e) {
             log.error("[RateLimit] Redis unavailable. Allowing request. key={}, reason={}",
                     resolvedKey, e.getMessage());
@@ -102,14 +102,13 @@ public class RateLimitAspect {
         }
     }
 
-    private boolean executeTokenBucket(String key, long now, int maxTokens, double refillRate, int ttl) {
+    private boolean executeTokenBucket(String key, int maxTokens, double refillRate, int ttl) {
         RScript script = redissonClient.getScript();
         Long result = script.eval(
                 RScript.Mode.READ_WRITE,
                 TOKEN_BUCKET_SCRIPT,
                 RScript.ReturnType.LONG,
                 List.of(key),
-                String.valueOf(now),
                 String.valueOf(maxTokens),
                 String.valueOf(refillRate),
                 "1",
