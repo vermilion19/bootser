@@ -2,15 +2,8 @@ package com.booster.queryburst.order.application;
 
 import com.booster.queryburst.member.domain.Member;
 import com.booster.queryburst.member.domain.MemberRepository;
-import com.booster.queryburst.order.application.dto.OrderCreateCommand;
-import com.booster.queryburst.order.application.dto.OrderItemCommand;
-import com.booster.queryburst.order.application.dto.OrderResult;
-import com.booster.queryburst.order.domain.OrderItem;
-import com.booster.queryburst.order.domain.OrderItemQueryRepository;
-import com.booster.queryburst.order.domain.OrderItemRepository;
-import com.booster.queryburst.order.domain.OrderQueryRepository;
-import com.booster.queryburst.order.domain.OrderRepository;
-import com.booster.queryburst.order.domain.Orders;
+import com.booster.queryburst.order.application.dto.*;
+import com.booster.queryburst.order.domain.*;
 import com.booster.queryburst.product.domain.Product;
 import com.booster.queryburst.product.domain.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +25,67 @@ public class OrderService {
     private final OrderItemQueryRepository orderItemQueryRepository;
     private final MemberRepository memberRepository;
     private final ProductRepository productRepository;
+
+    // ── 조회 ──────────────────────────────────────────────────────────────────
+
+    /**
+     * 커서 기반 주문 목록 조회 (OFFSET 없음).
+     *
+     * memberId, status 필터 조합:
+     * - memberId만: idx_orders_member_ordered_at 활용
+     * - status만: idx_orders_status_ordered_at 활용
+     */
+    @Transactional(readOnly = true)
+    public List<OrderSummaryResult> getOrders(Long cursorId, Long memberId, OrderStatus status, int size) {
+        return orderQueryRepository.findByCursor(cursorId, memberId, status, size);
+    }
+
+    /**
+     * 주문 상세 조회 (주문 항목 포함).
+     *
+     * Member 페치 조인으로 N+1 방지.
+     * OrderItem은 별도 쿼리로 조회 (컬렉션 페치 조인 시 페이징 불가 문제 회피).
+     */
+    @Transactional(readOnly = true)
+    public OrderDetailResult getOrderDetail(Long orderId) {
+        Orders order = orderQueryRepository.findByIdWithMember(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다. id=" + orderId));
+
+        List<OrderItemResult> items = orderItemQueryRepository.findByOrderId(orderId);
+
+        return new OrderDetailResult(
+                order.getId(),
+                order.getMember().getId(),
+                order.getMember().getName(),
+                order.getStatus(),
+                order.getTotalAmount(),
+                order.getOrderedAt(),
+                items
+        );
+    }
+
+    /**
+     * 월별 매출 집계.
+     *
+     * 쿼리 실습: DATE_TRUNC + GROUP BY
+     * 인덱스: idx_orders_status_ordered_at (status, ordered_at)
+     */
+    @Transactional(readOnly = true)
+    public List<MonthlySalesResult> getMonthlySales(LocalDateTime from, LocalDateTime to) {
+        return orderQueryRepository.findMonthlySales(from, to);
+    }
+
+    /**
+     * 상품별 판매 통계 TOP N.
+     *
+     * 커버링 인덱스: idx_order_item_covering (product_id, quantity, unit_price)
+     */
+    @Transactional(readOnly = true)
+    public List<ProductSalesResult> getTopSellingProducts(int size) {
+        return orderItemQueryRepository.findTopSellingProducts(size);
+    }
+
+    // ── 생성 ──────────────────────────────────────────────────────────────────
 
     /**
      * 주문 생성.
@@ -56,7 +110,6 @@ public class OrderService {
             Product product = productRepository.findById(item.productId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. id=" + item.productId()));
 
-            // 상품별 펜싱 토큰 조회 + 재고 차감 (Product 도메인 내부에서 토큰 검증)
             long fenceToken = command.fencingTokens().getOrDefault(item.productId(), 0L);
             product.decreaseStock(item.quantity(), fenceToken);
 
@@ -66,8 +119,6 @@ public class OrderService {
         }
 
         orderItemRepository.saveAll(orderItems);
-
-        // totalAmount 확정 후 Orders 업데이트
         order.updateTotalAmount(totalAmount);
 
         return new OrderResult(order.getId(), totalAmount);
@@ -90,7 +141,6 @@ public class OrderService {
         orderRepository.save(order);
 
         for (OrderItemCommand item : items) {
-            // SELECT FOR UPDATE — 행 레벨 잠금
             Product product = productRepository.findByIdWithLock(item.productId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. id=" + item.productId()));
 
@@ -105,5 +155,30 @@ public class OrderService {
         order.updateTotalAmount(totalAmount);
 
         return new OrderResult(order.getId(), totalAmount);
+    }
+
+    // ── 상태 전환 ─────────────────────────────────────────────────────────────
+
+    public void pay(Long orderId) {
+        getOrderOrThrow(orderId).pay();
+    }
+
+    public void ship(Long orderId) {
+        getOrderOrThrow(orderId).ship();
+    }
+
+    public void deliver(Long orderId) {
+        getOrderOrThrow(orderId).deliver();
+    }
+
+    public void cancel(Long orderId) {
+        getOrderOrThrow(orderId).cancel();
+    }
+
+    // ── private ───────────────────────────────────────────────────────────────
+
+    private Orders getOrderOrThrow(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다. id=" + orderId));
     }
 }
