@@ -170,7 +170,7 @@ com.booster.queryburst/
 | `total_amount` | 해당 날짜 카테고리 누적 매출 |
 | `order_count` | 해당 날짜 카테고리 주문 건수 |
 
-> UNIQUE 인덱스: `(date, category_id)` — UPSERT 기준
+> UNIQUE 인덱스: `(date, category_id)` — 날짜/카테고리 단위 집계를 유일하게 유지하기 위한 기준
 
 ### product_daily_sales 테이블 (CQRS Write Model)
 
@@ -181,7 +181,7 @@ com.booster.queryburst/
 | `sold_count` | 해당 날짜 누적 판매 수량 |
 | `revenue` | 해당 날짜 누적 매출 |
 
-> UNIQUE 인덱스: `(date, product_id)` — UPSERT 기준  
+> UNIQUE 인덱스: `(date, product_id)` — 날짜/상품 단위 집계를 유일하게 유지하기 위한 기준  
 > 복합 인덱스: `(date, sold_count)` — 날짜별 판매량 순위 조회
 
 ### Redis 키 목록
@@ -191,7 +191,7 @@ com.booster.queryburst/
 | `IDEMPOTENCY:{key}` | Producer 멱등성 (주문 API) | 5분(처리중) / 24시간(완료) |
 | `CONSUMER:{groupId}:{orderId}:{eventType}` | Consumer 멱등성 | 25시간 |
 | `RANK:hourly:{yyyyMMddHH}` | 시간대별 판매량 Sorted Set | 25시간 |
-| `RANK:window:{hash}` | 슬라이딩 윈도우 임시 집계 | 5분 |
+| `RANK:window:{windowHours}h:{timestamp}` | 슬라이딩 윈도우 조회용 임시 집계 키 | 5분 이내(조회 직후 삭제) |
 | `outbox:relay:lock` | Outbox Relay 분산 락 | 30초 |
 | `product:{id}:stock` | 재고 차감 분산 락 | 5초 |
 
@@ -254,7 +254,7 @@ com.booster.queryburst/
 | `GET` | `/api/rankings/realtime` | 슬라이딩 윈도우 인기 상품 TOP N |
 
 > 파라미터: `windowHours` (1~24, 기본 1), `size` (기본 10)  
-> DB 쿼리 없음 — Redis Sorted Set O(log N) 응답
+> DB 쿼리 없음. 시간대별 Sorted Set을 합산해 Top N을 계산하는 Redis 기반 조회
 
 ### Statistics — `/api/statistics`
 
@@ -264,7 +264,7 @@ com.booster.queryburst/
 | `GET` | `/api/statistics/top-products` | 날짜별 상품 판매 TOP 10 |
 | `GET` | `/api/statistics/products/{id}/trend` | 상품별 기간 판매 추이 |
 
-> 비정규화 테이블 단순 조회 — 조인 없음, 5ms 이내 응답
+> 비정규화 테이블 단순 조회 중심. 조인 비용을 줄이는 읽기 모델
 
 ---
 
@@ -297,7 +297,7 @@ Client B (락 획득 실패로 지연, token=3) ─▶ DB에서 token=3 < lastFe
 ```
 상태 머신 (Redis 키: "IDEMPOTENCY:{key}")
   없음        → 신규 요청. PROCESSING 마킹 후 처리 시작
-  PROCESSING  → 동시 중복 요청 차단 (429 Too Many Requests)
+  PROCESSING  → 동시 중복 요청 차단 (현재 구현은 409 Conflict)
   COMPLETED   → 캐시된 결과 즉시 반환 (DB/Lock 미접근)
 ```
 
@@ -356,13 +356,13 @@ windowHours=6 집계:
 
 **해결**: 이벤트 소비 시 비정규화 통계 테이블 실시간 갱신. 조회는 단순 SELECT.
 
-| 방식 | 응답시간 |
-|------|----------|
-| 기존 집계 쿼리 | ~3초 |
-| CQRS 비정규화 | ~5ms |
+| 방식 | 특성 |
+|------|------|
+| 기존 집계 쿼리 | 대용량 조인/GROUP BY 부담 |
+| CQRS 비정규화 | 사전 집계된 읽기 모델 단순 조회 |
 
 ```
-ORDER_CREATED → daily_sales_summary UPSERT + product_daily_sales UPSERT
+ORDER_CREATED → 기존 집계 조회 후 없으면 생성, 있으면 누적 후 저장
 ORDER_CANCELED → 위 두 테이블 역산
 ```
 
@@ -374,6 +374,7 @@ ORDER_CANCELED → 위 두 테이블 역산
 `RankingEventConsumer`가 중복 수신 시 판매량 과다 집계, `StatisticsEventConsumer`가 중복 수신 시 통계 이중 반영.
 
 **해결**: `ConsumerIdempotencyService`로 `orderId + eventType` 기반 처리 여부를 Redis에 기록.
+현재 구현은 `isDuplicate()` 검사 후 비즈니스 로직을 수행하고, 성공 시 `markProcessed()`를 호출하는 방식이다.
 
 ```
 Redis 키: "CONSUMER:{groupId}:{orderId}:{eventType}"
@@ -383,7 +384,7 @@ TTL: 25시간 (Kafka retention 24h + 여유 1h)
   isDuplicate() = true  → 즉시 return (처리 건너뜀)
   isDuplicate() = false → 비즈니스 로직 처리
                         → 처리 성공 후 markProcessed()
-                          (처리 전 마킹 금지: 장애 시 재시도 불가)
+                          (현재 구현은 처리 전 선점이 아닌 사후 마킹 방식)
 ```
 
 **Consumer Group별 독립 키**: `ranking-consumer-group`과 `statistics-consumer-group`이 서로 다른 키를 사용하므로 한 그룹의 멱등성이 다른 그룹에 영향을 주지 않는다.
@@ -420,13 +421,13 @@ TTL: 25시간 (Kafka retention 24h + 여유 1h)
             ▼                        ▼
   [ranking-consumer-group]  [statistics-consumer-group]
     Consumer 멱등성 체크       Consumer 멱등성 체크
-    Redis ZINCRBY              DB UPSERT
+    Redis 증감 반영            DB 조회/생성 후 저장
     "RANK:hourly:{HH}"         daily_sales_summary
                                product_daily_sales
             │                        │
             ▼                        ▼
   GET /api/rankings/realtime  GET /api/statistics/daily-sales
-  (O(log N), DB 쿼리 없음)    (단순 SELECT, 5ms 이내)
+  (Redis 기반 집계 조회)      (단순 SELECT 중심)
 ```
 
 ---
@@ -537,7 +538,7 @@ Redis Lua Script (Token Bucket):
 |--------|-------------|
 | `OutboxMessageRelay` | Kafka 발행 성공/실패/재시도 시나리오, PUBLISHED/FAILED 상태 전환 |
 | `OrderFacade` | 분산 락 경로, 멱등성 캐시 반환, Redis 장애 Fallback 분기 |
-| `StatisticsEventConsumer` | ORDER_CREATED UPSERT 정합성, ORDER_CANCELED 역산 정합성 |
+| `StatisticsEventConsumer` | ORDER_CREATED 누적 저장 정합성, ORDER_CANCELED 역산 정합성 |
 | `RankingService` | 슬라이딩 윈도우 집계 정확성, TTL 만료 처리 |
 | `ConsumerIdempotencyService` | 중복 감지, 마킹 시점(처리 후) 검증 |
 | `Product.decreaseStock()` | 펜싱 토큰 검증, 재고 부족 예외 |
@@ -553,8 +554,8 @@ Redis Lua Script (Token Bucket):
 3. **Redis 장애** → DB 비관적 락으로 자동 Fallback (무중단)
 4. **이벤트 유실** → Outbox 패턴으로 At-Least-Once 발행 보장
 5. **중복 이벤트** → Consumer 멱등성으로 통계/랭킹 이중 처리 차단
-6. **읽기 집계 부하** → CQRS 통계 테이블로 집계 쿼리 제거 (3초 → 5ms)
-7. **실시간 랭킹** → Redis Sorted Set으로 DB 쿼리 없이 O(log N) 응답
+6. **읽기 집계 부하** → CQRS 통계 테이블로 조인/GROUP BY 부담을 읽기 모델로 분산
+7. **실시간 랭킹** → Redis Sorted Set 기반으로 DB 집계 없이 랭킹 조회
 8. **페이지네이션** → OFFSET 제거, 커서 기반으로 대용량에서도 일관된 성능
 
 각 패턴은 **왜(Why) → 무엇을(What) → 어떻게(How) → 트레이드오프(Trade-off)** 구조로 설명 가능하다.
