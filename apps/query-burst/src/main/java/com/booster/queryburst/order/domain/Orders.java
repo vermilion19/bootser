@@ -79,8 +79,12 @@ public class Orders extends BaseEntity {
     private List<OrderItem> orderItems = new ArrayList<>();
 
     public static Orders create(Member member, Long totalAmount, LocalDateTime orderedAt) {
+        return createWithId(SnowflakeGenerator.nextId(), member, totalAmount, orderedAt);
+    }
+
+    public static Orders createWithId(Long id, Member member, Long totalAmount, LocalDateTime orderedAt) {
         Orders orders = new Orders();
-        orders.id = SnowflakeGenerator.nextId();
+        orders.id = id;
         orders.member = member;
         orders.status = OrderStatus.PENDING;
         orders.totalAmount = totalAmount;

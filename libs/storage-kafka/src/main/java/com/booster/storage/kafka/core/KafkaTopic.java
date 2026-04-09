@@ -14,6 +14,7 @@ public enum KafkaTopic {
     MEMBER_EVENTS("member-events", "회원 이벤트"),
     MEMBER_EVENTS_DLT("member-events.DLT", "회원 이벤트 DLT"),
 
+    FLASH_SALE_ORDERS("flash-sale-orders", "플래시 세일 주문 생성 요청"),
     ORDER_EVENTS("order-events", "주문 이벤트"),
     ORDER_EVENTS_DLT("order-events.DLT", "주문 이벤트 DLT");
 

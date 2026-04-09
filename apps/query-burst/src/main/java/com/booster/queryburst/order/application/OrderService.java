@@ -1,6 +1,7 @@
 package com.booster.queryburst.order.application;
 
 import com.booster.common.JsonUtils;
+import com.booster.common.SnowflakeGenerator;
 import com.booster.queryburst.member.domain.Member;
 import com.booster.queryburst.member.domain.MemberRepository;
 import com.booster.queryburst.order.application.dto.*;
@@ -32,8 +33,6 @@ public class OrderService {
     private final MemberRepository memberRepository;
     private final ProductRepository productRepository;
     private final OutboxEventRepository outboxEventRepository;
-
-    // ── 조회 ──────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public List<OrderSummaryResult> getOrders(Long cursorId, Long memberId, OrderStatus status, int size) {
@@ -68,91 +67,41 @@ public class OrderService {
         return orderItemQueryRepository.findTopSellingProducts(size);
     }
 
-    // ── 생성 ──────────────────────────────────────────────────────────────────
-
-    /**
-     * 주문 생성 + Outbox 이벤트 저장 (같은 트랜잭션).
-     *
-     * Outbox 패턴: Orders/OrderItem INSERT와 OutboxEvent INSERT가 단일 트랜잭션으로 묶인다.
-     * → DB 커밋 성공 = 이벤트 발행 보장 (OutboxMessageRelay가 3초 이내 Kafka로 발행)
-     *
-     * @throws com.booster.queryburst.product.domain.StaleTokenException 오래된 락 보유자의 요청인 경우
-     * @throws IllegalStateException 재고 부족인 경우
-     */
     public OrderResult createOrder(OrderCreateCommand command) {
-        Member member = memberRepository.findById(command.memberId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. id=" + command.memberId()));
-
-        List<OrderItem> orderItems = new ArrayList<>();
-        long totalAmount = 0L;
-
-        Orders order = Orders.create(member, 0L, LocalDateTime.now());
-        orderRepository.save(order);
-
-        for (OrderItemCommand item : command.items()) {
-            Product product = productRepository.findById(item.productId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. id=" + item.productId()));
-
-            long fenceToken = command.fencingTokens().getOrDefault(item.productId(), 0L);
-            product.decreaseStock(item.quantity(), fenceToken);
-
-            OrderItem orderItem = OrderItem.create(order, product, item.quantity(), product.getPrice());
-            orderItems.add(orderItem);
-            totalAmount += orderItem.totalPrice();
-        }
-
-        orderItemRepository.saveAll(orderItems);
-        order.updateTotalAmount(totalAmount);
-
-        // Outbox: ORDER_CREATED 이벤트 저장
-        outboxEventRepository.save(OutboxEvent.create(
-                "ORDER",
-                order.getId(),
-                "ORDER_CREATED",
-                toJson(buildCreatedPayload(order, orderItems))
-        ));
-
-        return new OrderResult(order.getId(), totalAmount);
+        return createOrderInternal(
+                SnowflakeGenerator.nextId(),
+                command.memberId(),
+                command.items(),
+                item -> productRepository.findById(item.productId())
+                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. id=" + item.productId())),
+                (product, item) -> {
+                    long fenceToken = command.fencingTokens().getOrDefault(item.productId(), 0L);
+                    product.decreaseStock(item.quantity(), fenceToken);
+                }
+        );
     }
 
-    /**
-     * Redis 장애 Fallback: DB 비관적 락으로 주문 생성 + Outbox 이벤트 저장.
-     */
     public OrderResult createOrderWithPessimisticLock(Long memberId, List<OrderItemCommand> items) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. id=" + memberId));
-
-        List<OrderItem> orderItems = new ArrayList<>();
-        long totalAmount = 0L;
-
-        Orders order = Orders.create(member, 0L, LocalDateTime.now());
-        orderRepository.save(order);
-
-        for (OrderItemCommand item : items) {
-            Product product = productRepository.findByIdWithLock(item.productId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. id=" + item.productId()));
-
-            product.decreaseStockFallback(item.quantity());
-
-            OrderItem orderItem = OrderItem.create(order, product, item.quantity(), product.getPrice());
-            orderItems.add(orderItem);
-            totalAmount += orderItem.totalPrice();
-        }
-
-        orderItemRepository.saveAll(orderItems);
-        order.updateTotalAmount(totalAmount);
-
-        outboxEventRepository.save(OutboxEvent.create(
-                "ORDER",
-                order.getId(),
-                "ORDER_CREATED",
-                toJson(buildCreatedPayload(order, orderItems))
-        ));
-
-        return new OrderResult(order.getId(), totalAmount);
+        return createOrderInternal(
+                SnowflakeGenerator.nextId(),
+                memberId,
+                items,
+                item -> productRepository.findByIdWithLock(item.productId())
+                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. id=" + item.productId())),
+                (product, item) -> product.decreaseStockFallback(item.quantity())
+        );
     }
 
-    // ── 상태 전환 ─────────────────────────────────────────────────────────────
+    public OrderResult createFlashSaleOrder(Long orderId, Long memberId, List<OrderItemCommand> items) {
+        return createOrderInternal(
+                orderId,
+                memberId,
+                items,
+                item -> productRepository.findByIdWithLock(item.productId())
+                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. id=" + item.productId())),
+                (product, item) -> product.decreaseStockFallback(item.quantity())
+        );
+    }
 
     public void pay(Long orderId) {
         Orders order = getOrderOrThrow(orderId);
@@ -172,17 +121,10 @@ public class OrderService {
         saveStatusChangedEvent(order);
     }
 
-    /**
-     * 주문 취소 + Outbox ORDER_CANCELED 이벤트 저장.
-     *
-     * 통계 Consumer가 ORDER_CANCELED 이벤트로 DailySalesSummary를 역산(감소)한다.
-     * 이를 위해 items(상품/카테고리 정보)를 payload에 포함한다.
-     */
     public void cancel(Long orderId) {
         Orders order = getOrderOrThrow(orderId);
         order.cancel();
 
-        // items 포함: 통계 Consumer가 역산에 사용
         List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
         outboxEventRepository.save(OutboxEvent.create(
                 "ORDER",
@@ -192,7 +134,43 @@ public class OrderService {
         ));
     }
 
-    // ── private ───────────────────────────────────────────────────────────────
+    private OrderResult createOrderInternal(
+            Long orderId,
+            Long memberId,
+            List<OrderItemCommand> items,
+            ProductLoader productLoader,
+            StockDecrement stockDecrement
+    ) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. id=" + memberId));
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        long totalAmount = 0L;
+
+        Orders order = Orders.createWithId(orderId, member, 0L, LocalDateTime.now());
+        orderRepository.save(order);
+
+        for (OrderItemCommand item : items) {
+            Product product = productLoader.load(item);
+            stockDecrement.decrease(product, item);
+
+            OrderItem orderItem = OrderItem.create(order, product, item.quantity(), product.getPrice());
+            orderItems.add(orderItem);
+            totalAmount += orderItem.totalPrice();
+        }
+
+        orderItemRepository.saveAll(orderItems);
+        order.updateTotalAmount(totalAmount);
+
+        outboxEventRepository.save(OutboxEvent.create(
+                "ORDER",
+                order.getId(),
+                "ORDER_CREATED",
+                toJson(buildCreatedPayload(order, orderItems))
+        ));
+
+        return new OrderResult(order.getId(), totalAmount);
+    }
 
     private Orders getOrderOrThrow(Long orderId) {
         return orderRepository.findById(orderId)
@@ -239,5 +217,13 @@ public class OrderService {
         } catch (Exception e) {
             throw new RuntimeException("OrderEventPayload 직렬화 실패", e);
         }
+    }
+
+    private interface ProductLoader {
+        Product load(OrderItemCommand item);
+    }
+
+    private interface StockDecrement {
+        void decrease(Product product, OrderItemCommand item);
     }
 }
