@@ -1,0 +1,257 @@
+### ============================================================
+### query-burst API
+### ============================================================
+### 환경변수: http-client.env.json 의 local / dev 프로파일 사용
+### ============================================================
+
+# @no-log
+
+### ============================================================
+### [DATA INIT] 더미 데이터 (dev 프로파일 전용)
+### ============================================================
+
+### 더미 데이터 적재 시작 (비동기)
+POST {{baseUrl}}/api/data-init
+
+### 적재 진행 상황 확인
+GET {{baseUrl}}/api/data-init/status
+
+
+### ============================================================
+### [MEMBER] 회원
+### ============================================================
+
+### 회원 목록 조회 v1 (페이지 기반 + COUNT)
+GET {{baseUrl}}/api/members?page=0&size=20&sort=id,desc
+
+### 회원 목록 조회 v2 (Slice - COUNT 없음)
+GET {{baseUrl}}/api/members/v2?page=0&size=20&sort=id,desc
+
+### 회원 목록 조회 v3 (커서 기반 - OFFSET 없음)
+GET {{baseUrl}}/api/members/v3?size=20
+
+### 회원 목록 조회 v3 - 다음 페이지 (cursor에 이전 응답의 nextCursor 값 입력)
+GET {{baseUrl}}/api/members/v3?cursor=1234567890&size=20
+
+### 회원 생성
+POST {{baseUrl}}/api/members
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "name": "홍길동",
+  "grade": "BRONZE",
+  "region": "서울"
+}
+
+### 회원 수정
+PATCH {{baseUrl}}/api/members/1
+Content-Type: application/json
+
+{
+  "name": "홍길동",
+  "grade": "GOLD",
+  "region": "부산"
+}
+
+### 회원 삭제
+DELETE {{baseUrl}}/api/members/1
+
+
+### ============================================================
+### [CATEGORY] 카테고리
+### ============================================================
+
+### 카테고리 목록 조회 v1 (페이지 기반 + COUNT)
+GET {{baseUrl}}/api/categories?page=0&size=20&sort=id,desc
+
+### 카테고리 목록 조회 v2 (커서 기반)
+GET {{baseUrl}}/api/categories/v2?size=20
+
+### 카테고리 목록 조회 v2 - 다음 페이지
+GET {{baseUrl}}/api/categories/v2?cursor=1234567890&size=20
+
+### 카테고리 생성 - 최상위(root)
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "전자제품",
+  "parentId": null
+}
+
+### 카테고리 생성 - 하위 카테고리 (parentId에 상위 카테고리 ID 입력)
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "스마트폰",
+  "parentId": 1
+}
+
+### 카테고리 삭제
+DELETE {{baseUrl}}/api/categories/1
+
+
+### ============================================================
+### [PRODUCT] 상품
+### ============================================================
+
+### 상품 목록 조회 (커서 기반, 전체)
+GET {{baseUrl}}/api/products?size=20
+
+### 상품 목록 조회 - 카테고리 필터
+GET {{baseUrl}}/api/products?categoryId=1&size=20
+
+### 상품 목록 조회 - 상태 필터
+GET {{baseUrl}}/api/products?status=ACTIVE&size=20
+
+### 상품 목록 조회 - 가격 범위 필터
+GET {{baseUrl}}/api/products?minPrice=10000&maxPrice=50000&size=20
+
+### 상품 목록 조회 - 복합 필터
+GET {{baseUrl}}/api/products?categoryId=1&status=ACTIVE&minPrice=10000&maxPrice=100000&size=20
+
+### 상품 목록 조회 - 다음 페이지
+GET {{baseUrl}}/api/products?cursor=1234567890&size=20
+
+### 상품 생성
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+
+{
+  "name": "갤럭시 S25",
+  "price": 1200000,
+  "stock": 100,
+  "status": "ACTIVE",
+  "categoryId": 1,
+  "sellerId": 1
+}
+
+### 상품 가격 수정
+PATCH {{baseUrl}}/api/products/1/price?price=990000
+
+### 상품 상태 변경
+PATCH {{baseUrl}}/api/products/1/status?status=SOLD_OUT
+
+### 상품 삭제
+DELETE {{baseUrl}}/api/products/1
+
+
+### ============================================================
+### [ORDER] 주문
+### ============================================================
+
+### 주문 목록 조회 (커서 기반, 전체)
+GET {{baseUrl}}/api/orders?size=20
+
+### 주문 목록 조회 - 회원 필터
+GET {{baseUrl}}/api/orders?memberId=1&size=20
+
+### 주문 목록 조회 - 상태 필터
+GET {{baseUrl}}/api/orders?status=PENDING&size=20
+
+### 주문 목록 조회 - 다음 페이지
+GET {{baseUrl}}/api/orders?cursor=1234567890&size=20
+
+### 주문 상세 조회
+GET {{baseUrl}}/api/orders/1
+
+### 월별 매출 집계
+GET {{baseUrl}}/api/orders/stats/monthly-sales?from=2025-01-01T00:00:00&to=2025-12-31T23:59:59
+
+### 상품별 판매 TOP 10
+GET {{baseUrl}}/api/orders/stats/top-products?size=10
+
+### 주문 생성 (Idempotency-Key 없음)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+
+{
+  "memberId": 1,
+  "items": [
+    { "productId": 1, "quantity": 2 },
+    { "productId": 2, "quantity": 1 }
+  ]
+}
+
+### 주문 생성 (Idempotency-Key 있음 - 중복 요청 방지)
+POST {{baseUrl}}/api/orders
+Content-Type: application/json
+Idempotency-Key: {{$uuid}}
+
+{
+  "memberId": 1,
+  "items": [
+    { "productId": 1, "quantity": 1 }
+  ]
+}
+
+### 결제 처리 (PENDING → PAID)
+PATCH {{baseUrl}}/api/orders/1/pay
+
+### 배송 시작 (PAID → SHIPPED)
+PATCH {{baseUrl}}/api/orders/1/ship
+
+### 배송 완료 (SHIPPED → DELIVERED)
+PATCH {{baseUrl}}/api/orders/1/deliver
+
+### 주문 취소
+DELETE {{baseUrl}}/api/orders/1
+
+
+### ============================================================
+### [FLASH SALE] 선착순 주문
+### ============================================================
+
+### 선착순 주문 생성
+POST {{baseUrl}}/api/flash-sales/orders
+Content-Type: application/json
+
+{
+  "memberId": 1,
+  "productId": 1,
+  "quantity": 1
+}
+
+
+### ============================================================
+### [RANKING] 실시간 인기 상품 랭킹
+### ============================================================
+
+### 실시간 랭킹 - 최근 1시간 TOP 10 (기본)
+GET {{baseUrl}}/api/rankings/realtime
+
+### 실시간 랭킹 - 최근 6시간 TOP 10
+GET {{baseUrl}}/api/rankings/realtime?windowHours=6&size=10
+
+### 실시간 랭킹 - 최근 24시간 TOP 20
+GET {{baseUrl}}/api/rankings/realtime?windowHours=24&size=20
+
+
+### ============================================================
+### [STATISTICS] CQRS 통계
+### ============================================================
+
+### 기간별 카테고리 매출 집계
+GET {{baseUrl}}/api/statistics/daily-sales?from=2025-01-01&to=2025-01-31
+
+### 특정 날짜 상품 판매 TOP 10 (오늘)
+GET {{baseUrl}}/api/statistics/top-products
+
+### 특정 날짜 상품 판매 TOP 10
+GET {{baseUrl}}/api/statistics/top-products?date=2025-01-15
+
+### 특정 상품 기간별 판매 추이
+GET {{baseUrl}}/api/statistics/products/1/trend?from=2025-01-01&to=2025-01-31
+
+
+### ============================================================
+### [ADMIN] Outbox 관리
+### ============================================================
+
+### 실패한 Outbox 이벤트 목록 조회
+GET {{baseUrl}}/api/admin/outbox/failed?size=20
+
+### 실패한 Outbox 이벤트 재시도
+POST {{baseUrl}}/api/admin/outbox/1/retry

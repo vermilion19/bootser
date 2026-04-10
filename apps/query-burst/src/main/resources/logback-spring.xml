@@ -15,9 +15,10 @@
         </encoder>
     </appender>
 
-    <!-- Loki Appender (PendingLogFilter 적용) -->
+    <!-- Loki Appender (PendingLogFilter + LokiLogFilter 적용) -->
     <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
         <filter class="com.booster.queryburst.config.PendingLogFilter"/>
+        <filter class="com.booster.queryburst.config.LokiLogFilter"/>
         <http>
             <url>${LOKI_URL}</url>
         </http>
@@ -47,17 +48,22 @@
 
     <!-- dev 프로파일: 콘솔 + Loki -->
     <springProfile name="dev,docker">
+        <!-- root: CONSOLE만. Loki는 com.booster logger에서만 전송 -->
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="LOKI"/>
         </root>
+
+        <!-- 비즈니스 로그: CONSOLE(root 전파) + LOKI(LokiLogFilter로 선별) -->
+        <logger name="com.booster" level="INFO" additivity="true">
+            <appender-ref ref="LOKI"/>
+        </logger>
+
+        <!-- Hibernate SQL: CONSOLE만 (Loki 전송 불필요) -->
         <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="LOKI"/>
         </logger>
         <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" additivity="false">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="LOKI"/>
         </logger>
     </springProfile>
 </configuration>
