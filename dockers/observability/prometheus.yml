@@ -29,3 +29,23 @@ scrape_configs:
       - targets: ['host.docker.internal:8090']
         labels:
           application: query-burst
+
+  - job_name: 'query-burst-msa'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:18111']
+        labels:
+          application: query-burst-analytics-service
+      - targets: ['host.docker.internal:18112']
+        labels:
+          application: query-burst-ranking-service
+      - targets: ['host.docker.internal:18113']
+        labels:
+          application: query-burst-catalog-service
+      - targets: ['host.docker.internal:18114']
+        labels:
+          application: query-burst-member-service
+      - targets: ['host.docker.internal:18115']
+        labels:
+          application: query-burst-order-service

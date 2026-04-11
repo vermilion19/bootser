@@ -21,7 +21,7 @@ import java.util.List;
 public class JacksonConfig implements WebMvcConfigurer {
 
     @Override
-    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         SimpleModule javaTimeFixModule = new SimpleModule();
         javaTimeFixModule.addSerializer(LocalDate.class,
                 new LocalDateSerializer(DateTimeFormatter.ISO_LOCAL_DATE));
