@@ -1,0 +1,7 @@
+bootJar { enabled = false }
+jar { enabled = true }
+
+dependencies {
+    implementation project(':libs:common')
+    implementation 'org.springframework.boot:spring-boot-starter-json'
+}

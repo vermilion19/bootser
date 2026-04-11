@@ -1,0 +1,65 @@
+### ============================================================
+### query-burst-msa order-service API
+### Base URL: http://localhost:18115
+### ============================================================
+
+# @no-log
+
+### Health
+GET http://localhost:18115/actuator/health
+
+### ============================================================
+### [DATA INIT]
+### ============================================================
+
+### 테스트 데이터 적재 시작
+POST http://localhost:18115/api/data-init
+
+### 테스트 데이터 적재 상태 확인
+GET http://localhost:18115/api/data-init/status
+
+### ============================================================
+### [ORDER]
+### ============================================================
+
+### 주문 목록 조회
+GET http://localhost:18115/api/orders?size=20
+
+### 주문 목록 조회 - 다음 페이지
+GET http://localhost:18115/api/orders?cursor=1000&size=20
+
+### 주문 상세 조회
+GET http://localhost:18115/api/orders/1
+
+### 주문 생성
+POST http://localhost:18115/api/orders
+Content-Type: application/json
+Idempotency-Key: order-demo-1
+
+{
+  "memberId": 1,
+  "items": [
+    {
+      "productId": 1,
+      "quantity": 2,
+      "unitPrice": 120000
+    },
+    {
+      "productId": 2,
+      "quantity": 1,
+      "unitPrice": 350000
+    }
+  ]
+}
+
+### 결제 처리
+PATCH http://localhost:18115/api/orders/1/pay
+
+### 배송 시작
+PATCH http://localhost:18115/api/orders/1/ship
+
+### 배송 완료
+PATCH http://localhost:18115/api/orders/1/deliver
+
+### 주문 취소
+DELETE http://localhost:18115/api/orders/1

@@ -1,0 +1,32 @@
+### ============================================================
+### query-burst-msa analytics-service API
+### Base URL: http://localhost:18111
+### ============================================================
+
+# @no-log
+
+### Health
+GET http://localhost:18111/actuator/health
+
+### ============================================================
+### [DATA INIT]
+### ============================================================
+
+### 테스트 데이터 적재 시작
+POST http://localhost:18111/api/data-init
+
+### 테스트 데이터 적재 상태 확인
+GET http://localhost:18111/api/data-init/status
+
+### ============================================================
+### [STATISTICS]
+### ============================================================
+
+### 기간별 카테고리 매출 조회
+GET http://localhost:18111/api/statistics/daily-sales?from=2026-04-01&to=2026-04-12
+
+### 특정 날짜 상품 판매 TOP 조회
+GET http://localhost:18111/api/statistics/top-products?date=2026-04-12
+
+### 특정 상품 기간별 판매 추이
+GET http://localhost:18111/api/statistics/products/1/trend?from=2026-04-01&to=2026-04-12

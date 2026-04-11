@@ -1,0 +1,32 @@
+### ============================================================
+### query-burst-msa ranking-service API
+### Base URL: http://localhost:18112
+### ============================================================
+
+# @no-log
+
+### Health
+GET http://localhost:18112/actuator/health
+
+### ============================================================
+### [DATA INIT]
+### ============================================================
+
+### 테스트 데이터 적재 시작
+POST http://localhost:18112/api/data-init
+
+### 테스트 데이터 적재 상태 확인
+GET http://localhost:18112/api/data-init/status
+
+### ============================================================
+### [RANKING]
+### ============================================================
+
+### 실시간 랭킹 - 최근 1시간
+GET http://localhost:18112/api/rankings/realtime
+
+### 실시간 랭킹 - 최근 6시간 TOP 20
+GET http://localhost:18112/api/rankings/realtime?windowHours=6&size=20
+
+### 실시간 랭킹 - 최근 24시간 TOP 50
+GET http://localhost:18112/api/rankings/realtime?windowHours=24&size=50

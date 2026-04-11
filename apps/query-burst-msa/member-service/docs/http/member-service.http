@@ -1,0 +1,53 @@
+### ============================================================
+### query-burst-msa member-service API
+### Base URL: http://localhost:18114
+### ============================================================
+
+# @no-log
+
+### Health
+GET http://localhost:18114/actuator/health
+
+### ============================================================
+### [DATA INIT]
+### ============================================================
+
+### 테스트 데이터 적재 시작
+POST http://localhost:18114/api/data-init
+
+### 테스트 데이터 적재 상태 확인
+GET http://localhost:18114/api/data-init/status
+
+### ============================================================
+### [MEMBER]
+### ============================================================
+
+### 회원 목록 조회
+GET http://localhost:18114/api/members?size=20
+
+### 회원 목록 조회 - 다음 페이지
+GET http://localhost:18114/api/members?cursor=1000&size=20
+
+### 회원 생성
+POST http://localhost:18114/api/members
+Content-Type: application/json
+
+{
+  "email": "msa-user@example.com",
+  "name": "홍길동",
+  "grade": "VIP",
+  "region": "SEOUL"
+}
+
+### 회원 수정
+PATCH http://localhost:18114/api/members/1
+Content-Type: application/json
+
+{
+  "name": "김개발",
+  "grade": "VVIP",
+  "region": "BUSAN"
+}
+
+### 회원 삭제
+DELETE http://localhost:18114/api/members/1

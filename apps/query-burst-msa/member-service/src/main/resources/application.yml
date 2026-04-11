@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: query-burst-member-service
+  profiles:
+    active: local
+
+server:
+  port: 18114

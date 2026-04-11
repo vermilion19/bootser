@@ -1,0 +1,4 @@
+dependencies {
+    implementation project(':libs:core-web')
+    implementation project(':libs:storage-db')
+}

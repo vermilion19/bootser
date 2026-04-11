@@ -1,0 +1,4 @@
+bootJar { enabled = false }
+jar { enabled = true }
+
+description = 'query-burst msa aggregation module'

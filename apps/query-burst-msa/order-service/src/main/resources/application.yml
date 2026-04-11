@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: query-burst-order-service
+  profiles:
+    active: local
+
+server:
+  port: 18115
+
+query-burst-msa:
+  clients:
+    catalog:
+      base-url: http://localhost:18113
