@@ -1,10 +1,18 @@
 spring:
   application:
     name: query-burst-member-service
-  profiles:
-    active: local
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:query_burst_member}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
   jpa:
     open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 server:
   port: 18114
@@ -26,10 +34,10 @@ management:
       application: ${spring.application.name}
     distribution:
       percentiles-histogram:
-        http.server.requests: true
-        hikaricp.connections: true
+        "[http.server.requests]": true
+        "[hikaricp.connections]": true
       slo:
-        http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 5s
+        "[http.server.requests]": 50, 100, 200, 500, 1000, 5000
   tracing:
     sampling:
       probability: 1.0
@@ -39,3 +47,8 @@ management:
 
 loki:
   url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+
+data:
+  init:
+    member-count: 1000000
+    batch-size: 5000
