@@ -2,26 +2,7 @@ global:
   scrape_interval: 5s
 
 scrape_configs:
-  # Eureka 서비스 디스커버리를 통해 동적으로 서비스 탐색
-  - job_name: 'eureka-services'
-    metrics_path: '/actuator/prometheus'
-    eureka_sd_configs:
-      - server: 'http://discovery-service:8761/eureka'
-        refresh_interval: 10s
-    relabel_configs:
-      # Eureka에서 가져온 인스턴스 IP:Port 사용 (같은 Docker 네트워크)
-      - source_labels: [__meta_eureka_app_instance_ip_addr, __meta_eureka_app_instance_port]
-        separator: ':'
-        target_label: __address__
-      # 애플리케이션 이름을 라벨로 추가 (소문자로 변환)
-      - source_labels: [__meta_eureka_app_name]
-        target_label: application
-        action: lowercase
-      # 인스턴스 ID 라벨 추가
-      - source_labels: [__meta_eureka_app_instance_id]
-        target_label: instance_id
-
-  # query-burst (Eureka 미등록 독립 서비스) - host.docker.internal로 호스트 접근
+  # query-burst (독립 서비스) - host.docker.internal로 호스트 접근
   - job_name: 'query-burst'
     metrics_path: '/actuator/prometheus'
     scrape_interval: 5s

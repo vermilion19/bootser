@@ -24,3 +24,24 @@
 2. `catalog-service`에 영속 저장소와 재고 예약 멱등성 적용
 3. `order-service`에 catalog 연동과 outbox 발행 이관
 4. 게이트웨이 라우팅 전환 후 기존 모놀리스 API 축소
+
+## Docker Compose 실행
+
+1. `booster-postgres`, `booster-redis`, `booster-kafka`가 먼저 실행 중이어야 한다
+2. `apps/query-burst-msa/.env.example`을 복사해 `apps/query-burst-msa/.env`를 만든다
+3. 계정 정보와 접속 정보를 `.env`에 맞게 수정한다
+4. 아래 명령으로 실행한다
+
+```bash
+docker compose --env-file apps/query-burst-msa/.env \
+  -f apps/query-burst-msa/docker-compose.yml up --build
+```
+
+중지는 아래 명령을 사용한다.
+
+```bash
+docker compose --env-file apps/query-burst-msa/.env \
+  -f apps/query-burst-msa/docker-compose.yml down
+```
+
+상세 실행 방법은 [RUNBOOK.md](/Users/juhongkim/Desktop/Dev/projects/booster/apps/query-burst-msa/RUNBOOK.md:1)를 참고한다.
