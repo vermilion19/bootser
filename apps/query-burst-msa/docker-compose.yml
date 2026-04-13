@@ -7,7 +7,6 @@ services:
       dockerfile: apps/query-burst-msa/docker/service.Dockerfile
       args:
         SERVICE_MODULE: analytics-service
-    container_name: query-burst-msa-analytics-service
     restart: "no"
     environment:
       DB_HOST: booster-postgres
@@ -18,8 +17,6 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: booster-kafka:9092
       TEMPO_ZIPKIN_ENDPOINT: ${TEMPO_ZIPKIN_ENDPOINT:-http://tempo:9411/api/v2/spans}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
-    ports:
-      - "18111:18111"
     networks:
       - booster-network
 
@@ -29,7 +26,6 @@ services:
       dockerfile: apps/query-burst-msa/docker/service.Dockerfile
       args:
         SERVICE_MODULE: ranking-service
-    container_name: query-burst-msa-ranking-service
     restart: "no"
     environment:
       REDIS_HOST: booster-redis
@@ -37,8 +33,6 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: booster-kafka:9092
       TEMPO_ZIPKIN_ENDPOINT: ${TEMPO_ZIPKIN_ENDPOINT:-http://tempo:9411/api/v2/spans}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
-    ports:
-      - "18112:18112"
     networks:
       - booster-network
 
@@ -48,7 +42,6 @@ services:
       dockerfile: apps/query-burst-msa/docker/service.Dockerfile
       args:
         SERVICE_MODULE: catalog-service
-    container_name: query-burst-msa-catalog-service
     restart: "no"
     environment:
       DB_HOST: booster-postgres
@@ -58,8 +51,6 @@ services:
       DB_NAME: query_burst_catalog
       TEMPO_ZIPKIN_ENDPOINT: ${TEMPO_ZIPKIN_ENDPOINT:-http://tempo:9411/api/v2/spans}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
-    ports:
-      - "18113:18113"
     networks:
       - booster-network
 
@@ -69,7 +60,6 @@ services:
       dockerfile: apps/query-burst-msa/docker/service.Dockerfile
       args:
         SERVICE_MODULE: member-service
-    container_name: query-burst-msa-member-service
     restart: "no"
     environment:
       DB_HOST: booster-postgres
@@ -79,8 +69,6 @@ services:
       DB_NAME: query_burst_member
       TEMPO_ZIPKIN_ENDPOINT: ${TEMPO_ZIPKIN_ENDPOINT:-http://tempo:9411/api/v2/spans}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
-    ports:
-      - "18114:18114"
     networks:
       - booster-network
 
@@ -90,7 +78,6 @@ services:
       dockerfile: apps/query-burst-msa/docker/service.Dockerfile
       args:
         SERVICE_MODULE: order-service
-    container_name: query-burst-msa-order-service
     restart: "no"
     environment:
       DB_HOST: booster-postgres
@@ -102,8 +89,26 @@ services:
       QUERY_BURST_MSA_CLIENTS_CATALOG_BASE_URL: http://catalog-service:18113
       TEMPO_ZIPKIN_ENDPOINT: ${TEMPO_ZIPKIN_ENDPOINT:-http://tempo:9411/api/v2/spans}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
+    networks:
+      - booster-network
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: "no"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
+      - "18111:18111"
+      - "18112:18112"
+      - "18113:18113"
+      - "18114:18114"
       - "18115:18115"
+    depends_on:
+      - analytics-service
+      - ranking-service
+      - catalog-service
+      - member-service
+      - order-service
     networks:
       - booster-network
 

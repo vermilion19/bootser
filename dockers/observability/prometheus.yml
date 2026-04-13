@@ -11,22 +11,66 @@ scrape_configs:
         labels:
           application: query-burst
 
-  - job_name: 'query-burst-msa'
+  # query-burst-msa 서비스들
+  # dns_sd_configs: --scale로 늘어난 인스턴스를 자동 감지하여 각각 별도 타겟으로 등록
+  # Prometheus는 booster-network에 속해있으므로 서비스명으로 직접 DNS 조회 가능
+
+  - job_name: 'query-burst-analytics-service'
     metrics_path: '/actuator/prometheus'
     scrape_interval: 5s
-    static_configs:
-      - targets: ['host.docker.internal:18111']
-        labels:
-          application: query-burst-analytics-service
-      - targets: ['host.docker.internal:18112']
-        labels:
-          application: query-burst-ranking-service
-      - targets: ['host.docker.internal:18113']
-        labels:
-          application: query-burst-catalog-service
-      - targets: ['host.docker.internal:18114']
-        labels:
-          application: query-burst-member-service
-      - targets: ['host.docker.internal:18115']
-        labels:
-          application: query-burst-order-service
+    dns_sd_configs:
+      - names: ['analytics-service']
+        type: A
+        port: 18111
+        refresh_interval: 10s
+    relabel_configs:
+      - target_label: application
+        replacement: query-burst-analytics-service
+
+  - job_name: 'query-burst-ranking-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    dns_sd_configs:
+      - names: ['ranking-service']
+        type: A
+        port: 18112
+        refresh_interval: 10s
+    relabel_configs:
+      - target_label: application
+        replacement: query-burst-ranking-service
+
+  - job_name: 'query-burst-catalog-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    dns_sd_configs:
+      - names: ['catalog-service']
+        type: A
+        port: 18113
+        refresh_interval: 10s
+    relabel_configs:
+      - target_label: application
+        replacement: query-burst-catalog-service
+
+  - job_name: 'query-burst-member-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    dns_sd_configs:
+      - names: ['member-service']
+        type: A
+        port: 18114
+        refresh_interval: 10s
+    relabel_configs:
+      - target_label: application
+        replacement: query-burst-member-service
+
+  - job_name: 'query-burst-order-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    dns_sd_configs:
+      - names: ['order-service']
+        type: A
+        port: 18115
+        refresh_interval: 10s
+    relabel_configs:
+      - target_label: application
+        replacement: query-burst-order-service
