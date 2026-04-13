@@ -83,10 +83,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
-      # 로그 보존 정책 (3일)
-      KAFKA_LOG_RETENTION_HOURS: 72
-      KAFKA_LOG_SEGMENT_BYTES: 104857600
-      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+      # 로그 보존 정책
+      KAFKA_LOG_RETENTION_HOURS: 24           # 보존 기간: 1일
+      KAFKA_LOG_RETENTION_BYTES: 536870912    # 파티션당 최대 용량: 512MB
+      KAFKA_LOG_SEGMENT_BYTES: 104857600      # 세그먼트 파일 단위: 100MB
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000  # 만료 체크 주기: 5분
     volumes:
       - kafka-data:/var/lib/kafka/data
     networks:
