@@ -63,6 +63,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --enable-feature=exemplar-storage
       - --web.listen-address=:9091
+      - --web.enable-remote-write-receiver  # k6 메트릭 수신 (POST /api/v1/write)
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:

@@ -1,0 +1,35 @@
+name: query-burst-load-test
+
+# 사용법:
+#   # 단일 시나리오 실행
+#   docker compose -f apps/query-burst-msa/load-test/docker-compose.yml \
+#     run --rm k6 run /scripts/catalog-read.js
+#
+#   # Prometheus로 메트릭 전송하며 실행
+#   docker compose -f apps/query-burst-msa/load-test/docker-compose.yml \
+#     run --rm -e K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9091/api/v1/write \
+#     k6 run --out experimental-prometheus-rw /scripts/complex-flow.js
+
+services:
+  k6:
+    image: grafana/k6:latest
+    networks:
+      - booster-network
+    environment:
+      # 서비스 엔드포인트 (query-burst-nginx alias로 Nginx 직접 접근)
+      BASE_URL_CATALOG: http://query-burst-nginx:18113
+      BASE_URL_ORDER:   http://query-burst-nginx:18115
+      BASE_URL_RANKING: http://query-burst-nginx:18112
+      BASE_URL_MEMBER:  http://query-burst-nginx:18114
+      # Prometheus remote write (메트릭을 Grafana에서 실시간 확인)
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9091/api/v1/write
+      K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"
+    volumes:
+      - ./scripts:/scripts
+    # 기본 실행 스크립트 (override 가능)
+    command: run /scripts/complex-flow.js
+
+networks:
+  booster-network:
+    external: true
+    name: booster-network
