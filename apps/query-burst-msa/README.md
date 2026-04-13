@@ -3,6 +3,74 @@
 대용량 주문 트래픽을 MSA 구조로 처리하는 멀티모듈 프로젝트.  
 `query-burst` 모놀리스와 동일한 도메인을 서비스 경계로 분리하여 각 서비스의 독립적인 확장과 배포를 목표로 한다.
 
+## 아키텍처
+
+```mermaid
+flowchart TB
+    Client(["Client"])
+
+    subgraph nginx_lb["Load Balancer"]
+        Nginx["Nginx\n(Round-robin)"]
+    end
+
+    subgraph msa["query-burst-msa (Docker / booster-network)"]
+        direction TB
+
+        subgraph write["Write Side"]
+            OS["order-service\n:18115"]
+            CS["catalog-service\n:18113"]
+        end
+
+        subgraph read["Read Side (Event-driven)"]
+            AS["analytics-service\n:18111"]
+            RS["ranking-service\n:18112"]
+        end
+
+        MS["member-service\n:18114"]
+    end
+
+    subgraph infra["Infrastructure"]
+        PG[("PostgreSQL\n(DB per service)")]
+        RD[("Redis")]
+        KF[["Kafka\norder-events"]]
+    end
+
+    subgraph obs["Observability"]
+        PR["Prometheus"]
+        GF["Grafana"]
+        LK["Loki"]
+        TP["Tempo"]
+    end
+
+    Client -->|"HTTP :18111~18115"| Nginx
+    Nginx -->|":18115"| OS
+    Nginx -->|":18113"| CS
+    Nginx -->|":18111"| AS
+    Nginx -->|":18112"| RS
+    Nginx -->|":18114"| MS
+
+    OS -->|"HTTP (재고 예약)"| CS
+    OS -->|"Outbox polling\n→ 발행"| KF
+    KF -->|"consume"| AS
+    KF -->|"consume"| RS
+
+    OS --- PG
+    CS --- PG
+    AS --- PG
+    MS --- PG
+    RS --- RD
+
+    OS & CS & AS & RS & MS -->|"metrics"| PR
+    OS & CS & AS & RS & MS -->|"logs"| LK
+    OS & CS & AS & RS & MS -->|"traces"| TP
+    PR --> GF
+    LK --> GF
+    TP --> GF
+```
+
+> **Scale-out**: `docker compose up --scale catalog-service=3` 으로 각 서비스를 독립적으로 수평 확장.  
+> Nginx가 로드밸런싱, Prometheus `dns_sd_configs`가 스케일된 인스턴스를 자동 감지.
+
 ## 서비스 구성
 
 ```
