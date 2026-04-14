@@ -3,5 +3,6 @@ dependencies {
     implementation project(':libs:core-observability')
     implementation project(':libs:storage-db')
     implementation project(':libs:storage-kafka')
+    implementation project(':libs:core-resilience')
     implementation project(':apps:query-burst-msa:contracts')
 }

@@ -9,4 +9,7 @@ dependencies {
     // 2. AOP (어노테이션 기반 동작을 위해 필수)
     api 'org.springframework.boot:spring-boot-starter-aop:4.0.0-M2'
     api 'io.github.resilience4j:resilience4j-bulkhead'
+
+    // 3. Micrometer 연동 (Prometheus에 resilience4j_circuitbreaker_state 등 메트릭 노출)
+    api 'io.github.resilience4j:resilience4j-micrometer'
 }

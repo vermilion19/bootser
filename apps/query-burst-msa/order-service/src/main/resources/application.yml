@@ -38,10 +38,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, prometheus
+        include: health, info, metrics, prometheus, circuitbreakers
   endpoint:
     health:
       show-details: always
+  health:
+    circuitbreakers:
+      enabled: true  # /actuator/health 에 CB 상태 포함
   prometheus:
     metrics:
       export:
@@ -53,6 +56,8 @@ management:
       percentiles-histogram:
         "[http.server.requests]": true
         "[hikaricp.connections]": true
+        # CB 호출 시간 히스토그램 (Grafana에서 p95/p99 조회용)
+        "[resilience4j.circuitbreaker.calls]": true
       slo:
         "[http.server.requests]": 50, 100, 200, 500, 1000, 5000
   tracing:
