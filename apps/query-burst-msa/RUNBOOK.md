@@ -48,6 +48,8 @@ docker compose --env-file apps/query-burst-msa/.env \
 특정 서비스 로그:
 
 ```bash
+docker compose --env-file .env -f docker-compose.yml up --build -d      
+
 docker compose --env-file apps/query-burst-msa/.env \
   -f apps/query-burst-msa/docker-compose.yml logs -f order-service
 ```

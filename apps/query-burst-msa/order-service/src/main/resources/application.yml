@@ -6,6 +6,12 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
@@ -21,6 +27,12 @@ spring:
 
 server:
   port: 18115
+  tomcat:
+    threads:
+      max: 400
+      min-spare: 50
+    accept-count: 100
+    max-connections: 8192
 
 management:
   endpoints:
