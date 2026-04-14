@@ -19,8 +19,9 @@ services:
       # 서비스 엔드포인트 (query-burst-nginx alias로 Nginx 직접 접근)
       BASE_URL_CATALOG: http://query-burst-nginx:18113
       BASE_URL_ORDER:   http://query-burst-nginx:18115
-      BASE_URL_RANKING: http://query-burst-nginx:18112
-      BASE_URL_MEMBER:  http://query-burst-nginx:18114
+      BASE_URL_RANKING:   http://query-burst-nginx:18112
+      BASE_URL_MEMBER:    http://query-burst-nginx:18114
+      BASE_URL_ANALYTICS: http://query-burst-nginx:18111
       # Prometheus remote write (메트릭을 Grafana에서 실시간 확인)
       K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9091/api/v1/write
       K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"

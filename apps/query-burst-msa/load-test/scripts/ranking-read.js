@@ -33,7 +33,7 @@ export default function () {
   const windowHours = randomIntBetween(1, 24);
   const size        = randomIntBetween(5, 20);
 
-  const res = http.get(`${BASE_URL}/api/rankings/products?windowHours=${windowHours}&size=${size}`);
+  const res = http.get(`${BASE_URL}/api/rankings/realtime?windowHours=${windowHours}&size=${size}`);
   check(res, { 'ranking 200': r => r.status === 200 });
 
   sleep(randomIntBetween(1, 2));
