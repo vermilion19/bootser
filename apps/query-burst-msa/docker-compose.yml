@@ -9,6 +9,7 @@ services:
         SERVICE_MODULE: analytics-service
     restart: "no"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       DB_HOST: booster-postgres
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
@@ -28,6 +29,7 @@ services:
         SERVICE_MODULE: ranking-service
     restart: "no"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       REDIS_HOST: booster-redis
       REDIS_PORT: 6379
       KAFKA_BOOTSTRAP_SERVERS: booster-kafka:9092
@@ -44,6 +46,7 @@ services:
         SERVICE_MODULE: catalog-service
     restart: "no"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       DB_HOST: booster-postgres
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
@@ -62,6 +65,7 @@ services:
         SERVICE_MODULE: member-service
     restart: "no"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       DB_HOST: booster-postgres
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
@@ -80,6 +84,7 @@ services:
         SERVICE_MODULE: order-service
     restart: "no"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       DB_HOST: booster-postgres
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
