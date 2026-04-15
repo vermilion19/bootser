@@ -233,10 +233,96 @@ order-service만 느리고 catalog는 정상
 
 ---
 
+## [데이터 정합성] 동시성 테스트
+
+> 부하 테스트와 달리 "이 숫자가 0이어야 한다"는 pass/fail 기준이 명확한 테스트.
+> 각 테스트는 독립적으로 실행하며, 실행 후 DB 상태를 수동으로 확인한다.
+
+### 테스트 1: 재고 초과 예약 (Oversell)
+
+| 항목 | 내용 |
+|---|---|
+| 스크립트 | `concurrency-oversell.js` |
+| 검증 대상 | `CatalogService.createReservation()` — SELECT FOR UPDATE |
+| 시나리오 | 재고 50개 상품에 200 VU가 동시 주문 |
+| 합격 기준 | STOCK_RESERVED 건수 ≤ 초기 재고 수량 |
+| 수동 확인 | `SELECT stock FROM product WHERE id=?;` — 음수이면 버그 |
+
+```bash
+docker compose -f apps/query-burst-msa/load-test/docker-compose.yml \
+  run --rm k6 run /scripts/concurrency-oversell.js
+```
+
+---
+
+### 테스트 2: 중복 주문 (Idempotency)
+
+| 항목 | 내용 |
+|---|---|
+| 스크립트 | `concurrency-idempotency.js` |
+| 검증 대상 | `Idempotency-Key` + `request_id UNIQUE` 제약 |
+| 시나리오 | 동일 Idempotency-Key로 50 VU가 동시에 주문 |
+| 합격 기준 | STOCK_RESERVED 응답이 정확히 1건 |
+| 주의 | 5xx가 발생하면 UNIQUE 제약이 방어는 하지만 409로 처리 안 된 것 — 개선 필요 |
+
+```bash
+docker compose -f apps/query-burst-msa/load-test/docker-compose.yml \
+  run --rm k6 run /scripts/concurrency-idempotency.js
+```
+
+---
+
+### 테스트 3: 결제-취소 경합 (Race Condition)
+
+| 항목 | 내용 |
+|---|---|
+| 스크립트 | `concurrency-pay-cancel.js` |
+| 검증 대상 | `OrderApplicationService` — 낙관적/비관적 락 부재 |
+| 시나리오 | 동일 orderId에 pay와 cancel을 `http.batch()`로 동시 발사 |
+| 합격 기준 | pay + cancel 동시 성공(204+204) 건수 == 0 |
+| 수동 확인 | order.status=PAID + reservation.status=RELEASED 조합 여부 확인 |
+
+```bash
+docker compose -f apps/query-burst-msa/load-test/docker-compose.yml \
+  run --rm k6 run /scripts/concurrency-pay-cancel.js
+```
+
+---
+
+### [수동 테스트] CB OPEN 상태에서 재고 반환 누락
+
+k6로 자동화 어려움. 수동으로 진행.
+
+**재현 절차:**
+```bash
+# 1. 주문 N건 생성 (STOCK_RESERVED 상태)
+# 2. catalog-service 컨테이너 중단
+docker compose -f apps/query-burst-msa/docker-compose.yml stop catalog-service
+
+# 3. order-service에 cancel 요청 폭주 (CB OPEN 유도)
+docker compose -f apps/query-burst-msa/load-test/docker-compose.yml \
+  run --rm k6 run /scripts/order-write.js  # 또는 curl 반복
+
+# 4. catalog-service 재시작
+docker compose -f apps/query-burst-msa/docker-compose.yml start catalog-service
+
+# 5. DB 정합성 확인
+# order.status=CANCELED 건수 vs inventory_reservation.status=RELEASED 건수 비교
+# 차이가 있으면 재고 반환 누락 발생
+```
+
+**근본 원인:** `OrderApplicationService.cancel()`에서 `catalogServiceClient.release()` 실패(CB fallback)해도 `order.cancel()`은 계속 실행됨.
+**개선 방안:** Cancel Saga 패턴 — 취소 요청을 Outbox 이벤트로 발행하고 catalog가 이벤트를 소비하여 release.
+
+---
+
 ## 현재 스크립트 목록
 
 | 파일 | 목적 |
 |---|---|
+| `concurrency-oversell.js` | **[정합성]** 재고 초과 예약 방지 검증 |
+| `concurrency-idempotency.js` | **[정합성]** 중복 주문 방지 검증 |
+| `concurrency-pay-cancel.js` | **[정합성]** 결제-취소 경합 시 상태 일관성 검증 |
 | `throughput-ranking.js` | **[처리량 한계]** ranking-service RPS 한계 탐색 |
 | `throughput-catalog.js` | **[처리량 한계]** catalog-service RPS 한계 탐색 |
 | `throughput-order.js` | **[처리량 한계]** order-service RPS 한계 탐색 |
