@@ -23,7 +23,8 @@ import java.util.List;
         indexes = {
                 @Index(name = "idx_customer_order_member_id", columnList = "member_id"),
                 @Index(name = "idx_customer_order_status", columnList = "status"),
-                @Index(name = "idx_customer_order_ordered_at", columnList = "ordered_at")
+                @Index(name = "idx_customer_order_ordered_at", columnList = "ordered_at"),
+                @Index(name = "idx_customer_order_idempotency_key", columnList = "idempotency_key")
         }
 )
 public class OrderEntity extends BaseEntity {
@@ -44,6 +45,9 @@ public class OrderEntity extends BaseEntity {
     @Column(name = "reservation_id")
     private String reservationId;
 
+    @Column(name = "idempotency_key", unique = true, length = 100)
+    private String idempotencyKey;
+
     @Column(name = "ordered_at", nullable = false)
     private LocalDateTime orderedAt;
 
@@ -53,11 +57,19 @@ public class OrderEntity extends BaseEntity {
     protected OrderEntity() {
     }
 
-    public static OrderEntity create(Long orderId, Long memberId, String reservationId, OrderStatus status, long totalAmount) {
+    public static OrderEntity create(
+            Long orderId,
+            Long memberId,
+            String reservationId,
+            String idempotencyKey,
+            OrderStatus status,
+            long totalAmount
+    ) {
         OrderEntity entity = new OrderEntity();
         entity.id = orderId;
         entity.memberId = memberId;
         entity.reservationId = reservationId;
+        entity.idempotencyKey = idempotencyKey;
         entity.status = status;
         entity.totalAmount = totalAmount;
         entity.orderedAt = LocalDateTime.now();
@@ -108,6 +120,10 @@ public class OrderEntity extends BaseEntity {
 
     public String getReservationId() {
         return reservationId;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
     }
 
     public LocalDateTime getOrderedAt() {

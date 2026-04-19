@@ -33,10 +33,15 @@ import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const ORDER_URL   = __ENV.BASE_URL_ORDER   || 'http://localhost:18115';
 const CATALOG_URL = __ENV.BASE_URL_CATALOG || 'http://localhost:18113';
+const HEALTH_RETRY_COUNT = 30;
+const HEALTH_RETRY_INTERVAL_SECONDS = 1;
 
-// 정상 예약 성공 카운터 — 1이어야 함
-const reservedCount   = new Counter('idempotency_reserved_count');
-// 서버 에러 카운터 — UNIQUE 제약 충돌 시 발생 (0이 이상적, 409로 처리되어야 함)
+// 201 응답 중 STOCK_RESERVED 상태 카운터
+// 주의: idempotent 재반환도 201/STOCK_RESERVED일 수 있으므로 이 값만으로 중복 주문 여부를 단정할 수 없다.
+const reservedReplayCount = new Counter('idempotency_reserved_replay_count');
+// 201 응답이지만 기대한 주문 상태가 아닌 경우
+const unexpectedCreatedStatusCount = new Counter('idempotency_unexpected_created_status_count');
+// 서버 에러 카운터 — idempotent 재처리에서 0이어야 함
 const serverErrorCount = new Counter('idempotency_server_error_count');
 
 const CONCURRENT_VUS = 50;  // 동일 키로 동시에 요청할 VU 수
@@ -52,15 +57,37 @@ export const options = {
     },
   },
   thresholds: {
-    // STOCK_RESERVED 응답이 1건 초과면 중복 주문 발생
-    idempotency_reserved_count: ['count<=1'],
-    // 서버 에러는 0건이 이상적 (현실적으론 UNIQUE 제약 충돌로 5xx 발생할 수 있음)
-    // → 이 값이 크면 catalog-service가 409로 처리하도록 개선 필요
-    idempotency_server_error_count: ['count<50'],
+    idempotency_unexpected_created_status_count: ['count==0'],
+    idempotency_server_error_count: ['count==0'],
   },
 };
 
+function waitForHealthyService(name, baseUrl) {
+  for (let attempt = 1; attempt <= HEALTH_RETRY_COUNT; attempt++) {
+    const res = http.get(`${baseUrl}/actuator/health`, {
+      tags: { name: `GET ${name} /actuator/health [preflight]` },
+      timeout: '2s',
+    });
+
+    if (res.status === 200) {
+      const body = JSON.parse(res.body);
+      if (body.status === 'UP') {
+        console.log(`[idempotency] ${name} health check 통과 (${attempt}/${HEALTH_RETRY_COUNT})`);
+        return;
+      }
+    }
+
+    console.log(`[idempotency] ${name} 준비 대기 중... (${attempt}/${HEALTH_RETRY_COUNT})`);
+    sleep(HEALTH_RETRY_INTERVAL_SECONDS);
+  }
+
+  throw new Error(`${name} health check 실패: ${baseUrl}/actuator/health`);
+}
+
 export function setup() {
+  waitForHealthyService('catalog-service', CATALOG_URL);
+  waitForHealthyService('order-service', ORDER_URL);
+
   const products = JSON.parse(
     http.get(`${CATALOG_URL}/api/products?status=ACTIVE&size=10`).body
   );
@@ -77,17 +104,18 @@ export function setup() {
   return {
     sharedKey,
     productId: product.id,
+    unitPrice: product.price,
     memberId: 999999,  // 동일 memberId 사용
   };
 }
 
-export default function ({ sharedKey, productId, memberId }) {
+export default function ({ sharedKey, productId, unitPrice, memberId }) {
   // 모든 VU가 완전히 동시에 요청하도록 sleep 없이 즉시 전송
   const res = http.post(
     `${ORDER_URL}/api/orders`,
     JSON.stringify({
       memberId,
-      items: [{ productId, quantity: 1 }],
+      items: [{ productId, quantity: 1, unitPrice }],
     }),
     {
       headers: {
@@ -101,48 +129,53 @@ export default function ({ sharedKey, productId, memberId }) {
   if (res.status === 201) {
     const body = JSON.parse(res.body);
     if (body.status === 'STOCK_RESERVED') {
-      reservedCount.add(1);
+      reservedReplayCount.add(1);
+    } else {
+      unexpectedCreatedStatusCount.add(1);
     }
-    check(res, { '201 응답': r => r.status === 201 });
+    check(res, {
+      '201 응답': r => r.status === 201,
+      '201 응답은 STOCK_RESERVED': _ => body.status === 'STOCK_RESERVED',
+    });
 
   } else if (res.status >= 500) {
-    // 5xx: UNIQUE 제약 충돌이 제대로 핸들링되지 않는 경우
-    // → catalog-service가 409 Conflict으로 처리해야 함
     serverErrorCount.add(1);
-    check(res, { '5xx 없어야 함 (409로 처리 필요)': _ => false });
+    check(res, { '5xx 없어야 함': _ => false });
 
   } else {
-    // 4xx: REJECTED (정상 - 중복 키 거부)
-    check(res, { '4xx 정상 거부': r => r.status >= 400 && r.status < 500 });
+    // 현재 구현은 동일 키 재요청도 기존 주문을 재반환하므로 4xx는 이상 징후로 본다.
+    unexpectedCreatedStatusCount.add(1);
+    check(res, { '4xx는 없어야 함': _ => false });
   }
 }
 
 export function handleSummary(data) {
-  const reserved    = data.metrics['idempotency_reserved_count']?.values?.count ?? 0;
+  const reserved201 = data.metrics['idempotency_reserved_replay_count']?.values?.count ?? 0;
+  const unexpected201 = data.metrics['idempotency_unexpected_created_status_count']?.values?.count ?? 0;
   const serverError = data.metrics['idempotency_server_error_count']?.values?.count ?? 0;
   const total       = data.metrics['http_reqs']?.values?.count ?? 0;
 
   let verdict;
-  if (reserved === 1 && serverError === 0) {
-    verdict = '✅ 정상 — 중복 주문 없음, 에러 없이 처리됨';
-  } else if (reserved === 1 && serverError > 0) {
-    verdict = `⚠️  부분 통과 — 중복 주문은 없지만 ${serverError}건의 5xx 발생 (DB UNIQUE 제약이 최후 방어선으로 작동, 409로 처리하도록 개선 필요)`;
-  } else if (reserved > 1) {
-    verdict = `❌ 중복 주문 감지 — ${reserved}건의 STOCK_RESERVED 응답 (Idempotency 위반)`;
+  if (serverError === 0 && unexpected201 === 0) {
+    verdict = '자동 판정 통과 — 모든 요청이 201/STOCK_RESERVED로 처리됨 (동일 주문 재반환 가능성 포함)';
+  } else if (serverError > 0) {
+    verdict = `실패 — ${serverError}건의 5xx 발생`;
   } else {
-    verdict = `⚠️  예상치 못한 결과 — STOCK_RESERVED: ${reserved}건`;
+    verdict = `실패 — 201이지만 기대하지 않은 상태/4xx가 ${unexpected201}건 발생`;
   }
 
   const summary = {
     '총 요청 수': total,
-    'STOCK_RESERVED 건수 (기대값: 1)': reserved,
+    '201 + STOCK_RESERVED 응답 수': reserved201,
+    '예상치 못한 201 상태/4xx 건수 (기대값: 0)': unexpected201,
     '5xx 서버 에러 건수 (기대값: 0)': serverError,
     '판정': verdict,
+    '주의': '여러 201/STOCK_RESERVED 응답은 동일 주문의 idempotent 재반환일 수 있으므로, 이 스크립트는 응답 횟수만으로 중복 주문을 단정하지 않는다.',
     '수동 확인 SQL': [
       `-- catalog-service DB`,
       `SELECT COUNT(*) FROM inventory_reservation WHERE request_id = '{sharedKey}';  -- 1이어야 함`,
       `-- order-service DB`,
-      `SELECT COUNT(*), status FROM customer_order GROUP BY status;  -- STOCK_RESERVED는 1건이어야 함`,
+      `SELECT COUNT(*) FROM customer_order WHERE idempotency_key = '{sharedKey}';  -- 1이어야 함`,
     ],
   };
 

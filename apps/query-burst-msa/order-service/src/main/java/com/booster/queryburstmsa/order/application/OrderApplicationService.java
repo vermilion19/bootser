@@ -18,9 +18,15 @@ import com.booster.queryburstmsa.order.infrastructure.CatalogServiceClient;
 import com.booster.queryburstmsa.order.web.dto.OrderCreateRequest;
 import com.booster.queryburstmsa.order.web.dto.OrderResponse;
 import com.booster.queryburstmsa.order.web.dto.OrderSummaryResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -32,15 +38,23 @@ public class OrderApplicationService {
     private final OrderRepository orderRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final CatalogServiceClient catalogServiceClient;
+    private final JdbcTemplate jdbcTemplate;
+    private final TransactionTemplate requiresNewReadTx;
 
     public OrderApplicationService(
             OrderRepository orderRepository,
             OutboxEventRepository outboxEventRepository,
-            CatalogServiceClient catalogServiceClient
+            CatalogServiceClient catalogServiceClient,
+            JdbcTemplate jdbcTemplate,
+            PlatformTransactionManager transactionManager
     ) {
         this.orderRepository = orderRepository;
         this.outboxEventRepository = outboxEventRepository;
         this.catalogServiceClient = catalogServiceClient;
+        this.jdbcTemplate = jdbcTemplate;
+        this.requiresNewReadTx = new TransactionTemplate(transactionManager);
+        this.requiresNewReadTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.requiresNewReadTx.setReadOnly(true);
     }
 
     public List<OrderSummaryResponse> getOrders(Long cursor, int size) {
@@ -57,8 +71,17 @@ public class OrderApplicationService {
 
     @Transactional
     public OrderResponse createOrder(OrderCreateRequest request, String idempotencyKey) {
+        String normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
+        if (normalizedIdempotencyKey != null) {
+            lockIdempotencyKey(normalizedIdempotencyKey);
+            OrderResponse existingOrder = findExistingOrder(normalizedIdempotencyKey);
+            if (existingOrder != null) {
+                return existingOrder;
+            }
+        }
+
         long orderId = SnowflakeGenerator.nextId();
-        String requestId = idempotencyKey != null ? idempotencyKey : UUID.randomUUID().toString();
+        String requestId = normalizedIdempotencyKey != null ? normalizedIdempotencyKey : UUID.randomUUID().toString();
         InventoryReservationResponse reservationResponse = catalogServiceClient.reserve(new InventoryReservationRequest(
                 requestId,
                 orderId,
@@ -76,9 +99,26 @@ public class OrderApplicationService {
                 ? OrderStatus.STOCK_RESERVED
                 : OrderStatus.REJECTED;
 
-        OrderEntity order = OrderEntity.create(orderId, request.memberId(), reservationResponse.reservationId(), status, totalAmount);
+        OrderEntity order = OrderEntity.create(
+                orderId,
+                request.memberId(),
+                reservationResponse.reservationId(),
+                normalizedIdempotencyKey,
+                status,
+                totalAmount
+        );
         reservationResponse.items().forEach(item -> order.addItem(item.productId(), item.categoryId(), item.quantity(), item.unitPrice()));
-        orderRepository.save(order);
+        try {
+            orderRepository.saveAndFlush(order);
+        } catch (DataIntegrityViolationException e) {
+            if (normalizedIdempotencyKey != null) {
+                OrderResponse existingOrder = findExistingOrderInNewTransaction(normalizedIdempotencyKey);
+                if (existingOrder != null) {
+                    return existingOrder;
+                }
+            }
+            throw e;
+        }
 
         appendOutboxEvent(order, OrderEventType.ORDER_CREATED, true);
         return OrderResponse.from(order);
@@ -137,5 +177,32 @@ public class OrderApplicationService {
                         : List.of()
         );
         outboxEventRepository.save(OutboxEventEntity.create(order.getId(), payload.eventType().name(), JsonUtils.toJson(payload)));
+    }
+
+    private String normalizeIdempotencyKey(String idempotencyKey) {
+        return StringUtils.hasText(idempotencyKey) ? idempotencyKey.trim() : null;
+    }
+
+    private OrderResponse findExistingOrder(String idempotencyKey) {
+        return orderRepository.findWithItemsByIdempotencyKey(idempotencyKey)
+                .map(OrderResponse::from)
+                .orElse(null);
+    }
+
+    private OrderResponse findExistingOrderInNewTransaction(String idempotencyKey) {
+        return requiresNewReadTx.execute(_ -> findExistingOrder(idempotencyKey));
+    }
+
+    private void lockIdempotencyKey(String idempotencyKey) {
+        jdbcTemplate.query(
+                "select pg_advisory_xact_lock(hashtext(?))",
+                rs -> {
+                    while (rs.next()) {
+                        // advisory lock acquisition is the side effect we need
+                    }
+                    return null;
+                },
+                idempotencyKey
+        );
     }
 }

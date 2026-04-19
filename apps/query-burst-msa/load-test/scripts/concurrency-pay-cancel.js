@@ -77,7 +77,7 @@ export function setup() {
       `${ORDER_URL}/api/orders`,
       JSON.stringify({
         memberId: 800000 + i,
-        items: [{ productId: product.id, quantity: 1 }],
+        items: [{ productId: product.id, quantity: 1, unitPrice: product.price }],
       }),
       {
         headers: {

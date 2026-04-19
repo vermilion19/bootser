@@ -53,7 +53,11 @@ export default function ({ products }) {
   const itemCount = randomIntBetween(1, 3);
   const items = Array.from({ length: itemCount }, () => {
     const product = products[randomIntBetween(0, products.length - 1)];
-    return { productId: product.id, quantity: randomIntBetween(1, 5) };
+    return {
+      productId: product.id,
+      quantity: randomIntBetween(1, 5),
+      unitPrice: product.price,
+    };
   });
 
   const res = http.post(

@@ -22,4 +22,7 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
     @EntityGraph(attributePaths = "items")
     Optional<OrderEntity> findWithItemsById(Long id);
+
+    @EntityGraph(attributePaths = "items")
+    Optional<OrderEntity> findWithItemsByIdempotencyKey(String idempotencyKey);
 }

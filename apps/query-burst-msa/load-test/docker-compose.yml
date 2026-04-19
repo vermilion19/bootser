@@ -8,7 +8,14 @@ name: query-burst-load-test
 #   # Prometheus로 메트릭 전송하며 실행
 #   docker compose -f apps/query-burst-msa/load-test/docker-compose.yml \
 #     run --rm -e K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9091/api/v1/write \
-#     k6 run --out experimental-prometheus-rw /scripts/complex-flow.js
+#     k6 run --out experimental-prometheus-rw /scripts/concurrency-idempotency.js
+
+
+#  docker compose -f apps/query-burst-msa/load-test/docker-compose.yml \
+#  run --rm -e K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9091/api/v1/write \
+#  k6 run --out experimental-prometheus-rw /scripts/complex-flow.js
+
+
 
 services:
   k6:

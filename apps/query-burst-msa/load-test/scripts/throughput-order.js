@@ -80,7 +80,7 @@ export default function ({ products }) {
     `${ORDER_URL}/api/orders`,
     JSON.stringify({
       memberId: randomIntBetween(1, 1000000),
-      items: [{ productId: product.id, quantity: randomIntBetween(1, 2) }],
+      items: [{ productId: product.id, quantity: randomIntBetween(1, 2), unitPrice: product.price }],
     }),
     {
       headers: {

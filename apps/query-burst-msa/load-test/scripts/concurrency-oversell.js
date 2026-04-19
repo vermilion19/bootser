@@ -23,12 +23,14 @@
  *     run --rm k6 run --out experimental-prometheus-rw /scripts/concurrency-oversell.js
  */
 import http from 'k6/http';
-import { check } from 'k6';
-import { Counter } from 'k6/metrics';
+import { check, sleep } from 'k6';
+import { Counter, Gauge } from 'k6/metrics';
 import { randomIntBetween, uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const ORDER_URL   = __ENV.BASE_URL_ORDER   || 'http://localhost:18115';
 const CATALOG_URL = __ENV.BASE_URL_CATALOG || 'http://localhost:18113';
+const HEALTH_RETRY_COUNT = 30;
+const HEALTH_RETRY_INTERVAL_SECONDS = 1;
 
 // 재고 예약 성공 카운터 — 최종값이 초기 재고를 초과하면 Oversell 발생
 const stockReservedCount = new Counter('oversell_reserved_count');
@@ -36,9 +38,11 @@ const stockReservedCount = new Counter('oversell_reserved_count');
 const stockRejectedCount = new Counter('oversell_rejected_count');
 // Oversell 감지 카운터 — 이 값이 0이어야 정상
 const oversellDetected   = new Counter('oversell_detected');
+// setup에서 선택한 핫 상품 정보
+const hotProductStockGauge = new Gauge('oversell_hot_product_stock');
+const hotProductIdGauge = new Gauge('oversell_hot_product_id');
 
-// 테스트 설정: 핫 상품 재고(INITIAL_STOCK)보다 많은 동시 요청을 발생시킴
-const INITIAL_STOCK  = 50;   // setup에서 생성할 상품의 재고 수량
+// 테스트 설정: 핫 상품 실제 재고보다 많은 동시 요청을 발생시킴
 const CONCURRENT_VUS = 200;  // 동시 요청 수 (재고의 4배)
 
 export const options = {
@@ -59,9 +63,32 @@ export const options = {
   },
 };
 
+function waitForHealthyService(name, baseUrl) {
+  for (let attempt = 1; attempt <= HEALTH_RETRY_COUNT; attempt++) {
+    const res = http.get(`${baseUrl}/actuator/health`, {
+      tags: { name: `GET ${name} /actuator/health [preflight]` },
+      timeout: '2s',
+    });
+
+    if (res.status === 200) {
+      const body = JSON.parse(res.body);
+      if (body.status === 'UP') {
+        console.log(`[oversell] ${name} health check 통과 (${attempt}/${HEALTH_RETRY_COUNT})`);
+        return;
+      }
+    }
+
+    console.log(`[oversell] ${name} 준비 대기 중... (${attempt}/${HEALTH_RETRY_COUNT})`);
+    sleep(HEALTH_RETRY_INTERVAL_SECONDS);
+  }
+
+  throw new Error(`${name} health check 실패: ${baseUrl}/actuator/health`);
+}
+
 export function setup() {
-  // 재고가 정확히 INITIAL_STOCK인 상품 생성
-  // (실제 환경에서는 data-init API 또는 기존 상품 사용)
+  waitForHealthyService('catalog-service', CATALOG_URL);
+  waitForHealthyService('order-service', ORDER_URL);
+
   const products = JSON.parse(
     http.get(`${CATALOG_URL}/api/products?status=ACTIVE&size=100`).body
   );
@@ -70,25 +97,30 @@ export function setup() {
     throw new Error('ACTIVE 상품이 없습니다. catalog data-init 먼저 실행하세요.');
   }
 
-  // 테스트용: 재고가 충분히 낮은 상품 선택 (실제로는 data-init으로 특정 재고 설정 권장)
-  // 여기서는 첫 번째 상품을 핫 상품으로 사용
-  const hotProduct = products[0];
-  console.log(`[oversell] 핫 상품: id=${hotProduct.id}, 현재 재고 확인 필요`);
-  console.log(`[oversell] 기준 재고: ${INITIAL_STOCK}, 동시 요청: ${CONCURRENT_VUS}`);
+  // 현재 주문 가능한 ACTIVE 상품 중 재고가 가장 낮은 상품을 핫 상품으로 사용
+  const hotProduct = products.reduce((min, current) =>
+    current.stock < min.stock ? current : min
+  );
+
+  console.log(`[oversell] 핫 상품: id=${hotProduct.id}, 시작 재고=${hotProduct.stock}`);
+  console.log(`[oversell] 기준 재고(실측): ${hotProduct.stock}, 동시 요청: ${CONCURRENT_VUS}`);
   console.log('[oversell] 주의: 테스트 후 catalog DB에서 product.stock 직접 확인 필요');
+  hotProductStockGauge.add(hotProduct.stock);
+  hotProductIdGauge.add(hotProduct.id);
 
   return {
     hotProductId: hotProduct.id,
-    initialStock: INITIAL_STOCK,
+    unitPrice: hotProduct.price,
+    initialStock: hotProduct.stock,
   };
 }
 
-export default function ({ hotProductId }) {
+export default function ({ hotProductId, unitPrice }) {
   const res = http.post(
     `${ORDER_URL}/api/orders`,
     JSON.stringify({
       memberId: randomIntBetween(1, 1000000),
-      items: [{ productId: hotProductId, quantity: 1 }],
+      items: [{ productId: hotProductId, quantity: 1, unitPrice }],
     }),
     {
       headers: {
@@ -118,17 +150,20 @@ export default function ({ hotProductId }) {
 export function handleSummary(data) {
   const reserved = data.metrics['oversell_reserved_count']?.values?.count ?? 0;
   const rejected = data.metrics['oversell_rejected_count']?.values?.count ?? 0;
+  const initialStock = data.metrics['oversell_hot_product_stock']?.values?.value ?? 'unknown';
+  const hotProductId = data.metrics['oversell_hot_product_id']?.values?.value ?? 'unknown';
 
   const summary = {
     '총 STOCK_RESERVED 수': reserved,
     '총 REJECTED(재고부족) 수': rejected,
-    '기준 재고': INITIAL_STOCK,
-    '판정': reserved <= INITIAL_STOCK
-      ? `✅ 정상 — Oversell 없음 (예약 ${reserved}건 <= 재고 ${INITIAL_STOCK}건)`
-      : `❌ Oversell 감지 — 예약 ${reserved}건 > 재고 ${INITIAL_STOCK}건`,
+    '핫 상품 ID': hotProductId,
+    '기준 재고(실측)': initialStock,
+    '판정': reserved <= initialStock
+      ? `✅ 정상 — Oversell 없음 (예약 ${reserved}건 <= 재고 ${initialStock}건)`
+      : `❌ Oversell 감지 — 예약 ${reserved}건 > 재고 ${initialStock}건`,
     '수동 확인 필요': [
-      `SELECT stock FROM product WHERE id = {hotProductId};  -- 음수면 버그`,
-      `SELECT COUNT(*) FROM inventory_reservation WHERE status = 'RESERVED';`,
+      `SELECT id, stock, status FROM catalog_product WHERE id = ${hotProductId};  -- stock이 음수면 버그`,
+      `SELECT COUNT(*) FROM inventory_reservation_item iri JOIN inventory_reservation ir ON ir.id = iri.reservation_id WHERE iri.product_id = ${hotProductId} AND ir.status = 'RESERVED';`,
     ],
   };
 
