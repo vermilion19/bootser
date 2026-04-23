@@ -2,6 +2,7 @@ package com.booster.queryburstmsa.catalog.domain.entity;
 
 import com.booster.common.SnowflakeGenerator;
 import com.booster.queryburstmsa.catalog.domain.ProductStatus;
+import com.booster.queryburstmsa.catalog.lock.StaleFencingTokenException;
 import com.booster.storage.db.core.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,6 +36,9 @@ public class ProductEntity extends BaseEntity {
 
     @Column(nullable = false)
     private int stock;
+
+    @Column(name = "last_fence_token", nullable = false)
+    private long lastFenceToken = 0L;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -76,9 +80,33 @@ public class ProductEntity extends BaseEntity {
         this.status = status;
     }
 
-    public void reserve(int quantity) {
+    public void reserve(int quantity, long fencingToken) {
+        if (fencingToken <= this.lastFenceToken) {
+            throw new StaleFencingTokenException(this.id, fencingToken, this.lastFenceToken);
+        }
+        reserveInternal(quantity);
+        this.lastFenceToken = fencingToken;
+    }
+
+    public void reserveFallback(int quantity) {
+        reserveInternal(quantity);
+    }
+
+    public void restore(int quantity, long fencingToken) {
+        if (fencingToken <= this.lastFenceToken) {
+            throw new StaleFencingTokenException(this.id, fencingToken, this.lastFenceToken);
+        }
+        restoreInternal(quantity);
+        this.lastFenceToken = fencingToken;
+    }
+
+    public void restoreFallback(int quantity) {
+        restoreInternal(quantity);
+    }
+
+    private void reserveInternal(int quantity) {
         if (stock < quantity) {
-            throw new IllegalStateException("재고가 부족합니다.");
+            throw new IllegalStateException("Insufficient stock.");
         }
         stock -= quantity;
         if (stock == 0) {
@@ -86,7 +114,7 @@ public class ProductEntity extends BaseEntity {
         }
     }
 
-    public void restore(int quantity) {
+    private void restoreInternal(int quantity) {
         stock += quantity;
         if (status == ProductStatus.SOLD_OUT && stock > 0) {
             status = ProductStatus.ACTIVE;
@@ -107,6 +135,10 @@ public class ProductEntity extends BaseEntity {
 
     public int getStock() {
         return stock;
+    }
+
+    public long getLastFenceToken() {
+        return lastFenceToken;
     }
 
     public ProductStatus getStatus() {

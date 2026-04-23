@@ -52,6 +52,8 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: query_burst_catalog
+      REDIS_HOST: booster-redis
+      REDIS_PORT: 6379
       TEMPO_ZIPKIN_ENDPOINT: ${TEMPO_ZIPKIN_ENDPOINT:-http://tempo:9411/api/v2/spans}
       LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
     networks:
