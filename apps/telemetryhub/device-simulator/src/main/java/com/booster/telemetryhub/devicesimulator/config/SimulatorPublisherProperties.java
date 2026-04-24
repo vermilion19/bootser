@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class SimulatorPublisherProperties {
 
     private PublisherMode mode = PublisherMode.LOGGING;
+    private final Bridge bridge = new Bridge();
     private final Mqtt mqtt = new Mqtt();
 
     public PublisherMode getMode() {
@@ -20,10 +21,54 @@ public class SimulatorPublisherProperties {
         return mqtt;
     }
 
+    public Bridge getBridge() {
+        return bridge;
+    }
+
     public enum PublisherMode {
         LOGGING,
         MEMORY,
+        BRIDGE,
         MQTT
+    }
+
+    public static class Bridge {
+        private boolean enabled;
+        private String ingestionBaseUrl = "http://localhost:8092";
+        private String mqttBatchPath = "/ingestion/v1/mqtt/messages/batch";
+        private int requestTimeoutSeconds = 5;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getIngestionBaseUrl() {
+            return ingestionBaseUrl;
+        }
+
+        public void setIngestionBaseUrl(String ingestionBaseUrl) {
+            this.ingestionBaseUrl = ingestionBaseUrl;
+        }
+
+        public String getMqttBatchPath() {
+            return mqttBatchPath;
+        }
+
+        public void setMqttBatchPath(String mqttBatchPath) {
+            this.mqttBatchPath = mqttBatchPath;
+        }
+
+        public int getRequestTimeoutSeconds() {
+            return requestTimeoutSeconds;
+        }
+
+        public void setRequestTimeoutSeconds(int requestTimeoutSeconds) {
+            this.requestTimeoutSeconds = requestTimeoutSeconds;
+        }
     }
 
     public static class Mqtt {

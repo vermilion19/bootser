@@ -1,5 +1,6 @@
 package com.booster.telemetryhub.ingestion.infrastructure;
 
+import com.booster.telemetryhub.ingestion.application.IngestionPublishResult;
 import com.booster.telemetryhub.ingestion.application.NormalizedRawEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +11,7 @@ public class LoggingIngestionPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingIngestionPublisher.class);
 
-    public void publish(NormalizedRawEvent event) {
+    public IngestionPublishResult publish(NormalizedRawEvent event) {
         log.info(
                 "Published raw event to logging sink: eventType={}, deviceId={}, eventId={}, topic={}, kafkaKey={}",
                 event.eventType(),
@@ -19,5 +20,6 @@ public class LoggingIngestionPublisher {
                 event.sourceTopic(),
                 event.kafkaKey()
         );
+        return IngestionPublishResult.success("LOGGING");
     }
 }

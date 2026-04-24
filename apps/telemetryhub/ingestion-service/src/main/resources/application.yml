@@ -25,6 +25,16 @@ management:
 
 telemetryhub:
   ingestion:
+    mqtt:
+      enabled: false
+      real-client-enabled: false
+      broker-uri: tcp://localhost:1883
+      client-id: telemetryhub-ingestion-service
+      connection-timeout-seconds: 5
+      subscriptions:
+        - telemetryhub/devices/+/telemetry
+        - telemetryhub/devices/+/device-health
+        - telemetryhub/devices/+/driving-event
     publisher:
       mode: MEMORY
       kafka:

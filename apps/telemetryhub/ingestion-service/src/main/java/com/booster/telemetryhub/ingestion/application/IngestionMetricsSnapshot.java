@@ -7,9 +7,11 @@ public record IngestionMetricsSnapshot(
         long totalPublished,
         long totalFailed,
         Instant lastReceivedAt,
-        Instant lastPublishedAt
+        Instant lastPublishedAt,
+        String lastFailureStage,
+        String lastFailureReason
 ) {
     public static IngestionMetricsSnapshot empty() {
-        return new IngestionMetricsSnapshot(0, 0, 0, null, null);
+        return new IngestionMetricsSnapshot(0, 0, 0, null, null, null, null);
     }
 }

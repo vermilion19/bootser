@@ -1,5 +1,6 @@
 package com.booster.telemetryhub.ingestion.infrastructure;
 
+import com.booster.telemetryhub.ingestion.application.IngestionPublishResult;
 import com.booster.telemetryhub.ingestion.application.NormalizedRawEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,7 @@ public class InMemoryIngestionPublisher {
         this.store = store;
     }
 
-    public void publish(NormalizedRawEvent event) {
+    public IngestionPublishResult publish(NormalizedRawEvent event) {
         store.append(event);
         log.info(
                 "Published raw event to memory sink: eventType={}, deviceId={}, eventId={}, topic={}",
@@ -25,5 +26,6 @@ public class InMemoryIngestionPublisher {
                 event.eventId(),
                 event.sourceTopic()
         );
+        return IngestionPublishResult.success("MEMORY");
     }
 }

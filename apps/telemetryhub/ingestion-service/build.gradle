@@ -3,4 +3,5 @@ dependencies {
     implementation project(':libs:core-observability')
     implementation project(':libs:storage-kafka')
     implementation project(':apps:telemetryhub:contracts')
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
 }

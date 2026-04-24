@@ -25,6 +25,11 @@ telemetryhub:
   simulator:
     publisher:
       mode: MEMORY
+      bridge:
+        enabled: false
+        ingestion-base-url: http://localhost:8092
+        mqtt-batch-path: /ingestion/v1/mqtt/messages/batch
+        request-timeout-seconds: 5
       mqtt:
         enabled: false
         real-client-enabled: false

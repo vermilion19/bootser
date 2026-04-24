@@ -1,6 +1,7 @@
 package com.booster.telemetryhub.ingestion.infrastructure;
 
 import com.booster.telemetryhub.ingestion.application.IngestionPublisher;
+import com.booster.telemetryhub.ingestion.application.IngestionPublishResult;
 import com.booster.telemetryhub.ingestion.application.NormalizedRawEvent;
 import com.booster.telemetryhub.ingestion.config.IngestionPublisherProperties;
 import org.springframework.stereotype.Component;
@@ -26,16 +27,14 @@ public class RoutingIngestionPublisher implements IngestionPublisher {
     }
 
     @Override
-    public void publish(NormalizedRawEvent event) {
+    public IngestionPublishResult publish(NormalizedRawEvent event) {
         if (publisherProperties.getMode() == IngestionPublisherProperties.PublisherMode.KAFKA) {
-            kafkaPublisher.publish(event);
-            return;
+            return kafkaPublisher.publish(event);
         }
         if (publisherProperties.getMode() == IngestionPublisherProperties.PublisherMode.MEMORY) {
-            memoryPublisher.publish(event);
-            return;
+            return memoryPublisher.publish(event);
         }
 
-        loggingPublisher.publish(event);
+        return loggingPublisher.publish(event);
     }
 }

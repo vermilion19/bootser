@@ -29,11 +29,17 @@ public class IngestionService {
         markReceived(message.receivedAt());
         try {
             NormalizedRawEvent normalized = rawEventNormalizer.normalize(message);
-            ingestionPublisher.publish(normalized);
+            IngestionPublishResult publishResult = ingestionPublisher.publish(normalized);
+            if (!publishResult.success()) {
+                markFailed(message.receivedAt(), IngestionFailureStage.PUBLISH, publishResult.failureReason());
+                throw new IllegalStateException(publishResult.failureReason());
+            }
             markPublished(normalized.ingestTime());
             return normalized;
         } catch (RuntimeException exception) {
-            markFailed(message.receivedAt());
+            if (!(exception instanceof IllegalStateException)) {
+                markFailed(message.receivedAt(), IngestionFailureStage.NORMALIZE, exception.getMessage());
+            }
             throw exception;
         }
     }
@@ -56,7 +62,9 @@ public class IngestionService {
                 current.totalPublished(),
                 current.totalFailed(),
                 receivedAt,
-                current.lastPublishedAt()
+                current.lastPublishedAt(),
+                current.lastFailureStage(),
+                current.lastFailureReason()
         ));
     }
 
@@ -66,17 +74,21 @@ public class IngestionService {
                 current.totalPublished() + 1,
                 current.totalFailed(),
                 current.lastReceivedAt(),
-                publishedAt
+                publishedAt,
+                current.lastFailureStage(),
+                current.lastFailureReason()
         ));
     }
 
-    private void markFailed(Instant receivedAt) {
+    private void markFailed(Instant receivedAt, IngestionFailureStage stage, String reason) {
         metricsRef.updateAndGet(current -> new IngestionMetricsSnapshot(
                 current.totalReceived(),
                 current.totalPublished(),
                 current.totalFailed() + 1,
                 receivedAt,
-                current.lastPublishedAt()
+                current.lastPublishedAt(),
+                stage.name(),
+                reason
         ));
     }
 }
