@@ -1,0 +1,6 @@
+dependencies {
+    implementation project(':libs:core-observability')
+    implementation project(':libs:storage-db')
+    implementation project(':libs:storage-kafka')
+    implementation project(':apps:telemetryhub:contracts')
+}

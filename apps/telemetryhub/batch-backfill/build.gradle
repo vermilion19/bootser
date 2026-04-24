@@ -1,0 +1,7 @@
+dependencies {
+    implementation project(':libs:core-observability')
+    implementation project(':libs:storage-db')
+    implementation project(':apps:telemetryhub:contracts')
+
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+}

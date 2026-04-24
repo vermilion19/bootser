@@ -16,6 +16,13 @@ include 'apps:query-burst-msa:ranking-service'
 include 'apps:query-burst-msa:catalog-service'
 include 'apps:query-burst-msa:member-service'
 include 'apps:query-burst-msa:order-service'
+include 'apps:telemetryhub'
+include 'apps:telemetryhub:contracts'
+include 'apps:telemetryhub:device-simulator'
+include 'apps:telemetryhub:ingestion-service'
+include 'apps:telemetryhub:stream-processor'
+include 'apps:telemetryhub:batch-backfill'
+include 'apps:telemetryhub:analytics-api'
 
 // Kotlin 전용 서비스
 include 'apps:kotlin'

@@ -1,0 +1,5 @@
+dependencies {
+    implementation project(':libs:core-webflux')
+    implementation project(':libs:core-observability')
+    implementation project(':apps:telemetryhub:contracts')
+}
