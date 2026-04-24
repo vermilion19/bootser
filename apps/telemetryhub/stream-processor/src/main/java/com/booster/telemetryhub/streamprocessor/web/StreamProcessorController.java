@@ -1,7 +1,7 @@
 package com.booster.telemetryhub.streamprocessor.web;
 
 import com.booster.core.webflux.response.ApiResponse;
-import com.booster.telemetryhub.streamprocessor.application.StreamProcessorMetricsCollector;
+import com.booster.telemetryhub.streamprocessor.application.metrics.StreamProcessorMetricsCollector;
 import com.booster.telemetryhub.streamprocessor.web.dto.StreamProcessorMetricsResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

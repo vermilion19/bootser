@@ -1,9 +1,9 @@
 package com.booster.telemetryhub.devicesimulator.web;
 
 import com.booster.core.webflux.response.ApiResponse;
-import com.booster.telemetryhub.devicesimulator.application.DeviceEventPreviewService;
-import com.booster.telemetryhub.devicesimulator.application.DeviceSimulatorControlService;
-import com.booster.telemetryhub.devicesimulator.application.SimulatorRuntimeState;
+import com.booster.telemetryhub.devicesimulator.application.control.DeviceSimulatorControlService;
+import com.booster.telemetryhub.devicesimulator.application.preview.DeviceEventPreviewService;
+import com.booster.telemetryhub.devicesimulator.application.runtime.SimulatorRuntimeState;
 import com.booster.telemetryhub.devicesimulator.domain.SimulationScenario;
 import com.booster.telemetryhub.devicesimulator.web.dto.PublishedMessageResponse;
 import com.booster.telemetryhub.devicesimulator.web.dto.SimulatorMetricsResponse;

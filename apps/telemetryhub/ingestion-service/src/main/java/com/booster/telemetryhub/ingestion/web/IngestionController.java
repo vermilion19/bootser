@@ -1,12 +1,12 @@
 package com.booster.telemetryhub.ingestion.web;
 
 import com.booster.core.webflux.response.ApiResponse;
-import com.booster.telemetryhub.ingestion.application.IngestionMessage;
-import com.booster.telemetryhub.ingestion.application.MqttInboundAdapter;
-import com.booster.telemetryhub.ingestion.application.IngestionService;
-import com.booster.telemetryhub.ingestion.application.NormalizedRawEvent;
-import com.booster.telemetryhub.ingestion.infrastructure.KafkaIngestionPublisher;
-import com.booster.telemetryhub.ingestion.infrastructure.MqttInboundSubscriberLifecycle;
+import com.booster.telemetryhub.ingestion.application.ingest.IngestionMessage;
+import com.booster.telemetryhub.ingestion.application.ingest.IngestionService;
+import com.booster.telemetryhub.ingestion.application.mqtt.MqttInboundAdapter;
+import com.booster.telemetryhub.ingestion.application.normalize.NormalizedRawEvent;
+import com.booster.telemetryhub.ingestion.infrastructure.mqtt.MqttInboundSubscriberLifecycle;
+import com.booster.telemetryhub.ingestion.infrastructure.publisher.KafkaIngestionPublisher;
 import com.booster.telemetryhub.ingestion.web.dto.IngestMessageRequest;
 import com.booster.telemetryhub.ingestion.web.dto.IngestionMetricsResponse;
 import com.booster.telemetryhub.ingestion.web.dto.MqttInboundBatchRequest;

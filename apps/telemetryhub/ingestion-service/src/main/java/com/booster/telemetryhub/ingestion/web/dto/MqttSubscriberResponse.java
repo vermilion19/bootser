@@ -1,6 +1,6 @@
 package com.booster.telemetryhub.ingestion.web.dto;
 
-import com.booster.telemetryhub.ingestion.infrastructure.MqttSubscriberSnapshot;
+import com.booster.telemetryhub.ingestion.infrastructure.mqtt.MqttSubscriberSnapshot;
 
 import java.time.Instant;
 import java.util.List;

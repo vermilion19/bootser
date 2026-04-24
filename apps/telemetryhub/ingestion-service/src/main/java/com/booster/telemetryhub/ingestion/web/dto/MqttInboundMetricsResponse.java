@@ -1,6 +1,6 @@
 package com.booster.telemetryhub.ingestion.web.dto;
 
-import com.booster.telemetryhub.ingestion.application.MqttInboundMetricsSnapshot;
+import com.booster.telemetryhub.ingestion.application.mqtt.MqttInboundMetricsSnapshot;
 
 import java.time.Instant;
 

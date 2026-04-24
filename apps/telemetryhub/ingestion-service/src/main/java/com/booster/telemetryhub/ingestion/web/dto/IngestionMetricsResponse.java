@@ -1,7 +1,7 @@
 package com.booster.telemetryhub.ingestion.web.dto;
 
-import com.booster.telemetryhub.ingestion.application.IngestionMetricsSnapshot;
-import com.booster.telemetryhub.ingestion.infrastructure.KafkaPublishSnapshot;
+import com.booster.telemetryhub.ingestion.application.metrics.IngestionMetricsSnapshot;
+import com.booster.telemetryhub.ingestion.infrastructure.publisher.KafkaPublishSnapshot;
 
 import java.time.Instant;
 

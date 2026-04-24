@@ -1,6 +1,6 @@
 package com.booster.telemetryhub.devicesimulator.web.dto;
 
-import com.booster.telemetryhub.devicesimulator.application.SimulatorRuntimeState;
+import com.booster.telemetryhub.devicesimulator.application.runtime.SimulatorRuntimeState;
 import com.booster.telemetryhub.devicesimulator.domain.SimulationScenario;
 import com.booster.telemetryhub.devicesimulator.domain.SimulatorStatus;
 

@@ -1,8 +1,8 @@
 package com.booster.telemetryhub.devicesimulator.web.dto;
 
-import com.booster.telemetryhub.devicesimulator.application.SimulatorBatchSummary;
-import com.booster.telemetryhub.devicesimulator.application.SimulatorMetricsSnapshot;
-import com.booster.telemetryhub.devicesimulator.infrastructure.MqttPublisherSnapshot;
+import com.booster.telemetryhub.devicesimulator.application.runtime.SimulatorBatchSummary;
+import com.booster.telemetryhub.devicesimulator.application.runtime.SimulatorMetricsSnapshot;
+import com.booster.telemetryhub.devicesimulator.infrastructure.mqtt.MqttPublisherSnapshot;
 
 import java.time.Instant;
 

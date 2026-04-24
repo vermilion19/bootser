@@ -1,6 +1,6 @@
 package com.booster.telemetryhub.streamprocessor.web.dto;
 
-import com.booster.telemetryhub.streamprocessor.application.StreamProcessorMetricsSnapshot;
+import com.booster.telemetryhub.streamprocessor.application.metrics.StreamProcessorMetricsSnapshot;
 
 import java.time.Instant;
 

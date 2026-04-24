@@ -1,6 +1,6 @@
 package com.booster.telemetryhub.ingestion.web.dto;
 
-import com.booster.telemetryhub.ingestion.application.NormalizedRawEvent;
+import com.booster.telemetryhub.ingestion.application.normalize.NormalizedRawEvent;
 
 import java.time.Instant;
 

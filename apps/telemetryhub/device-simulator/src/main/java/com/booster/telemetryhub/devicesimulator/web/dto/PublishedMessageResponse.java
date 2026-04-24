@@ -1,6 +1,6 @@
 package com.booster.telemetryhub.devicesimulator.web.dto;
 
-import com.booster.telemetryhub.devicesimulator.infrastructure.MemoryPublishedMessage;
+import com.booster.telemetryhub.devicesimulator.infrastructure.store.MemoryPublishedMessage;
 
 import java.time.Instant;
 

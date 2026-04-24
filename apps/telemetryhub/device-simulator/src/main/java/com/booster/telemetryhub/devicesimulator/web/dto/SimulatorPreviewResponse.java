@@ -3,7 +3,7 @@ package com.booster.telemetryhub.devicesimulator.web.dto;
 import com.booster.telemetryhub.contracts.devicehealth.DeviceHealthEvent;
 import com.booster.telemetryhub.contracts.drivingevent.DrivingEvent;
 import com.booster.telemetryhub.contracts.telemetry.TelemetryEvent;
-import com.booster.telemetryhub.devicesimulator.application.SimulationEventBatch;
+import com.booster.telemetryhub.devicesimulator.application.publisher.SimulationEventBatch;
 
 import java.util.List;
 

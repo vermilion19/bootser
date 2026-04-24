@@ -1,7 +1,7 @@
 package com.booster.telemetryhub.analyticsapi.web;
 
 import com.booster.core.web.response.ApiResponse;
-import com.booster.telemetryhub.analyticsapi.application.AnalyticsQueryService;
+import com.booster.telemetryhub.analyticsapi.application.query.AnalyticsQueryService;
 import com.booster.telemetryhub.analyticsapi.web.dto.DrivingEventCounterResponse;
 import com.booster.telemetryhub.analyticsapi.web.dto.EventsPerMinuteResponse;
 import com.booster.telemetryhub.analyticsapi.web.dto.LatestDeviceResponse;
