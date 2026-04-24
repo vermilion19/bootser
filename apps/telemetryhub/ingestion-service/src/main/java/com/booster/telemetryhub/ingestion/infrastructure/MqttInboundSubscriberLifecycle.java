@@ -15,8 +15,15 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.lang.management.ManagementFactory;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,8 +41,12 @@ public class MqttInboundSubscriberLifecycle implements SmartLifecycle {
     private final AtomicReference<String> lastTopic = new AtomicReference<>();
     private final AtomicReference<String> lastError = new AtomicReference<>();
     private final AtomicReference<MqttSubscriberState> state = new AtomicReference<>(MqttSubscriberState.IDLE);
+    private final AtomicReference<String> resolvedClientId = new AtomicReference<>();
+    private final AtomicLong droppedMessages = new AtomicLong();
 
     private MqttClient client;
+    private volatile BlockingQueue<InboundMessageEnvelope> inboundQueue;
+    private volatile ExecutorService inboundWorkerExecutor;
 
     public MqttInboundSubscriberLifecycle(
             IngestionMqttSubscriberProperties properties,
@@ -49,7 +60,7 @@ public class MqttInboundSubscriberLifecycle implements SmartLifecycle {
     }
 
     @Override
-    public void start() {
+    public synchronized void start() {
         if (!properties.isEnabled()) {
             state.set(MqttSubscriberState.DISABLED);
             return;
@@ -63,14 +74,25 @@ public class MqttInboundSubscriberLifecycle implements SmartLifecycle {
 
         try {
             state.set(MqttSubscriberState.CONNECTING);
-            client = new MqttClient(properties.getBrokerUri(), properties.getClientId());
+            running.set(true);
+            initializeInboundProcessing();
+            String actualClientId = resolveClientId();
+            resolvedClientId.set(actualClientId);
+            client = new MqttClient(properties.getBrokerUri(), actualClientId);
             client.setCallback(new InboundCallback());
             client.connect(connectOptions());
             subscribeAll();
             state.set(MqttSubscriberState.READY);
             running.set(true);
-            log.info("MQTT inbound subscriber connected. brokerUri={}, subscriptions={}", properties.getBrokerUri(), properties.getSubscriptions());
+            log.info(
+                    "MQTT inbound subscriber connected. brokerUri={}, clientId={}, subscriptions={}",
+                    properties.getBrokerUri(),
+                    actualClientId,
+                    resolvedSubscriptions()
+            );
         } catch (MqttException exception) {
+            running.set(false);
+            shutdownInboundProcessing();
             state.set(MqttSubscriberState.DEGRADED);
             lastError.set(exception.getMessage());
             log.warn("Failed to start MQTT inbound subscriber: brokerUri={}, reason={}", properties.getBrokerUri(), exception.getMessage());
@@ -78,9 +100,10 @@ public class MqttInboundSubscriberLifecycle implements SmartLifecycle {
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         running.set(false);
         if (client == null) {
+            shutdownInboundProcessing();
             state.set(properties.isEnabled() ? MqttSubscriberState.IDLE : MqttSubscriberState.DISABLED);
             return;
         }
@@ -94,6 +117,8 @@ public class MqttInboundSubscriberLifecycle implements SmartLifecycle {
             lastError.set(exception.getMessage());
         } finally {
             client = null;
+            resolvedClientId.set(null);
+            shutdownInboundProcessing();
             state.set(properties.isEnabled() ? MqttSubscriberState.IDLE : MqttSubscriberState.DISABLED);
         }
     }
@@ -117,19 +142,105 @@ public class MqttInboundSubscriberLifecycle implements SmartLifecycle {
         return new MqttSubscriberSnapshot(
                 state.get(),
                 properties.getBrokerUri(),
-                properties.getClientId(),
-                List.copyOf(properties.getSubscriptions()),
+                resolvedClientId.get() != null ? resolvedClientId.get() : properties.getClientId(),
+                resolvedSubscriptions(),
                 totalMessages.get(),
+                inboundQueue != null ? inboundQueue.size() : 0,
+                droppedMessages.get(),
                 lastReceivedAt.get(),
                 lastTopic.get(),
                 lastError.get()
         );
     }
 
+    private void initializeInboundProcessing() {
+        inboundQueue = new LinkedBlockingQueue<>(properties.getInboundQueueCapacity());
+        inboundWorkerExecutor = Executors.newFixedThreadPool(properties.getInboundWorkerThreads());
+        java.util.stream.IntStream.range(0, properties.getInboundWorkerThreads())
+                .forEach(index -> inboundWorkerExecutor.submit(this::runInboundWorker));
+    }
+
+    private void shutdownInboundProcessing() {
+        if (inboundWorkerExecutor != null) {
+            inboundWorkerExecutor.shutdownNow();
+            try {
+                inboundWorkerExecutor.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        inboundWorkerExecutor = null;
+        if (inboundQueue != null) {
+            inboundQueue.clear();
+        }
+        inboundQueue = null;
+    }
+
+    private void runInboundWorker() {
+        while (running.get() || (inboundQueue != null && !inboundQueue.isEmpty())) {
+            try {
+                if (inboundQueue == null) {
+                    return;
+                }
+                InboundMessageEnvelope envelope = inboundQueue.poll(500, TimeUnit.MILLISECONDS);
+                if (envelope == null) {
+                    continue;
+                }
+                mqttInboundAdapter.receive(envelope.topic(), envelope.qos(), envelope.payload());
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (RuntimeException exception) {
+                lastError.set(exception.getMessage());
+                log.warn("Failed to process inbound MQTT message: reason={}", exception.getMessage());
+            }
+        }
+    }
+
     private void subscribeAll() throws MqttException {
-        for (String subscription : properties.getSubscriptions()) {
+        for (String subscription : resolvedSubscriptions()) {
             client.subscribe(subscription);
         }
+    }
+
+    private List<String> resolvedSubscriptions() {
+        if (!properties.isSharedSubscriptionEnabled()) {
+            return List.copyOf(properties.getSubscriptions());
+        }
+
+        return properties.getSubscriptions().stream()
+                .map(this::toSharedSubscription)
+                .toList();
+    }
+
+    private String toSharedSubscription(String subscription) {
+        if (subscription.startsWith("$share/")) {
+            return subscription;
+        }
+        return "$share/" + properties.getSharedSubscriptionGroup() + "/" + subscription;
+    }
+
+    private String resolveClientId() {
+        String suffix = sanitizeSuffix(properties.getClientIdSuffix());
+        if (!suffix.isBlank()) {
+            return properties.getClientId() + "-" + suffix;
+        }
+        return properties.getClientId() + "-" + sanitizeSuffix(defaultInstanceSuffix());
+    }
+
+    private String defaultInstanceSuffix() {
+        String runtimeName = ManagementFactory.getRuntimeMXBean().getName();
+        if (runtimeName != null && !runtimeName.isBlank()) {
+            return runtimeName;
+        }
+        return UUID.randomUUID().toString();
+    }
+
+    private String sanitizeSuffix(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        return raw.replaceAll("[^a-zA-Z0-9._-]", "-");
     }
 
     private MqttConnectOptions connectOptions() {
@@ -159,15 +270,33 @@ public class MqttInboundSubscriberLifecycle implements SmartLifecycle {
             totalMessages.incrementAndGet();
             lastReceivedAt.set(receivedAt);
             lastTopic.set(topic);
-            mqttInboundAdapter.receive(
+            BlockingQueue<InboundMessageEnvelope> queue = inboundQueue;
+            if (queue == null) {
+                droppedMessages.incrementAndGet();
+                lastError.set("inbound queue is not initialized");
+                return;
+            }
+            boolean offered = queue.offer(new InboundMessageEnvelope(
                     topic,
                     message.getQos(),
                     new String(message.getPayload(), StandardCharsets.UTF_8)
-            );
+            ));
+            if (!offered) {
+                droppedMessages.incrementAndGet();
+                lastError.set("inbound queue is full");
+                log.warn("Dropped inbound MQTT message because queue is full. topic={}", topic);
+            }
         }
 
         @Override
         public void deliveryComplete(IMqttDeliveryToken token) {
         }
+    }
+
+    private record InboundMessageEnvelope(
+            String topic,
+            int qos,
+            String payload
+    ) {
     }
 }

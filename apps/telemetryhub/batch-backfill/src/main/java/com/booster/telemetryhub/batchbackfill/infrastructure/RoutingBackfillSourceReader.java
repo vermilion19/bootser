@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 @Component
 public class RoutingBackfillSourceReader implements BackfillSourceReader {
@@ -30,9 +31,9 @@ public class RoutingBackfillSourceReader implements BackfillSourceReader {
     }
 
     @Override
-    public List<BackfillRawEvent> read(BackfillPlan plan) {
+    public void readChunks(BackfillPlan plan, Consumer<List<BackfillRawEvent>> chunkConsumer) {
         try {
-            return fileBackfillSourceReader.read(plan);
+            fileBackfillSourceReader.readChunks(plan, chunkConsumer);
         } catch (RuntimeException exception) {
             if (!properties.isFallbackToStubWhenSourceMissing()) {
                 throw exception;
@@ -43,7 +44,7 @@ public class RoutingBackfillSourceReader implements BackfillSourceReader {
                     plan.sourceType(),
                     exception.getMessage()
             );
-            return stubBackfillSourceReader.read(plan);
+            stubBackfillSourceReader.readChunks(plan, chunkConsumer);
         }
     }
 }

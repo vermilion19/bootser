@@ -27,7 +27,7 @@ public class DeviceSimulatorLoopService {
         this.eventPublisher = eventPublisher;
     }
 
-    public void start(SimulatorRuntimeState runtimeState) {
+    public synchronized void start(SimulatorRuntimeState runtimeState) {
         stop();
 
         ScheduledFuture<?> future = executorService.scheduleAtFixedRate(
@@ -39,13 +39,13 @@ public class DeviceSimulatorLoopService {
         loopRef.set(future);
     }
 
-    public void refresh(SimulatorRuntimeState runtimeState) {
+    public synchronized void refresh(SimulatorRuntimeState runtimeState) {
         if (isRunning()) {
             start(runtimeState);
         }
     }
 
-    public void stop() {
+    public synchronized void stop() {
         ScheduledFuture<?> future = loopRef.getAndSet(null);
         if (future != null) {
             future.cancel(false);

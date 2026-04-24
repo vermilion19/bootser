@@ -36,6 +36,11 @@ public class JpaDeviceLastSeenProjectionWriter implements DeviceLastSeenProjecti
                             last_ingest_time = excluded.last_ingest_time,
                             source_topic = excluded.source_topic,
                             updated_at = current_timestamp
+                    where excluded.last_event_time > telemetryhub_device_last_seen.last_event_time
+                       or (
+                            excluded.last_event_time = telemetryhub_device_last_seen.last_event_time
+                            and excluded.last_ingest_time >= telemetryhub_device_last_seen.last_ingest_time
+                       )
                     """,
                     com.booster.common.SnowflakeGenerator.nextId(),
                     aggregate.deviceId(),

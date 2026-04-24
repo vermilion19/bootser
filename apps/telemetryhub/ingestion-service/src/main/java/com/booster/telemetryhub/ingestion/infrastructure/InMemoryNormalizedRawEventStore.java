@@ -5,32 +5,32 @@ import com.booster.telemetryhub.ingestion.application.NormalizedRawEvent;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.LinkedBlockingDeque;
 
 @Component
 public class InMemoryNormalizedRawEventStore {
 
     private final IngestionRuntimeProperties runtimeProperties;
-    private final Deque<NormalizedRawEvent> events = new ConcurrentLinkedDeque<>();
+    private final LinkedBlockingDeque<NormalizedRawEvent> events;
 
     public InMemoryNormalizedRawEventStore(IngestionRuntimeProperties runtimeProperties) {
         this.runtimeProperties = runtimeProperties;
+        this.events = new LinkedBlockingDeque<>(runtimeProperties.getMaxRecentEvents());
     }
 
-    public void append(NormalizedRawEvent event) {
+    public synchronized void append(NormalizedRawEvent event) {
         if (!runtimeProperties.isRecentEventBufferEnabled()) {
             return;
         }
 
-        events.addFirst(event);
-        while (events.size() > runtimeProperties.getMaxRecentEvents()) {
+        if (!events.offerFirst(event)) {
             events.pollLast();
+            events.offerFirst(event);
         }
     }
 
-    public List<NormalizedRawEvent> recent(int limit) {
+    public synchronized List<NormalizedRawEvent> recent(int limit) {
         if (!runtimeProperties.isRecentEventBufferEnabled()) {
             return List.of();
         }
@@ -47,7 +47,7 @@ public class InMemoryNormalizedRawEventStore {
         return result;
     }
 
-    public void clear() {
+    public synchronized void clear() {
         if (!runtimeProperties.isRecentEventBufferEnabled()) {
             return;
         }

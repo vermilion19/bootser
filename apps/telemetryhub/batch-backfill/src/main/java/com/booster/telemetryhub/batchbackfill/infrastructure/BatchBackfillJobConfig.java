@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Configuration
 public class BatchBackfillJobConfig {
@@ -74,18 +74,23 @@ public class BatchBackfillJobConfig {
         return new StepBuilder("executeBackfillDryRunStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     BackfillPlan plan = backfillPlanService.prepareDefaultPlan();
-                    List<BackfillRawEvent> events = backfillSourceReader.read(plan);
+                    AtomicLong totalReadEvents = new AtomicLong();
+                    AtomicLong totalWrites = new AtomicLong();
 
-                    long totalWrites = plan.targets().stream()
-                            .mapToLong(target -> backfillTargetWriter.write(target, events, plan))
-                            .sum();
-                    backfillPlanService.recordExecution(plan, events.size(), totalWrites);
+                    backfillSourceReader.readChunks(plan, events -> {
+                        totalReadEvents.addAndGet(events.size());
+                        long chunkWrites = plan.targets().stream()
+                                .mapToLong(target -> backfillTargetWriter.write(target, events, plan))
+                                .sum();
+                        totalWrites.addAndGet(chunkWrites);
+                    });
+                    backfillPlanService.recordExecution(plan, totalReadEvents.get(), totalWrites.get());
 
                     log.info(
                             "Executed backfill flow: jobName={}, readEvents={}, totalWrites={}, dryRun={}",
                             plan.jobName(),
-                            events.size(),
-                            totalWrites,
+                            totalReadEvents.get(),
+                            totalWrites.get(),
                             plan.dryRun()
                     );
                     return RepeatStatus.FINISHED;

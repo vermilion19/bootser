@@ -9,6 +9,8 @@ public record MqttSubscriberSnapshot(
         String clientId,
         List<String> subscriptions,
         long totalMessages,
+        long queuedMessages,
+        long droppedMessages,
         Instant lastReceivedAt,
         String lastTopic,
         String lastError

@@ -33,51 +33,52 @@ public class DeviceLastSeenBackfillWriter {
 
         long writes = 0;
         for (BackfillRawEvent event : latestByDevice.values()) {
-            Integer existing = jdbcTemplate.queryForObject(
-                    "select count(*) from telemetryhub_device_last_seen where device_id = ?",
-                    Integer.class,
-                    event.deviceId()
-            );
-
-            if (existing != null && existing > 0) {
-                if (plan.overwriteMode() == BackfillOverwriteMode.SKIP_EXISTING) {
-                    continue;
-                }
-
-                jdbcTemplate.update(
-                        """
-                        update telemetryhub_device_last_seen
-                           set last_event_id = ?,
-                               last_event_type = ?,
-                               last_event_time = ?,
-                               last_ingest_time = ?,
-                               source_topic = ?
-                         where device_id = ?
-                        """,
-                        event.eventId(),
-                        event.eventType().name(),
-                        Timestamp.from(event.eventTime()),
-                        Timestamp.from(event.eventTime()),
-                        "batch-backfill",
-                        event.deviceId()
-                );
-            } else {
-                jdbcTemplate.update(
+            int updatedRows;
+            if (plan.overwriteMode() == BackfillOverwriteMode.SKIP_EXISTING) {
+                updatedRows = jdbcTemplate.update(
                         """
                         insert into telemetryhub_device_last_seen
                             (id, device_id, last_event_id, last_event_type, last_event_time, last_ingest_time, source_topic, created_at, updated_at)
                         values (?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp)
+                        on conflict (device_id) do nothing
                         """,
                         SnowflakeGenerator.nextId(),
                         event.deviceId(),
                         event.eventId(),
                         event.eventType().name(),
                         Timestamp.from(event.eventTime()),
+                        Timestamp.from(event.ingestTime()),
+                        "batch-backfill"
+                );
+            } else {
+                updatedRows = jdbcTemplate.update(
+                        """
+                        insert into telemetryhub_device_last_seen
+                            (id, device_id, last_event_id, last_event_type, last_event_time, last_ingest_time, source_topic, created_at, updated_at)
+                        values (?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp)
+                        on conflict (device_id) do update
+                            set last_event_id = excluded.last_event_id,
+                                last_event_type = excluded.last_event_type,
+                                last_event_time = excluded.last_event_time,
+                                last_ingest_time = excluded.last_ingest_time,
+                                source_topic = excluded.source_topic,
+                                updated_at = current_timestamp
+                        where excluded.last_event_time > telemetryhub_device_last_seen.last_event_time
+                           or (
+                                excluded.last_event_time = telemetryhub_device_last_seen.last_event_time
+                                and excluded.last_ingest_time >= telemetryhub_device_last_seen.last_ingest_time
+                           )
+                        """,
+                        SnowflakeGenerator.nextId(),
+                        event.deviceId(),
+                        event.eventId(),
+                        event.eventType().name(),
                         Timestamp.from(event.eventTime()),
+                        Timestamp.from(event.ingestTime()),
                         "batch-backfill"
                 );
             }
-            writes++;
+            writes += updatedRows;
         }
         return writes;
     }

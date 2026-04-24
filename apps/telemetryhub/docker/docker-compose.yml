@@ -59,6 +59,8 @@ services:
       - "host.docker.internal:host-gateway"
     env_file:
       - ./env/stream-processor.env
+    volumes:
+      - telemetryhub-stream-processor-state:/var/lib/telemetryhub-streams
     ports:
       - "${STREAM_PROCESSOR_PORT:-8093}:8093"
 
@@ -99,3 +101,4 @@ services:
 volumes:
   telemetryhub-mosquitto-data:
   telemetryhub-mosquitto-log:
+  telemetryhub-stream-processor-state:

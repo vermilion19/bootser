@@ -4,6 +4,7 @@ import com.booster.telemetryhub.contracts.common.EventType;
 import com.booster.telemetryhub.streamprocessor.application.AggregationPlan;
 import com.booster.telemetryhub.streamprocessor.application.DeviceLastSeenProjectionWriter;
 import com.booster.telemetryhub.streamprocessor.application.StreamTopologyPlanner;
+import com.booster.telemetryhub.streamprocessor.config.StreamProcessorProperties;
 import com.booster.telemetryhub.streamprocessor.domain.AggregationType;
 import com.booster.telemetryhub.streamprocessor.domain.DeviceLastSeenAggregate;
 import com.booster.telemetryhub.streamprocessor.domain.RawEventMessage;
@@ -24,7 +25,9 @@ public class DeviceLastSeenTopology {
             StreamsBuilder streamsBuilder,
             StreamTopologyPlanner streamTopologyPlanner,
             JsonSerdeFactory jsonSerdeFactory,
-            DeviceLastSeenProjectionWriter projectionWriter
+            DeviceLastSeenProjectionWriter projectionWriter,
+            StreamProcessorProperties properties,
+            LateEventPolicySupport lateEventPolicySupport
     ) {
         AggregationPlan plan = streamTopologyPlanner.plan().aggregations().stream()
                 .filter(aggregation -> aggregation.aggregationType() == AggregationType.DEVICE_LAST_SEEN)
@@ -36,7 +39,10 @@ public class DeviceLastSeenTopology {
                 Consumed.with(Serdes.String(), jsonSerdeFactory.serde(RawEventMessage.class))
         );
 
-        sourceStream
+        lateEventPolicySupport.retainWithinGrace(
+                        sourceStream.filter((key, event) -> event != null),
+                        properties.getLateEventGrace()
+                )
                 .filter((key, event) -> event != null)
                 .filter((key, event) -> isSupportedForLastSeen(event.eventType()))
                 .selectKey((key, event) -> event.deviceId())

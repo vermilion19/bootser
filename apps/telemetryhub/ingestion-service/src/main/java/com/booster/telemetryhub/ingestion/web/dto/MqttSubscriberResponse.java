@@ -11,6 +11,8 @@ public record MqttSubscriberResponse(
         String clientId,
         List<String> subscriptions,
         long totalMessages,
+        long queuedMessages,
+        long droppedMessages,
         Instant lastReceivedAt,
         String lastTopic,
         String lastError
@@ -22,6 +24,8 @@ public record MqttSubscriberResponse(
                 snapshot.clientId(),
                 snapshot.subscriptions(),
                 snapshot.totalMessages(),
+                snapshot.queuedMessages(),
+                snapshot.droppedMessages(),
                 snapshot.lastReceivedAt(),
                 snapshot.lastTopic(),
                 snapshot.lastError()

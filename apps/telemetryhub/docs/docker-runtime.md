@@ -74,6 +74,7 @@ docker compose -f apps/telemetryhub/docker/docker-compose.yml --profile batch up
   - `TELEMETRYHUB_STREAM_NUM_STREAM_THREADS`
   - `TELEMETRYHUB_STREAM_STATE_DIR`
   - `TELEMETRYHUB_STREAM_NUM_STANDBY_REPLICAS`
+  - compose mounts `/var/lib/telemetryhub-streams` to a named Docker volume for state store persistence
 
 ## Prometheus scrape 기준
 각 서비스는 actuator prometheus endpoint를 노출한다.
@@ -83,6 +84,16 @@ docker compose -f apps/telemetryhub/docker/docker-compose.yml --profile batch up
 - `stream-processor`: `http://localhost:8093/actuator/prometheus`
 - `analytics-api`: `http://localhost:8094/actuator/prometheus`
 - `batch-backfill`: `http://localhost:8095/actuator/prometheus`
+
+## Stream State Persistence
+`stream-processor` now uses:
+
+- `TELEMETRYHUB_STREAM_STATE_DIR=/var/lib/telemetryhub-streams`
+- `TELEMETRYHUB_STREAM_NUM_STANDBY_REPLICAS=1`
+
+and Compose mounts a named volume at `/var/lib/telemetryhub-streams`.
+
+This keeps Kafka Streams local state out of container tmp storage and reduces full restore cost after restart.
 
 ## 참고
 - Kafka topic / partition 전략과 scale 기준은 [scale-readiness.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/scale-readiness.md)에 정리돼 있다.

@@ -4,35 +4,34 @@ import com.booster.telemetryhub.devicesimulator.config.SimulatorRuntimePropertie
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.LinkedBlockingDeque;
 
 @Component
 public class InMemoryPublishedMessageStore {
 
     private final SimulatorRuntimeProperties runtimeProperties;
-    private final Deque<MemoryPublishedMessage> messages = new ConcurrentLinkedDeque<>();
+    private final LinkedBlockingDeque<MemoryPublishedMessage> messages;
 
     public InMemoryPublishedMessageStore(SimulatorRuntimeProperties runtimeProperties) {
         this.runtimeProperties = runtimeProperties;
+        this.messages = new LinkedBlockingDeque<>(runtimeProperties.getMaxPublishedMessages());
     }
 
-    public void append(List<MemoryPublishedMessage> batch) {
+    public synchronized void append(List<MemoryPublishedMessage> batch) {
         if (!runtimeProperties.isPublishedMessageBufferEnabled()) {
             return;
         }
 
         for (MemoryPublishedMessage message : batch) {
-            messages.addFirst(message);
-        }
-
-        while (messages.size() > runtimeProperties.getMaxPublishedMessages()) {
-            messages.pollLast();
+            if (!messages.offerFirst(message)) {
+                messages.pollLast();
+                messages.offerFirst(message);
+            }
         }
     }
 
-    public List<MemoryPublishedMessage> recent(int limit) {
+    public synchronized List<MemoryPublishedMessage> recent(int limit) {
         if (!runtimeProperties.isPublishedMessageBufferEnabled()) {
             return List.of();
         }
@@ -49,14 +48,14 @@ public class InMemoryPublishedMessageStore {
         return result;
     }
 
-    public int size() {
+    public synchronized int size() {
         if (!runtimeProperties.isPublishedMessageBufferEnabled()) {
             return 0;
         }
         return messages.size();
     }
 
-    public void clear() {
+    public synchronized void clear() {
         if (!runtimeProperties.isPublishedMessageBufferEnabled()) {
             return;
         }

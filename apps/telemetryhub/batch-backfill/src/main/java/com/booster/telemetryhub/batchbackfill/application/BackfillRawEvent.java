@@ -9,6 +9,7 @@ public record BackfillRawEvent(
         String eventId,
         String deviceId,
         Instant eventTime,
+        Instant ingestTime,
         String payload
 ) {
 }

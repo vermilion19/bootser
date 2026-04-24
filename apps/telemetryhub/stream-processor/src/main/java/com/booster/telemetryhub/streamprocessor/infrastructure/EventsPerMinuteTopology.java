@@ -3,6 +3,7 @@ package com.booster.telemetryhub.streamprocessor.infrastructure;
 import com.booster.telemetryhub.streamprocessor.application.AggregationPlan;
 import com.booster.telemetryhub.streamprocessor.application.EventsPerMinuteProjectionWriter;
 import com.booster.telemetryhub.streamprocessor.application.StreamTopologyPlanner;
+import com.booster.telemetryhub.streamprocessor.config.StreamProcessorProperties;
 import com.booster.telemetryhub.streamprocessor.domain.AggregationType;
 import com.booster.telemetryhub.streamprocessor.domain.EventsPerMinuteAggregate;
 import com.booster.telemetryhub.streamprocessor.domain.EventsPerMinuteKey;
@@ -24,7 +25,10 @@ public class EventsPerMinuteTopology {
             StreamsBuilder streamsBuilder,
             StreamTopologyPlanner streamTopologyPlanner,
             JsonSerdeFactory jsonSerdeFactory,
-            EventsPerMinuteProjectionWriter projectionWriter
+            EventsPerMinuteProjectionWriter projectionWriter,
+            RawEventDeduplicationSupport deduplicationSupport,
+            StreamProcessorProperties properties,
+            LateEventPolicySupport lateEventPolicySupport
     ) {
         AggregationPlan plan = streamTopologyPlanner.plan().aggregations().stream()
                 .filter(aggregation -> aggregation.aggregationType() == AggregationType.EVENTS_PER_MINUTE)
@@ -36,8 +40,16 @@ public class EventsPerMinuteTopology {
                 Consumed.with(Serdes.String(), jsonSerdeFactory.serde(RawEventMessage.class))
         );
 
-        sourceStream
-                .filter((key, event) -> event != null)
+        KStream<String, RawEventMessage> deduplicatedStream = deduplicationSupport.deduplicate(
+                streamsBuilder,
+                lateEventPolicySupport.retainWithinGrace(
+                        sourceStream.filter((key, event) -> event != null),
+                        properties.getLateEventGrace()
+                ),
+                plan.stateStoreName() + "-event-id-dedup-store"
+        );
+
+        deduplicatedStream
                 .selectKey((key, event) -> EventsPerMinuteKey.from(event))
                 .mapValues((bucketKey, event) -> EventsPerMinuteAggregate.first(bucketKey))
                 .groupByKey(Grouped.with(

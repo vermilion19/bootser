@@ -29,7 +29,7 @@ public class DeviceSimulatorControlService {
         this.mqttSimulationEventPublisher = mqttSimulationEventPublisher;
     }
 
-    public SimulatorRuntimeState start(int devices, int intervalMs, int qos, int connectRampUpPerSecond) {
+    public synchronized SimulatorRuntimeState start(int devices, int intervalMs, int qos, int connectRampUpPerSecond) {
         SimulatorRuntimeState next = new SimulatorRuntimeState(
                 SimulatorStatus.RUNNING,
                 devices,
@@ -45,7 +45,7 @@ public class DeviceSimulatorControlService {
         return next;
     }
 
-    public SimulatorRuntimeState stop() {
+    public synchronized SimulatorRuntimeState stop() {
         SimulatorRuntimeState current = runtimeState.get();
         SimulatorRuntimeState next = new SimulatorRuntimeState(
                 SimulatorStatus.STOPPED,
@@ -62,7 +62,7 @@ public class DeviceSimulatorControlService {
         return next;
     }
 
-    public SimulatorRuntimeState scale(int devices) {
+    public synchronized SimulatorRuntimeState scale(int devices) {
         SimulatorRuntimeState current = runtimeState.get();
         SimulatorRuntimeState next = new SimulatorRuntimeState(
                 current.status(),
@@ -79,7 +79,7 @@ public class DeviceSimulatorControlService {
         return next;
     }
 
-    public SimulatorRuntimeState applyScenario(SimulationScenario scenario, int percent) {
+    public synchronized SimulatorRuntimeState applyScenario(SimulationScenario scenario, int percent) {
         SimulatorRuntimeState current = runtimeState.get();
         SimulatorRuntimeState next = new SimulatorRuntimeState(
                 current.status(),
