@@ -1,4 +1,5 @@
 dependencies {
+    implementation project(':libs:common')
     implementation project(':libs:core-observability')
     implementation project(':libs:storage-db')
     implementation project(':apps:telemetryhub:contracts')

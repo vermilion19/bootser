@@ -31,6 +31,10 @@ telemetryhub:
     dry-run: true
     source-type: RAW_TOPIC_EXPORT
     overwrite-mode: MERGE
+    heatmap-grid-size: 0.01
+    raw-topic-export-path: data/telemetryhub/raw-topic-export.ndjson
+    raw-archive-path: data/telemetryhub/raw-archive.ndjson
+    fallback-to-stub-when-source-missing: true
     default-targets:
       - DEVICE_LAST_SEEN
       - EVENTS_PER_MINUTE

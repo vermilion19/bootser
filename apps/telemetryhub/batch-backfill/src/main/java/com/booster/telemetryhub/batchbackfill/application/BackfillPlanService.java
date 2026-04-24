@@ -10,6 +10,8 @@ public class BackfillPlanService {
 
     private final DefaultBackfillPlanFactory backfillPlanFactory;
     private final AtomicReference<BackfillExecutionSnapshot> snapshotRef = new AtomicReference<>();
+    private final AtomicReference<BackfillExecutionMetricsSnapshot> metricsRef =
+            new AtomicReference<>(BackfillExecutionMetricsSnapshot.empty());
 
     public BackfillPlanService(DefaultBackfillPlanFactory backfillPlanFactory) {
         this.backfillPlanFactory = backfillPlanFactory;
@@ -26,5 +28,22 @@ public class BackfillPlanService {
             prepareDefaultPlan();
         }
         return snapshotRef.get();
+    }
+
+    public void recordExecution(BackfillPlan plan, long totalReadEvents, long totalWrites) {
+        metricsRef.set(new BackfillExecutionMetricsSnapshot(
+                plan.jobName(),
+                plan.targets().stream().map(Enum::name).toList(),
+                plan.dryRun(),
+                totalReadEvents,
+                totalWrites,
+                Instant.now(),
+                plan.sourceType().name(),
+                plan.overwriteMode().name()
+        ));
+    }
+
+    public BackfillExecutionMetricsSnapshot latestMetrics() {
+        return metricsRef.get();
     }
 }

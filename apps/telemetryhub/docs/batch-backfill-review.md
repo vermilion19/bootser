@@ -16,13 +16,26 @@
   - 현재 기준 plan 준비와 snapshot 보관
 - [BatchBackfillJobConfig.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/batch-backfill/src/main/java/com/booster/telemetryhub/batchbackfill/infrastructure/BatchBackfillJobConfig.java)
   - Spring Batch job / step 골격
+- [StubBackfillSourceReader.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/batch-backfill/src/main/java/com/booster/telemetryhub/batchbackfill/infrastructure/StubBackfillSourceReader.java)
+  - 실제 raw source 대신 dry-run용 샘플 이벤트 공급
+- [FileBackfillSourceReader.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/batch-backfill/src/main/java/com/booster/telemetryhub/batchbackfill/infrastructure/FileBackfillSourceReader.java)
+  - NDJSON 파일 기반 실제 raw source reader
+- [RoutingBackfillSourceReader.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/batch-backfill/src/main/java/com/booster/telemetryhub/batchbackfill/infrastructure/RoutingBackfillSourceReader.java)
+  - 실제 file reader와 stub fallback 사이를 라우팅
+- [RoutingBackfillTargetWriter.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/batch-backfill/src/main/java/com/booster/telemetryhub/batchbackfill/infrastructure/RoutingBackfillTargetWriter.java)
+  - target별 write 라우팅 경계
+- `DeviceLastSeenBackfillWriter`
+- `EventsPerMinuteBackfillWriter`
+- `DrivingEventCounterBackfillWriter`
+- `RegionHeatmapBackfillWriter`
+  - target별 실제 재계산 writer
 
 ## 현재 plan 모델
 현재 backfill은 아래 기준을 먼저 잡고 있다.
 
 - source type
-  - `RAW_TOPIC_EXPORT`
-  - `RAW_ARCHIVE`
+- `RAW_TOPIC_EXPORT`
+- `RAW_ARCHIVE`
 - overwrite mode
   - `MERGE`
   - `OVERWRITE`
@@ -53,11 +66,40 @@ backfill은 실시간 처리보다 위험하다.
 ## 현재 상태
 현재는 `spring.batch.job.enabled=false` 상태라 애플리케이션이 기동될 때 자동 실행되지는 않는다.
 
-`telemetryhubBackfillJob`은 준비되어 있지만, 지금은 기본 plan을 만들고 로그로 남기는 준비 단계다.
+`telemetryhubBackfillJob`은 준비되어 있고, 현재는 아래 두 단계를 가진다.
+
+- plan 준비 step
+- dry-run replay step
+
+현재 replay는 우선 실제 NDJSON 파일 source를 읽으려 시도하고, 파일이 없을 때만 stub source로 fallback 한다.
+
+파일 포맷은 한 줄당 한 이벤트인 NDJSON 기준이다. 각 줄은 최소 아래 필드를 포함하면 된다.
+
+```json
+{"eventType":"TELEMETRY","eventId":"evt-1","deviceId":"device-001","eventTime":"2026-04-24T10:00:00Z","payload":"{\"lat\":37.5,...}"}
+```
+
+설정 프로퍼티:
+- `telemetryhub.backfill.raw-topic-export-path`
+- `telemetryhub.backfill.raw-archive-path`
+- `telemetryhub.backfill.fallback-to-stub-when-source-missing`
+- `telemetryhub.backfill.heatmap-grid-size`
+
+## 현재 target writer 동작
+- `DEVICE_LAST_SEEN`
+  - device별 최신 event 기준으로 upsert
+- `EVENTS_PER_MINUTE`
+  - `eventType + minuteBucket` 기준 재집계 후 upsert
+- `DRIVING_EVENT_COUNTER`
+  - `deviceId + drivingEventType + minuteBucket` 기준 재집계 후 upsert
+- `REGION_HEATMAP`
+  - telemetry payload의 `lat/lon`을 grid bucket으로 내린 뒤 재집계 후 upsert
+
+`OVERWRITE`는 시간 버킷 기반 테이블에서는 해당 범위를 먼저 삭제한 뒤 다시 적재한다.  
+`DEVICE_LAST_SEEN`은 전역 latest 특성 때문에 delete 없이 upsert 로만 처리한다.
 
 ## 다음 단계
-- raw source reader 추가
-- target별 processor / writer 분리
+- target별 processor / writer 세분화
 - overwrite / merge / skip 정책 실제 구현
 - replay checkpoint 설계
 - 실시간 stream-processor와 write 충돌 방지 규칙 정리

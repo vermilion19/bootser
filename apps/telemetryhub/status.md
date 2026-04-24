@@ -7,6 +7,9 @@
 - `analytics-api` 조회 전용 골격 완료
 - `region_heatmap` 집계 및 조회 API 완료
 - `batch-backfill` 골격 완료
+- `batch-backfill` dry-run replay 경계 완료
+- `batch-backfill` 파일 기반 raw source reader 완료
+- `batch-backfill` target별 실제 writer 완료
 - `안전 점수`와 `주행 리포트`는 후순위로 보류
 - 실제 MQTT broker 및 Kafka end-to-end smoke test는 아직 보류
 
@@ -26,6 +29,9 @@
 - `analytics-api` 조회 API 골격 구현 완료
 - `analytics-api` 지역 히트맵 조회 API 구현 완료
 - `batch-backfill` Spring Batch 골격 및 backfill plan 모델 구현 완료
+- `batch-backfill` stub source reader / routing writer / dry-run replay step 구현 완료
+- `batch-backfill` NDJSON 파일 기반 source reader 및 fallback routing 구현 완료
+- `batch-backfill` target별 실제 집계 writer 구현 완료
 
 ## device-simulator 완료 범위
 - 제어 API
@@ -70,9 +76,13 @@
 - 기본 backfill plan 모델
 - source type / target / overwrite mode 정의
 - dry-run 기준 job / step 준비
+- stub source 기반 replay 흐름
+- routing writer 기반 target write 경계
+- NDJSON 파일 기반 raw source reader
+- target별 DB upsert writer
 
 ## 진행 예정
-- `batch-backfill` raw replay reader / writer 구현
+- 실제 broker + kafka 기반 smoke test
 - `stream-processor` late event / dedup 정책 구체화
 - 실제 broker + kafka 기반 smoke test
 
