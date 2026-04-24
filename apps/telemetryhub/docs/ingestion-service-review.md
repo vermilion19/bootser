@@ -1,94 +1,16 @@
 # TelemetryHub Ingestion Service Review
 
-## 업데이트 2026-04-24
-
-현재 구현은 초기 MVP 골격보다 다음 항목들이 더 엄격해졌다.
-
-- MQTT subscriber scale-out을 위해 고유 `clientId` 해석과 shared subscription을 지원한다.
-- MQTT inbound 처리는 더 이상 Paho callback thread에서 전부 처리하지 않는다.
-- Kafka publish metrics는 `send()` 직후가 아니라 broker ack 기준으로 반영된다.
-- Kafka producer 신뢰성 설정이 명시적으로 들어갔다.
-- recent-event 디버그 버퍼는 여전히 사용할 수 있지만, 이제 무제한 trim 방식이 아니라 bounded 구조를 사용한다.
-
-### 현재 MQTT 런타임 모델
-
-`MqttInboundSubscriberLifecycle`는 이제 실제 런타임 `clientId`를 다음 순서로 결정한다.
-
-1. `telemetryhub.ingestion.mqtt.client-id`
-2. 선택값인 `telemetryhub.ingestion.mqtt.client-id-suffix`
-3. suffix가 없으면 인스턴스용 fallback suffix
-
-추가로 아래 설정도 지원한다.
-
-- `telemetryhub.ingestion.mqtt.shared-subscription-enabled`
-- `telemetryhub.ingestion.mqtt.shared-subscription-group`
-
-즉 지금은 다음 두 방식으로 실행할 수 있다.
-
-- 일반 topic subscription을 쓰는 단일 subscriber 모드
-- shared subscription + 고유 client id를 쓰는 scale-out 모드
-
-### 현재 MQTT inbound 스레딩 모델
-
-이제 `messageArrived()`는 아래 작업만 한다.
-
-- 수신 메타데이터 기록
-- 카운터 증가
-- 내부 bounded queue에 메시지 적재
-
-실제 애플리케이션 처리는 아래 설정으로 제어되는 worker thread가 담당한다.
-
-- `telemetryhub.ingestion.mqtt.inbound-queue-capacity`
-- `telemetryhub.ingestion.mqtt.inbound-worker-threads`
-
-`GET /ingestion/v1/mqtt/subscriber`에는 이제 아래 값도 포함된다.
-
-- 총 수신 메시지 수
-- 현재 queue 적재 수
-- drop된 메시지 수
-
-### 현재 Kafka publish 동작
-
-`KafkaIngestionPublisher`는 이제:
-
-- publish snapshot을 atomic update 함수로 갱신하고
-- Kafka async callback이 성공적으로 끝났을 때만 success를 기록하며
-- async publish failure도 같은 snapshot 모델에 반영한다
-
-현재 producer 기본값은 `application.yml`에 명시돼 있다.
-
-- `acks=all`
-- `retries=3`
-- `enable.idempotence=true`
-- `max.in.flight.requests.per.connection=5`
-- `linger.ms=5`
-- `compression.type=lz4`
-
-### 현재 in-memory 디버그 버퍼 동작
-
-`InMemoryNormalizedRawEventStore`는 이제 bounded deque 방식을 사용한다.
-
-즉:
-
-- append가 capacity를 인지하고
-- burst 트래픽에서 디버그 모드가 더 안전하며
-- 운영 모드에서는 여전히 `telemetryhub.ingestion.runtime.recent-event-buffer-enabled=false`를 유지하는 것이 맞다
-
 ## 목적
-`ingestion-service`는 시뮬레이터나 실제 디바이스가 보낸 메시지를 수신 경계에서 받아, 내부 파이프라인이 처리하기 쉬운 raw event 형태로 정규화하는 모듈이다.
+`ingestion-service`는 시뮬레이터나 실제 디바이스가 보낸 메시지를 수신 경계에서 받아, 파이프라인이 공통으로 처리할 수 있는 정규화된 raw event로 변환하는 서비스다.
 
-현재 구현 목표는 세 가지다.
+현재 이 서비스는 다음 역할을 맡는다.
 
-1. MQTT broker가 없어도 수집 로직을 먼저 개발할 수 있어야 한다.
-2. broker가 생기면 실제 MQTT subscribe 경계로 자연스럽게 전환할 수 있어야 한다.
-3. 최종적으로는 정규화된 raw event를 Kafka raw topic으로 내보낼 수 있어야 한다.
-
-즉 지금의 `ingestion-service`는 단순한 API 서버가 아니라 아래 역할을 동시에 가진다.
-
-- MQTT inbound adapter
-- raw event normalizer
-- publish router
-- Kafka raw topic 진입점
+- MQTT 스타일 메시지 수신
+- topic 기반 이벤트 타입 판별
+- payload JSON 파싱 및 공통 메타데이터 추출
+- `ingestTime` 보정
+- Kafka 또는 메모리로 publish
+- 수신/정규화/발행 상태 관측
 
 ## 전체 구조
 ```text
@@ -96,7 +18,6 @@ IngestionController
   -> IngestionService
      -> RawEventNormalizer
         -> JsonRawEventNormalizer
-           -> IngestionTopicResolver
      -> IngestionPublisher
         -> RoutingIngestionPublisher
            -> LoggingIngestionPublisher
@@ -104,260 +25,376 @@ IngestionController
            -> KafkaIngestionPublisher
 
 MqttInboundSubscriberLifecycle
+  -> inbound queue
+  -> worker threads
   -> MqttInboundAdapter
      -> IngestionService
 ```
 
-## 핵심 흐름
-
-### 1. 브로커 없는 개발 경로
+## 처리 흐름
+### 1. 일반 HTTP 수집 경로
 ```text
-Simulator BRIDGE or 직접 HTTP 호출
-  -> POST /ingestion/v1/mqtt/messages or /mqtt/messages/batch
-  -> MqttInboundAdapter
-  -> IngestionService
-  -> JsonRawEventNormalizer
-  -> RoutingIngestionPublisher
-  -> MEMORY or KAFKA
+POST /ingestion/v1/messages
+  -> IngestionController.ingest()
+  -> IngestionService.ingest()
+  -> JsonRawEventNormalizer.normalize()
+  -> RoutingIngestionPublisher.publish()
 ```
 
-### 2. 브로커 있는 실제 수집 경로
+### 2. MQTT 경계 흉내 경로
 ```text
-Simulator MQTT publish
-  -> MQTT Broker
-  -> MqttInboundSubscriberLifecycle
+POST /ingestion/v1/mqtt/messages
+POST /ingestion/v1/mqtt/messages/batch
+  -> IngestionController
   -> MqttInboundAdapter
   -> IngestionService
-  -> JsonRawEventNormalizer
-  -> RoutingIngestionPublisher
-  -> MEMORY or KAFKA
 ```
 
-### 3. 내부 처리 순서
-1. 메시지가 topic, qos, payload 형태로 들어온다.
-2. `IngestionService`가 수신 카운터를 올린다.
-3. `JsonRawEventNormalizer`가 topic을 보고 이벤트 타입을 결정한다.
-4. payload를 `contracts` 타입으로 파싱한다.
-5. `eventId`, `deviceId`, `eventType`, `eventTime`을 검증한다.
-6. `ingestTime`이 없으면 수신 시각으로 보정한다.
-7. `NormalizedRawEvent`로 변환한다.
-8. `RoutingIngestionPublisher`가 현재 모드에 따라 `LOGGING`, `MEMORY`, `KAFKA` 중 하나로 publish한다.
-9. publish 성공/실패 결과가 metrics에 반영된다.
+### 3. 실제 MQTT subscriber 경로
+```text
+MQTT Broker
+  -> MqttInboundSubscriberLifecycle.messageArrived()
+  -> inbound queue 적재
+  -> worker thread
+  -> MqttInboundAdapter.receive()
+  -> IngestionService.ingest()
+```
 
-## 패키지별 역할
+## 핵심 클래스 역할
+### `IngestionController`
+- 외부 HTTP API 진입점이다.
+- 일반 메시지 수집, MQTT 흉내 수집, 메트릭 조회, 최근 이벤트 조회를 담당한다.
 
-### 1. bootstrap
-- `IngestionServiceApplication`
-  - Spring Boot 시작점
-  - `@ConfigurationPropertiesScan`으로 publisher / MQTT subscriber 설정을 바인딩한다.
+### `IngestionService`
+- 수집 서비스의 핵심 orchestration 레이어다.
+- 수신 카운트 증가, 정규화 호출, publish 호출, 실패 단계 기록을 맡는다.
 
-### 2. application
-- `IngestionMessage`
-  - 수신 경계에서 들어오는 원본 입력 모델
-  - `topic`, `qos`, `payload`, `receivedAt`을 가진다.
-- `NormalizedRawEvent`
-  - 정규화된 raw event 모델
-  - 내부 파이프라인이 공통적으로 소비할 형태다.
-  - `eventType`, `eventId`, `deviceId`, `eventTime`, `ingestTime`, `sourceTopic`, `kafkaKey`, `payload`를 가진다.
-- `RawEventNormalizer`
-  - 원본 입력을 `NormalizedRawEvent`로 바꾸는 인터페이스
-- `IngestionPublisher`
-  - 정규화된 이벤트를 어디로 보낼지 추상화한 인터페이스
-- `IngestionPublishResult`
-  - publish 결과 모델
-  - 성공 여부, 대상, 실패 이유를 포함한다.
-- `IngestionFailureStage`
-  - 실패 단계 구분
-  - 현재는 `NORMALIZE`, `PUBLISH`
-- `IngestionMetricsSnapshot`
-  - 수신/발행/실패 누적량과 마지막 실패 정보를 담는 메트릭 모델
-- `IngestionService`
-  - ingestion 핵심 서비스
-  - 수신, normalize, publish, metrics 갱신을 담당한다.
-- `MqttInboundAdapter`
-  - MQTT에서 메시지가 들어온 것처럼 처리하는 adapter
-  - HTTP bridge 경로와 실제 subscriber 경로가 둘 다 이 adapter를 탄다.
-- `MqttInboundMetricsSnapshot`
-  - MQTT inbound adapter 전용 메트릭 모델
+### `JsonRawEventNormalizer`
+- topic suffix를 보고 `TELEMETRY`, `DEVICE_HEALTH`, `DRIVING_EVENT` 중 무엇인지 판별한다.
+- payload를 `contracts`의 이벤트 타입으로 파싱한다.
+- `eventId`, `deviceId`, `eventTime`, `eventType`, `ingestTime`을 정규화한다.
+- Kafka partition key로 쓸 `kafkaKey`도 여기서 결정된다.
 
-### 3. config
-- `IngestionPublisherProperties`
-  - publisher 모드와 Kafka 설정을 바인딩한다.
-  - `LOGGING`, `MEMORY`, `KAFKA`
-- `IngestionMqttSubscriberProperties`
-  - 실제 MQTT subscriber 설정을 바인딩한다.
-  - broker URI, clientId, subscribe topic 목록 등을 포함한다.
+### `RoutingIngestionPublisher`
+- 현재 설정된 publisher mode에 따라 `LOGGING`, `MEMORY`, `KAFKA` 중 하나로 라우팅한다.
 
-### 4. infrastructure
-- `IngestionTopicResolver`
-  - topic suffix를 보고 이벤트 타입을 결정한다.
-  - `/telemetry`, `/device-health`, `/driving-event`
-- `JsonRawEventNormalizer`
-  - payload JSON을 `contracts` 타입으로 파싱하고 검증한다.
-  - topic과 payload의 eventType이 불일치하면 실패시킨다.
-- `RoutingIngestionPublisher`
-  - 현재 설정에 따라 logging/memory/kafka 중 하나로 라우팅한다.
-- `LoggingIngestionPublisher`
-  - 이벤트를 로그에만 남긴다.
-- `InMemoryIngestionPublisher`
-  - 정규화된 raw event를 메모리 저장소에 넣는다.
-- `InMemoryNormalizedRawEventStore`
-  - 최근 normalized raw event를 최대 500개까지 보관한다.
-- `KafkaIngestionPublisher`
-  - 정규화된 raw event를 Kafka raw topic으로 publish한다.
-  - publish 관측 상태를 `KafkaPublishSnapshot`으로 유지한다.
-- `KafkaPublishSnapshot`
-  - Kafka publish 상태 모델
-  - enable 여부, topic, 성공/실패 수, 마지막 publish 시각, 마지막 실패 이유를 담는다.
-- `MqttInboundSubscriberLifecycle`
-  - 실제 MQTT subscriber lifecycle
-  - broker가 있을 때 Paho client로 subscribe하고 수신 메시지를 `MqttInboundAdapter`로 넘긴다.
-- `MqttSubscriberState`
-  - MQTT subscriber 상태 enum
-- `MqttSubscriberSnapshot`
-  - MQTT subscriber 상태 응답 모델
+### `KafkaIngestionPublisher`
+- 정규화된 raw event를 Kafka raw topic으로 보낸다.
+- ack 기반 성공/실패 카운트를 관리한다.
 
-### 5. web
-- `IngestionController`
-  - 외부 진입 API
-  - 일반 메시지 입력, MQTT inbound 입력, metrics, recent events, subscriber 상태 조회를 제공한다.
+### `MqttInboundAdapter`
+- MQTT에서 들어온 것처럼 처리되는 입력을 `IngestionService`로 넘기는 adapter다.
+- HTTP bridge 경로와 실제 subscriber 경로가 이 adapter를 공유한다.
 
-### 6. web.dto
-- `IngestMessageRequest`
-  - 일반 raw input 요청
-- `MqttInboundMessageRequest`
-  - MQTT 단건 메시지 요청
-- `MqttInboundBatchRequest`
-  - MQTT 배치 메시지 요청
-- `NormalizedRawEventResponse`
-  - 정규화 결과 응답
-- `IngestionMetricsResponse`
-  - ingestion 메트릭 응답
-  - Kafka publish 상태도 포함한다.
-- `MqttInboundMetricsResponse`
-  - MQTT inbound adapter 메트릭 응답
-- `MqttSubscriberResponse`
-  - 실제 MQTT subscriber 상태 응답
+### `MqttInboundSubscriberLifecycle`
+- Paho MQTT client lifecycle을 관리한다.
+- 고유 `clientId`를 계산한다.
+- shared subscription을 사용할 수 있다.
+- callback thread에서는 큐 적재만 수행하고 실제 처리 로직은 worker thread로 넘긴다.
 
-## Publisher 모드 설명
+## Publisher 모드
+### `LOGGING`
+- 정규화된 이벤트를 로그만 남긴다.
+- 구조 확인용이다.
 
-### 1. `LOGGING`
-- 정규화된 이벤트를 로그에만 남긴다.
-- 가장 단순한 확인용 모드다.
-
-### 2. `MEMORY`
+### `MEMORY`
 - 정규화된 이벤트를 메모리 저장소에 적재한다.
-- 현재 브로커/Kafka 없는 단계에서 가장 실용적인 기본 모드다.
-- `GET /ingestion/v1/events`로 최근 normalized raw event를 확인할 수 있다.
+- 브로커와 Kafka가 아직 없을 때 개발용으로 가장 안전하다.
+- `GET /ingestion/v1/events`로 최근 이벤트를 확인할 수 있다.
 
-### 3. `KAFKA`
+### `KAFKA`
 - 정규화된 이벤트를 Kafka raw topic으로 publish한다.
-- broker와 Kafka가 준비되면 실제 파이프라인 진입점이 된다.
+- 운영이나 end-to-end smoke test에서 사용하는 모드다.
 
-현재 기본 설정은 [application.yml](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/ingestion-service/src/main/resources/application.yml) 기준 `MEMORY`다.
+## MQTT subscriber 모드
+### 핵심 설정
+- `telemetryhub.ingestion.mqtt.enabled`
+- `telemetryhub.ingestion.mqtt.real-client-enabled`
+- `telemetryhub.ingestion.mqtt.client-id`
+- `telemetryhub.ingestion.mqtt.client-id-suffix`
+- `telemetryhub.ingestion.mqtt.shared-subscription-enabled`
+- `telemetryhub.ingestion.mqtt.shared-subscription-group`
+- `telemetryhub.ingestion.mqtt.inbound-queue-capacity`
+- `telemetryhub.ingestion.mqtt.inbound-worker-threads`
 
-```yaml
-telemetryhub:
-  ingestion:
-    publisher:
-      mode: MEMORY
-```
-
-Kafka로 바꾸려면:
-
-```yaml
-telemetryhub:
-  ingestion:
-    publisher:
-      mode: KAFKA
-      kafka:
-        enabled: true
-        raw-topic: telemetryhub.raw-events
-```
-
-## MQTT inbound 경로 설명
-
-### 1. HTTP bridge용 MQTT adapter
-브로커가 없을 때는 simulator가 HTTP로 `/ingestion/v1/mqtt/messages/batch`를 호출한다.
-
-이 경로의 장점:
-- MQTT broker 없이도 MQTT inbound 경계를 검증할 수 있다.
-- 나중에 broker가 생겨도 내부 로직은 그대로 재사용된다.
-
-### 2. 실제 MQTT subscriber
-broker가 있을 때는 `MqttInboundSubscriberLifecycle`이 직접 broker를 subscribe한다.
-
-활성화 조건:
-
-```yaml
-telemetryhub:
-  ingestion:
-    mqtt:
-      enabled: true
-      real-client-enabled: true
-```
-
-이 경로의 장점:
-- 실제 MQTT topic subscribe 검증 가능
-- broker -> ingestion 실제 경로 smoke test 가능
+### 현재 동작 방식
+- 인스턴스마다 고유 `clientId`를 만든다.
+- shared subscription을 켜면 여러 ingestion 인스턴스가 같은 topic workload를 나눠 받을 수 있다.
+- callback thread는 큐 적재까지만 한다.
+- 큐가 가득 차면 메시지를 drop하고 `droppedMessages`를 증가시킨다.
 
 ## 실패 처리 정책
-현재 실패는 두 단계로 나뉜다.
-
-### 1. `NORMALIZE`
+### `NORMALIZE`
 - topic이 비어 있음
 - topic이 지원되지 않음
 - payload가 비어 있음
 - JSON 파싱 실패
-- eventType 과 topic 불일치
-- eventId / deviceId 누락
+- topic과 payload의 이벤트 타입 불일치
+- 필수 메타데이터 누락
 
-### 2. `PUBLISH`
+### `PUBLISH`
 - publisher가 실패 결과를 반환
-- 예: `mode=KAFKA`인데 `kafka.enabled=false`
-- 예: KafkaTemplate 전송 중 예외
+- Kafka publisher 비활성 상태에서 `mode=KAFKA`
+- Kafka publish callback 실패
 
-이 정보는 `GET /ingestion/v1/metrics`에서 확인 가능하다.
+## API 상세 설명
+## `POST /ingestion/v1/messages`
+일반 HTTP 메시지를 직접 수집할 때 사용하는 API다.
 
-## 현재 API 역할
-- `POST /ingestion/v1/messages`
-  - 일반 raw input 처리
-- `POST /ingestion/v1/mqtt/messages`
-  - MQTT 단건 메시지 경계 처리
-- `POST /ingestion/v1/mqtt/messages/batch`
-  - MQTT 배치 메시지 경계 처리
-- `GET /ingestion/v1/metrics`
-  - 전체 ingestion 메트릭 + Kafka publish 상태
-- `GET /ingestion/v1/mqtt/metrics`
-  - MQTT inbound adapter 메트릭
-- `GET /ingestion/v1/mqtt/subscriber`
-  - 실제 MQTT subscriber 상태
-- `GET /ingestion/v1/events`
-  - 메모리 저장된 normalized raw event 조회
-- `POST /ingestion/v1/events/clear`
-  - 메모리 저장소 초기화
+### 요청 바디
+```json
+{
+  "topic": "telemetryhub/devices/device-001/telemetry",
+  "qos": 1,
+  "payload": "{\"metadata\":{...},\"latitude\":37.5,...}"
+}
+```
+
+### 요청 필드
+- `topic`
+  - 필수
+  - 공백 불가
+  - 이벤트 타입 판별에 사용된다.
+- `qos`
+  - 필수
+  - `0` 또는 `1`
+  - MQTT처럼 메시지 전달 품질을 표현하지만, 현재는 메타데이터 성격이 더 강하다.
+- `payload`
+  - 필수
+  - 공백 불가
+  - JSON 문자열이어야 한다.
+
+### 응답 필드
+- `eventType`
+  - 정규화된 이벤트 타입
+- `eventId`
+  - 이벤트 고유 식별자
+- `deviceId`
+  - 디바이스 식별자
+- `eventTime`
+  - 디바이스가 발생시킨 시각
+- `ingestTime`
+  - ingestion이 수신한 시각 또는 payload에 있던 ingest 시각
+- `sourceTopic`
+  - 원본 topic
+- `kafkaKey`
+  - Kafka partition key
+- `payload`
+  - 정규화 후 다시 저장되는 JSON payload
+
+### 실제 동작 로직
+1. `IngestionController.ingest()`가 요청을 받는다.
+2. `Instant.now()`를 `receivedAt`으로 넣어 `IngestionMessage`를 만든다.
+3. `IngestionService.ingest()`가 `totalReceived`를 증가시킨다.
+4. `JsonRawEventNormalizer.normalize()`가 topic과 payload를 파싱한다.
+5. `RoutingIngestionPublisher.publish()`가 현재 mode에 맞는 publisher를 고른다.
+6. publish 성공이면 `totalPublished`와 `lastPublishedAt`이 갱신된다.
+7. 실패면 `lastFailureStage`, `lastFailureReason`이 기록된다.
+
+## `POST /ingestion/v1/mqtt/messages`
+MQTT에서 들어온 단건 메시지를 HTTP로 흉내 낼 때 사용하는 API다.
+
+### 요청 바디
+구조는 `POST /ingestion/v1/messages`와 동일하다.
+
+### 실제 동작 로직
+1. `IngestionController.ingestFromMqtt()`가 요청을 받는다.
+2. `MqttInboundAdapter.receive()`가 MQTT 입력 메트릭을 갱신한다.
+3. 내부적으로 `IngestionService.ingest()`를 호출한다.
+
+### 일반 수집 API와의 차이
+- 정규화와 publish 결과는 동일하다.
+- 차이는 MQTT inbound 메트릭을 별도로 쌓는다는 점이다.
+
+## `POST /ingestion/v1/mqtt/messages/batch`
+MQTT batch 유입을 한 번에 흉내 내는 API다.
+
+### 요청 바디
+```json
+{
+  "messages": [
+    {
+      "topic": "telemetryhub/devices/device-001/telemetry",
+      "qos": 1,
+      "payload": "{...}"
+    },
+    {
+      "topic": "telemetryhub/devices/device-001/driving-event",
+      "qos": 1,
+      "payload": "{...}"
+    }
+  ]
+}
+```
+
+### 요청 필드
+- `messages`
+  - 필수
+  - 비어 있으면 안 된다.
+  - 각 요소는 `MqttInboundMessageRequest` 검증을 그대로 받는다.
+
+### 응답
+- 정규화 결과 배열을 반환한다.
+- 각 원소는 `NormalizedRawEventResponse` 형식이다.
+
+### 실제 동작 로직
+1. `IngestionController.ingestBatchFromMqtt()`가 요청을 받는다.
+2. 각 메시지를 `IngestionMessage`로 변환한다.
+3. `MqttInboundAdapter.receiveBatch()`가 `totalBatches`를 증가시킨다.
+4. 배치 안의 각 메시지마다 `markMessage()`가 호출된다.
+5. 각 메시지는 결국 `IngestionService.ingest()`를 한 번씩 탄다.
+
+### 주의할 점
+- 현재는 배치 전체 트랜잭션이 아니다.
+- 중간 하나가 실패하면 그 시점에서 예외가 발생할 수 있다.
+- 이미 처리된 앞쪽 메시지는 되돌리지 않는다.
+
+## `GET /ingestion/v1/metrics`
+ingestion 전체 상태를 보는 API다.
+
+### 응답 필드
+- `totalReceived`
+  - 수신 시도 총 개수
+- `totalPublished`
+  - publish 성공 총 개수
+- `totalFailed`
+  - 실패 총 개수
+- `lastReceivedAt`
+  - 마지막 수신 시각
+- `lastPublishedAt`
+  - 마지막 publish 성공 시각
+- `lastFailureStage`
+  - 마지막 실패 단계
+  - `NORMALIZE` 또는 `PUBLISH`
+- `lastFailureReason`
+  - 마지막 실패 사유
+- `kafkaPublish`
+  - Kafka publisher 세부 상태
+
+### `kafkaPublish` 하위 필드
+- `enabled`
+  - Kafka publisher 사용 가능 여부
+- `rawTopic`
+  - publish 대상 raw topic
+- `totalPublished`
+  - Kafka ack 기준 성공 수
+- `totalFailed`
+  - Kafka callback 기준 실패 수
+- `lastPublishedAt`
+  - 마지막 Kafka publish 성공 시각
+- `lastFailureReason`
+  - 마지막 Kafka publish 실패 이유
+
+## `GET /ingestion/v1/mqtt/metrics`
+MQTT 입력 경계 자체의 사용량을 본다.
+
+### 응답 필드
+- `totalMessages`
+  - MQTT adapter를 통해 처리한 메시지 수
+- `totalBatches`
+  - batch 호출 수
+- `lastReceivedAt`
+  - 마지막 MQTT 경계 수신 시각
+- `lastTopic`
+  - 마지막 topic
+- `lastQos`
+  - 마지막 qos
+
+### 실제 의미
+- 이 값은 ingestion 전체 성공/실패와 다를 수 있다.
+- 예를 들어 MQTT 입력은 들어왔지만 이후 normalize 실패가 발생할 수 있다.
+
+## `GET /ingestion/v1/mqtt/subscriber`
+실제 MQTT subscriber 상태를 본다.
+
+### 응답 필드
+- `state`
+  - `IDLE`, `READY`, `DEGRADED`, `DISABLED` 같은 subscriber 상태
+- `brokerUri`
+  - 현재 연결 대상 broker
+- `clientId`
+  - 실행 시점에 실제로 사용 중인 client id
+- `subscriptions`
+  - 실제 subscribe 중인 topic 목록
+  - shared subscription 사용 시 `$share/{group}/...` 형식으로 보일 수 있다.
+- `totalMessages`
+  - subscriber callback이 받은 총 메시지 수
+- `queuedMessages`
+  - 현재 inbound queue에 적재된 메시지 수
+- `droppedMessages`
+  - queue overflow 등으로 drop된 메시지 수
+- `lastReceivedAt`
+  - 마지막 수신 시각
+- `lastTopic`
+  - 마지막 수신 topic
+- `lastError`
+  - 마지막 오류 메시지
+
+### 실제 동작 로직
+1. `MqttInboundSubscriberLifecycle.snapshot()`이 현재 상태를 만든다.
+2. queue 크기와 drop 수는 lifecycle 내부 상태를 그대로 노출한다.
+3. 운영 중 backlog가 쌓이는지 확인할 때 가장 먼저 보는 API다.
+
+## `GET /ingestion/v1/events`
+메모리 publisher나 메모리 버퍼에 쌓인 최근 이벤트를 조회한다.
+
+### 쿼리 파라미터
+- `limit`
+  - 기본값 `20`
+  - 최소 `1`, 최대 `200`
+
+### 응답
+- 최근 정규화 이벤트 배열
+- 각 원소 구조는 `NormalizedRawEventResponse`
+
+### 실제 동작 로직
+1. `IngestionController.recentEvents()`가 `limit`를 받는다.
+2. `IngestionService.recentEvents(limit)`를 호출한다.
+3. `InMemoryNormalizedRawEventStore.recent(limit)`가 최근 이벤트를 잘라 반환한다.
+
+### 주의할 점
+- 운영 모드에서는 최근 이벤트 버퍼를 끌 수 있다.
+- `telemetryhub.ingestion.runtime.recent-event-buffer-enabled=false`면 디버깅용 조회 의미가 줄어든다.
+
+## `POST /ingestion/v1/events/clear`
+최근 이벤트 메모리 버퍼를 비운다.
+
+### 요청 바디
+- 없음
+
+### 응답
+- body 없는 성공 응답
+
+### 실제 동작 로직
+1. `IngestionController.clearEvents()`가 호출된다.
+2. `IngestionService.clearRecentEvents()`가 메모리 버퍼를 비운다.
+
+## API 사용 순서 추천
+### 브로커 없이 확인할 때
+1. `POST /ingestion/v1/mqtt/messages` 또는 `/mqtt/messages/batch`
+2. `GET /ingestion/v1/metrics`
+3. `GET /ingestion/v1/mqtt/metrics`
+4. `GET /ingestion/v1/events`
+
+### 실제 broker 붙인 뒤 확인할 때
+1. `GET /ingestion/v1/mqtt/subscriber`
+2. simulator에서 MQTT publish
+3. `GET /ingestion/v1/metrics`
+4. `GET /ingestion/v1/mqtt/subscriber`
 
 ## 현재 시점 평가
-현재 `ingestion-service`는 MVP 1차 완료 상태로 볼 수 있다.
+현재 `ingestion-service`는 MVP 1차를 넘어서, 실제 scale-out과 운영 관측을 어느 정도 고려한 수집 경계까지 구현된 상태다.
 
-이미 가능한 것:
-- 브로커 없는 bridge 경로 검증
-- 실제 MQTT subscriber 경계 보유
-- raw event normalize / enrich
-- publisher mode 전환
-- Kafka 연동 모드 준비
-- 실패 단계 분류
-- Kafka publish 상태 관측
+지금 가능한 것:
+- 브로커 없는 bridge 개발
+- 실제 MQTT subscriber 사용
+- shared subscription 기반 scale-out 준비
+- Kafka raw topic publish
+- ack 기반 Kafka publish 메트릭
+- inbound queue backlog 관측
 
-아직 남은 것:
+아직 남아 있는 것:
 - 실제 broker + Kafka end-to-end smoke test
-- DLQ 방향 정리
-- observability 메트릭 세분화
-- raw archive 경로 설계
-
-## 권장 다음 단계
-문서 정리 후에는 `stream-processor` 설계로 넘어가는 것이 맞다.
-
-이유:
-- simulator 와 ingestion 은 MVP 1차 기준으로 충분히 연결 가능한 상태다.
-- 프로젝트의 다음 핵심 난도는 out-of-order / late event 를 반영하는 stream 처리 계층이다.
+- DLQ 정책
+- invalid payload 장기 보관 전략
+- archive source 연동

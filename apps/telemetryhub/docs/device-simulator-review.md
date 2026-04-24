@@ -1,17 +1,14 @@
 # TelemetryHub Device Simulator Review
 
 ## 목적
-`device-simulator`는 실제 차량/IoT 디바이스 대신 텔레메트리 이벤트를 만들어 내는 모듈이다.
+`device-simulator`는 차량/IoT 디바이스가 보내는 것과 유사한 텔레메트리 이벤트를 생성하고, 제어 API를 통해 실행 상태를 조작할 수 있게 만든 모듈이다.
 
-현재 구현 목표는 두 가지다.
-
-1. 브로커 없이도 이벤트 생성과 시나리오 적용을 검증할 수 있어야 한다.
-2. 나중에 MQTT 브로커를 붙여도 구조를 다시 뜯지 않도록 전송 경계를 미리 분리해둬야 한다.
-
-즉, 지금의 시뮬레이터는 단순 랜덤 데이터 생성기가 아니라 아래 두 역할을 같이 가진다.
+현재 이 모듈의 역할은 단순한 랜덤 데이터 생성기가 아니라 아래까지 포함한다.
 
 - 제어 가능한 이벤트 발생기
-- 전송 경계를 가진 퍼블리셔 실험 모듈
+- 시나리오 기반 데이터 왜곡/지연 재현기
+- publisher mode 전환이 가능한 전송 경계
+- 브로커 없이도 검증 가능한 개발용 관측 도구
 
 ## 전체 구조
 ```text
@@ -23,355 +20,457 @@ DeviceSimulatorController
            -> RoutingSimulationEventPublisher
               -> LoggingSimulationEventPublisher
               -> InMemorySimulationEventPublisher
+              -> BridgeSimulationEventPublisher
               -> MqttSimulationEventPublisher
-                    -> MqttConnectionManager
-                       -> StubMqttConnectionManager
-                       -> RealMqttConnectionManager
 ```
 
-## 동작 흐름
-1. `POST /sim/v1/start` 호출로 시뮬레이터를 시작한다.
-2. `DeviceSimulatorControlService`가 현재 런타임 상태를 갱신하고 loop를 시작한다.
-3. `DeviceSimulatorLoopService`가 주기적으로 배치를 생성한다.
-4. `DeviceEventPreviewService`가 `contracts` 기반 이벤트를 만든다.
-5. `RoutingSimulationEventPublisher`가 현재 모드에 따라 `LOGGING`, `MEMORY`, `MQTT` 중 하나로 라우팅한다.
-6. `MEMORY` 모드면 최근 발행 메시지를 저장하고, `MQTT` 모드면 연결 관리자 경유로 publish한다.
-7. `GET /sim/v1/metrics`, `GET /sim/v1/published-messages`로 상태를 확인한다.
+핵심 흐름은 아래와 같다.
 
-## 패키지별 역할
+1. API가 현재 runtime state를 바꾼다.
+2. loop service가 주기적으로 이벤트 배치를 만든다.
+3. preview service가 `TelemetryEvent`, `DeviceHealthEvent`, `DrivingEvent`를 생성한다.
+4. publisher routing이 현재 mode에 따라 메시지를 보낸다.
+5. metrics / published-messages API로 현재 동작을 확인한다.
 
-### 1. bootstrap
-- `DeviceSimulatorApplication`
-  - Spring Boot 시작점
-  - `@ConfigurationPropertiesScan`으로 publisher 설정을 바인딩한다.
+## 주요 상태 모델
+현재 시뮬레이터 상태는 [SimulatorRuntimeState.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/SimulatorRuntimeState.java) 로 표현된다.
 
-### 2. domain
-- `SimulationScenario`
-  - 시뮬레이터 시나리오 종류
-  - `STEADY`, `RECONNECT_STORM`, `LATE_EVENT`, `DUPLICATE_EVENT`
-- `SimulatorStatus`
-  - 시뮬레이터 상태
+필드 의미:
+
+- `status`
   - `IDLE`, `RUNNING`, `STOPPED`
+- `deviceCount`
+  - 한 번의 loop cycle에서 생성할 디바이스 수
+- `publishIntervalMs`
+  - loop 주기
+- `qos`
+  - MQTT publisher 사용 시 QoS
+- `connectRampUpPerSecond`
+  - 연결 ramp-up 관련 상태값
+- `scenarioPercent`
+  - 시나리오 영향 비율
+- `scenario`
+  - `STEADY`, `RECONNECT_STORM`, `LATE_EVENT`, `DUPLICATE_EVENT`
+- `updatedAt`
+  - 상태 변경 시각
 
-### 3. application
-- `SimulatorRuntimeState`
-  - 현재 시뮬레이터 실행 설정과 상태를 담는 런타임 모델
-  - 디바이스 수, 주기, qos, scenario, update 시각을 가진다.
-- `SimulationEventBatch`
-  - 한 번의 루프에서 생성된 이벤트 묶음
-  - `telemetry`, `deviceHealth`, `drivingEvent`를 함께 운반한다.
-- `SimulationEventPublisher`
-  - 이벤트 배치를 어디로 보낼지 추상화한 인터페이스
-  - loop는 이 인터페이스만 알고 실제 전송 방식은 모른다.
-- `SimulatorBatchSummary`
-  - 마지막 루프에서 몇 건이 생성됐는지 요약한다.
-- `SimulatorMetricsSnapshot`
-  - 누적 cycle 수, 이벤트 수, 마지막 publish 시각, 마지막 배치 요약을 가진다.
-- `DeviceEventPreviewService`
-  - 실제 이벤트 생성기
-  - `contracts`의 `TelemetryEvent`, `DeviceHealthEvent`, `DrivingEvent`를 랜덤 생성한다.
-  - 시나리오에 따라 속도, signalStrength, late event 시간 차이, duplicate 위험 표시를 다르게 만든다.
-- `DeviceSimulatorLoopService`
-  - 스케줄러 기반 루프 실행기
-  - 주기마다 배치를 생성하고 publisher로 넘긴다.
-  - 누적 metrics도 여기서 갱신한다.
-- `DeviceSimulatorControlService`
-  - 컨트롤 플레인 중심 서비스
-  - start, stop, scale, scenario 변경, metrics 조회, memory publish 조회를 담당한다.
+초기 상태는 `idle()` 기준으로:
 
-### 4. config
-- `SimulatorPublisherProperties`
-  - publisher 모드와 MQTT 설정을 바인딩한다.
-  - `LOGGING`, `MEMORY`, `MQTT` 모드 선택의 기준이 된다.
-  - MQTT broker URI, clientId, qos, retain, retry 정책을 포함한다.
-- `MqttConnectionManagerConfig`
-  - `real-client-enabled` 값에 따라 실제/스텁 MQTT 연결 관리자를 선택한다.
+- `status=IDLE`
+- `deviceCount=0`
+- `publishIntervalMs=1000`
+- `qos=0`
+- `connectRampUpPerSecond=100`
+- `scenario=STEADY`
+- `scenarioPercent=0`
 
-### 5. infrastructure
-- `RoutingSimulationEventPublisher`
-  - 실제 publisher 선택기
-  - 현재 설정에 따라 logging, memory, mqtt 중 하나를 호출한다.
-- `LoggingSimulationEventPublisher`
-  - 메시지를 실제로 보내지 않고 로그만 남긴다.
-  - 샘플 topic과 payload 크기를 확인할 수 있다.
-- `InMemorySimulationEventPublisher`
-  - 직렬화된 메시지를 메모리 저장소에 넣는다.
-  - 브로커 없이 simulator를 검증하는 현재 기본 모드다.
-- `InMemoryPublishedMessageStore`
-  - 최근 publish 메시지 버퍼
-  - 최대 500개까지 보관한다.
-- `MemoryPublishedMessage`
-  - 메모리 모드에서 저장되는 메시지 모델
-  - topic, key, payload, publishedAt을 가진다.
-- `SimulationEventSerializer`
-  - 이벤트 배치를 `MessageEnvelope` 목록으로 바꾼다.
-  - topic 계산과 JSON 직렬화를 묶는 계층이다.
-- `TelemetryTopicResolver`
-  - 이벤트 종류별 topic 규칙을 계산한다.
-  - 현재 규칙은 `telemetryhub/devices/{deviceId}/...` 형태다.
-- `MessageEnvelope`
-  - topic, key, payload를 담는 직렬화 결과 모델
-- `MqttSimulationEventPublisher`
-  - MQTT 모드의 publisher
-  - 현재는 연결 관리자 경유 publish와 snapshot 갱신까지 담당한다.
-  - 실제 브로커가 없더라도 상태 모델은 유지된다.
-- `MqttConnectionManager`
-  - MQTT 연결 책임을 추상화한 인터페이스
-  - `connect`, `disconnect`, `publish`를 정의한다.
-- `StubMqttConnectionManager`
-  - 브로커 없는 개발용 스텁 구현
-  - 설정상 enabled면 READY 상태처럼 동작한다.
-- `RealMqttConnectionManager`
-  - Paho 기반 실제 MQTT 연결 관리자
-  - 나중에 브로커가 준비되면 이 구현이 활성화된다.
-- `MqttConnectionState`
-  - MQTT 연결 상태 enum
-- `MqttPublisherSnapshot`
-  - MQTT 퍼블리셔 관측 모델
-  - 마지막 시도, 마지막 성공, 실패 횟수, retry 정책을 담는다.
-- `MqttRetryPolicySnapshot`
-  - retry 정책 스냅샷
+## 시나리오별 실제 변화
+[DeviceEventPreviewService.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceEventPreviewService.java) 가 시나리오별 이벤트 차이를 만든다.
 
-### 6. web
-- `DeviceSimulatorController`
-  - 외부 제어 API 진입점
-  - 시작, 중지, 스케일, 시나리오 변경, 상태 조회, metrics 조회, preview 조회, published message 조회를 제공한다.
+### `STEADY`
+- 기본 랜덤 telemetry / health / driving event 생성
 
-### 7. web.dto
-- `SimulatorStatusResponse`
-  - 현재 시뮬레이터 상태 응답
-- `SimulatorPreviewResponse`
-  - 샘플 생성 이벤트 응답
-- `SimulatorMetricsResponse`
-  - 루프 누적 통계 + MQTT 퍼블리셔 상태 응답
-- `PublishedMessageResponse`
-  - 메모리 버퍼에 저장된 메시지 응답
+### `RECONNECT_STORM`
+- telemetry 속도를 더 낮은 범위로 생성
+- device health의 `signalStrength`를 낮게 생성
+- driving event는 `HARD_BRAKE` 쪽으로 치우침
 
-## Publisher 모드 설명
+### `LATE_EVENT`
+- `eventTime`을 `ingestTime`보다 30~180초 과거로 생성
+- late event / out-of-order 검증용
 
-### 왜 publisher 모드가 필요한가
-시뮬레이터는 "이벤트를 만든다"와 "그 이벤트를 어디로 보낸다"를 분리해두고 있다.
+### `DUPLICATE_EVENT`
+- device health의 `errorCode`에 `DUPLICATE_RISK` 설정
+- driving event는 `CRASH` 쪽으로 치우침
 
-이유는 간단하다.
+중요한 점:
 
-- 브로커가 없을 때도 이벤트 생성 로직을 먼저 개발할 수 있어야 한다.
-- 나중에 브로커가 생기면 전송 방식만 바꾸고 나머지 코드는 유지하고 싶다.
-- 로그 확인, 메모리 적재 확인, 실제 MQTT 전송은 개발 단계마다 필요한 방식이 다르다.
+- `scenarioPercent`는 현재 구현상 `DrivingEvent` 생성 threshold에 직접 반영된다.
+- 즉 “모든 이벤트의 몇 퍼센트를 바꾼다”기보다, driving event가 얼마나 자주 섞일지에 더 가깝다.
 
-즉 `publisher mode`는 "생성된 이벤트 배치를 어떤 방식으로 소비할지"를 고르는 스위치다.
+## Publisher Mode
+publisher mode는 “생성한 메시지를 어디로 보낼지”를 결정한다.
 
-현재 이 선택은 [SimulatorPublisherProperties.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/config/SimulatorPublisherProperties.java) 와 [RoutingSimulationEventPublisher.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/infrastructure/RoutingSimulationEventPublisher.java) 에서 이루어진다.
-
-### 현재 기본값
-현재 [application.yml](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/resources/application.yml) 기준 기본 publisher 모드는 `MEMORY`다.
-
-```yaml
-telemetryhub:
-  simulator:
-    publisher:
-      mode: MEMORY
-```
-
-이 뜻은:
-
-- 이벤트는 실제로 생성된다.
-- topic/payload 직렬화도 실제처럼 수행된다.
-- 결과는 브로커가 아니라 메모리 저장소에 쌓인다.
-- `GET /sim/v1/published-messages`로 최근 발행 메시지를 바로 볼 수 있다.
-
-브로커가 없는 현재 단계에서는 이 모드가 가장 실용적이다.
-
-### publisher 모드를 수정하려면
-가장 쉬운 방법은 [application.yml](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/resources/application.yml)의 `telemetryhub.simulator.publisher.mode` 값을 바꾸는 것이다.
-
-가능한 값:
+현재 지원 모드:
 
 - `LOGGING`
 - `MEMORY`
+- `BRIDGE`
 - `MQTT`
+
+### `LOGGING`
+- 실제 전송 없이 로그만 남긴다.
+- topic / payload 구조 점검용이다.
+
+### `MEMORY`
+- 최근 발행 메시지를 메모리에 저장한다.
+- 브로커 없이 simulator를 검증할 때 가장 유용하다.
+- `GET /sim/v1/published-messages`로 직접 확인 가능하다.
+
+### `BRIDGE`
+- ingestion-service의 `/ingestion/v1/mqtt/messages/batch`로 HTTP 브리지 호출을 한다.
+- MQTT broker 없이도 simulator -> ingestion 흐름을 검증할 수 있다.
+
+### `MQTT`
+- 실제 MQTT publish 경로를 사용한다.
+- broker가 준비된 뒤 end-to-end smoke test 용도로 쓴다.
+
+## API 공통 응답 형태
+모든 API는 `ApiResponse<T>` 래퍼를 사용한다.
+
+개념적으로는 아래처럼 응답된다.
+
+```json
+{
+  "success": true,
+  "data": {
+    "...": "..."
+  }
+}
+```
+
+아래 설명의 응답 필드는 모두 `data` 내부 기준이다.
+
+## API 상세
+
+### 1. `POST /sim/v1/start`
+시뮬레이터 loop를 시작한다.
+
+정의 위치:
+
+- [DeviceSimulatorController.start()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:29)
+
+요청 파라미터:
+
+- `devices`
+  - 타입: `int`
+  - 기본값: `1000`
+  - 검증: `@Min(1)`
+  - 의미: cycle당 생성할 디바이스 수
+- `intervalMs`
+  - 타입: `int`
+  - 기본값: `1000`
+  - 검증: `@Min(100)`
+  - 의미: loop 주기
+- `qos`
+  - 타입: `int`
+  - 기본값: `0`
+  - 검증: `@Min(0)`, `@Max(1)`
+  - 의미: MQTT publisher QoS
+- `connectRampUpPerSecond`
+  - 타입: `int`
+  - 기본값: `100`
+  - 검증: `@Min(1)`
+  - 의미: 연결 ramp-up 상태값
+
+응답 모델:
+
+- [SimulatorStatusResponse.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/dto/SimulatorStatusResponse.java)
+
+응답 필드:
+
+- `status`
+- `deviceCount`
+- `publishIntervalMs`
+- `qos`
+- `connectRampUpPerSecond`
+- `scenarioPercent`
+- `scenario`
+- `updatedAt`
+
+실제 동작 로직:
+
+1. [DeviceSimulatorControlService.start()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorControlService.java:32)가 새 `SimulatorRuntimeState`를 만든다.
+2. `status=RUNNING`으로 바꾸고, 요청값을 상태에 반영한다.
+3. 기존 `scenario`, `scenarioPercent`는 유지한다.
+4. [DeviceSimulatorLoopService.start()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorLoopService.java:30)를 호출한다.
+5. loop service는 기존 future가 있으면 먼저 `stop()`한 뒤 새 `scheduleAtFixedRate` 작업을 등록한다.
 
 예시:
 
-```yaml
-telemetryhub:
-  simulator:
-    publisher:
-      mode: LOGGING
+```http
+POST /sim/v1/start?devices=500&intervalMs=1000&qos=1&connectRampUpPerSecond=50
 ```
 
-또는
+### 2. `POST /sim/v1/stop`
+시뮬레이터 loop를 멈춘다.
 
-```yaml
-telemetryhub:
-  simulator:
-    publisher:
-      mode: MQTT
-      mqtt:
-        enabled: true
-        real-client-enabled: true
-        broker-uri: tcp://localhost:1883
+정의 위치:
+
+- [DeviceSimulatorController.stop()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:40)
+
+요청 파라미터:
+
+- 없음
+
+응답 모델:
+
+- `SimulatorStatusResponse`
+
+실제 동작 로직:
+
+1. [DeviceSimulatorControlService.stop()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorControlService.java:48)가 현재 상태를 읽는다.
+2. `status=STOPPED`인 새 상태를 만든다.
+3. [DeviceSimulatorLoopService.stop()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorLoopService.java:48)를 호출해 현재 future를 cancel 한다.
+4. 누적 metrics는 유지되고, 새 cycle 생성만 멈춘다.
+
+### 3. `POST /sim/v1/scale`
+디바이스 수를 변경한다.
+
+정의 위치:
+
+- [DeviceSimulatorController.scale()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:46)
+
+요청 파라미터:
+
+- `devices`
+  - 타입: `int`
+  - 검증: `@Min(1)`
+  - 의미: 새 device count
+
+응답 모델:
+
+- `SimulatorStatusResponse`
+
+실제 동작 로직:
+
+1. [DeviceSimulatorControlService.scale()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorControlService.java:65)가 현재 상태를 읽는다.
+2. `deviceCount`만 바꾼 새 상태를 만든다.
+3. [DeviceSimulatorLoopService.refresh()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorLoopService.java:42)를 호출한다.
+4. loop가 돌고 있으면 기존 loop를 멈추고 새 상태 기준으로 다시 시작한다.
+
+중요한 점:
+
+- scale은 누적 metrics를 리셋하지 않는다.
+- 다음 cycle부터 새 값이 반영된다.
+
+### 4. `POST /sim/v1/scenario/{scenario}`
+시뮬레이션 시나리오를 변경한다.
+
+정의 위치:
+
+- [DeviceSimulatorController.applyScenario()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:53)
+
+경로 파라미터:
+
+- `scenario`
+  - 타입: `SimulationScenario`
+  - 허용값:
+    - `STEADY`
+    - `RECONNECT_STORM`
+    - `LATE_EVENT`
+    - `DUPLICATE_EVENT`
+
+쿼리 파라미터:
+
+- `percent`
+  - 타입: `int`
+  - 기본값: `0`
+  - 검증: `@Min(0)`, `@Max(100)`
+  - 의미: 시나리오 적용 비율
+
+응답 모델:
+
+- `SimulatorStatusResponse`
+
+실제 동작 로직:
+
+1. [DeviceSimulatorControlService.applyScenario()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorControlService.java:82)가 현재 상태를 읽는다.
+2. `scenario`, `scenarioPercent`만 바꾼 새 상태를 만든다.
+3. loop가 실행 중이면 `refresh()`를 통해 다음 cycle부터 새 시나리오를 반영한다.
+
+예시:
+
+```http
+POST /sim/v1/scenario/LATE_EVENT?percent=40
 ```
 
-실행 환경에서 프로퍼티로 덮어써도 된다. 예를 들면:
+### 5. `GET /sim/v1/status`
+현재 runtime state를 조회한다.
 
-```powershell
-.\gradlew :apps:telemetryhub:device-simulator:bootRun --args="--telemetryhub.simulator.publisher.mode=LOGGING"
-```
+정의 위치:
 
-또는:
+- [DeviceSimulatorController.status()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:61)
 
-```powershell
-.\gradlew :apps:telemetryhub:device-simulator:bootRun --args="--telemetryhub.simulator.publisher.mode=MQTT --telemetryhub.simulator.publisher.mqtt.enabled=true --telemetryhub.simulator.publisher.mqtt.real-client-enabled=true"
-```
+요청 파라미터:
 
-### 각 모드의 차이
+- 없음
 
-#### 1. `LOGGING`
-역할:
-- 이벤트를 직렬화한 뒤 실제 전송은 하지 않고 로그만 남긴다.
+응답 모델:
 
-장점:
-- 가장 단순하다.
-- 브로커 없이 바로 동작한다.
-- topic 계산과 payload 크기 정도를 가볍게 확인할 수 있다.
+- `SimulatorStatusResponse`
 
-한계:
-- 실제 publish 결과를 API로 재확인하기 어렵다.
-- 데이터가 저장되지 않는다.
+실제 동작 로직:
 
-언제 쓰면 좋은가:
-- 정말 초기 단계에서 topic 규칙만 보고 싶을 때
-- 로그 위주로 빠르게 확인할 때
+- [DeviceSimulatorControlService.getStatus()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorControlService.java:99)가 현재 상태를 그대로 반환한다.
 
-관련 클래스:
-- [LoggingSimulationEventPublisher.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/infrastructure/LoggingSimulationEventPublisher.java)
+### 6. `GET /sim/v1/metrics`
+누적 생성 통계와 MQTT publisher 상태를 조회한다.
 
-#### 2. `MEMORY`
-역할:
-- 이벤트를 직렬화한 뒤 메모리 저장소에 적재한다.
+정의 위치:
 
-장점:
-- 브로커 없이도 "실제로 publish된 결과처럼" 검증할 수 있다.
-- `GET /sim/v1/published-messages`로 최근 메시지를 조회할 수 있다.
-- 현재 개발 단계에서 가장 유용하다.
+- [DeviceSimulatorController.metrics()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:66)
 
-한계:
-- 외부 시스템과 연결되지는 않는다.
-- 프로세스가 내려가면 데이터는 사라진다.
-- 진짜 네트워크 장애나 브로커 반응은 검증할 수 없다.
+요청 파라미터:
 
-언제 쓰면 좋은가:
-- 브로커 없이 simulator를 마무리할 때
-- ingestion-service 붙이기 전에 payload 구조를 검증할 때
-- scenario별 메시지 차이를 눈으로 확인할 때
+- 없음
 
-관련 클래스:
-- [InMemorySimulationEventPublisher.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/infrastructure/InMemorySimulationEventPublisher.java)
-- [InMemoryPublishedMessageStore.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/infrastructure/InMemoryPublishedMessageStore.java)
+응답 모델:
 
-#### 3. `MQTT`
-역할:
-- 이벤트를 실제 MQTT publish 경로로 보낸다.
+- [SimulatorMetricsResponse.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/dto/SimulatorMetricsResponse.java)
 
-장점:
-- 실제 브로커와 붙이면 end-to-end smoke test가 가능하다.
-- topic, payload, connection manager, publish 경계를 실제처럼 확인할 수 있다.
-- 향후 reconnect/backoff, 장애 시나리오 검증 기반이 된다.
+응답 필드:
 
-한계:
-- 브로커가 필요하다.
-- 네트워크와 broker 상태에 따라 실패 가능성이 생긴다.
-- 지금 시점에서는 브로커가 없으니 기본 개발 모드로는 부적합하다.
+- `cycleCount`
+  - loop 실행 횟수
+- `telemetryCount`
+  - 누적 telemetry 개수
+- `deviceHealthCount`
+  - 누적 device health 개수
+- `drivingEventCount`
+  - 누적 driving event 개수
+- `lastPublishedAt`
+  - 마지막 cycle 처리 시각
+- `lastBatch`
+  - 마지막 cycle 생성 결과 요약
+  - `requestedDevices`
+  - `telemetryCount`
+  - `deviceHealthCount`
+  - `drivingEventCount`
+  - `generatedAt`
+- `mqttPublisher`
+  - MQTT publisher 관측 정보
+  - `connectionState`
+  - `brokerUri`
+  - `clientId`
+  - `qos`
+  - `retain`
+  - `lastPublishedMessageCount`
+  - `consecutiveFailureCount`
+  - `lastAttemptAt`
+  - `lastSuccessAt`
+  - `lastFailureReason`
+  - `retryPolicy`
 
-언제 쓰면 좋은가:
-- Docker로 EMQX/Mosquitto 같은 broker를 띄운 뒤
-- simulator에서 broker까지 실제 publish가 되는지 확인할 때
-- ingestion-service와 연결된 smoke test를 할 때
+실제 동작 로직:
 
-관련 클래스:
-- [MqttSimulationEventPublisher.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/infrastructure/MqttSimulationEventPublisher.java)
-- [MqttConnectionManager.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/infrastructure/MqttConnectionManager.java)
-- [StubMqttConnectionManager.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/infrastructure/StubMqttConnectionManager.java)
-- [RealMqttConnectionManager.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/infrastructure/RealMqttConnectionManager.java)
+1. [DeviceSimulatorLoopService.getMetrics()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorLoopService.java:60)에서 loop 통계를 읽는다.
+2. [DeviceSimulatorControlService.getMqttPublisherSnapshot()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorControlService.java:107)에서 MQTT publisher snapshot을 읽는다.
+3. 응답 DTO가 둘을 합쳐 하나의 응답으로 변환한다.
 
-### MQTT 모드에서 `enabled` 와 `real-client-enabled` 차이
-이 부분은 헷갈리기 쉬워서 따로 구분해야 한다.
+중요한 점:
 
-`mode=MQTT`는 "publisher 선택"이다.  
-즉 라우팅이 `MqttSimulationEventPublisher`로 간다는 뜻이다.
+- publisher mode가 `MEMORY`여도 `mqttPublisher` 필드는 항상 포함될 수 있다.
+- 이 값은 “현재 MQTT publisher 계층의 관측 상태”이지, 반드시 실제 publish가 일어났다는 의미는 아니다.
 
-`mqtt.enabled`는 "MQTT publish 자체를 허용할지" 여부다.
+### 7. `GET /sim/v1/preview`
+현재 상태 기준으로 샘플 이벤트를 즉시 생성해서 보여준다.
 
-`mqtt.real-client-enabled`는 "연결 관리자를 실제 클라이언트로 쓸지, 스텁으로 쓸지" 여부다.
+정의 위치:
 
-정리하면:
+- [DeviceSimulatorController.preview()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:73)
 
-- `mode=MQTT`, `enabled=false`
-  - MQTT 퍼블리셔 경로는 타지만 실제 publish는 비활성 상태
-  - snapshot에는 disabled 상태가 남는다.
+요청 파라미터:
 
-- `mode=MQTT`, `enabled=true`, `real-client-enabled=false`
-  - MQTT 퍼블리셔 경로는 사용
-  - 실제 브로커 대신 `StubMqttConnectionManager` 사용
-  - 구조 검증용
+- `count`
+  - 타입: `int`
+  - 기본값: `5`
+  - 검증: `@Min(1)`, `@Max(100)`
+  - 의미: 샘플 디바이스 수
 
-- `mode=MQTT`, `enabled=true`, `real-client-enabled=true`
-  - 실제 Paho 클라이언트 기반 publish 시도
-  - 브로커가 있어야 의미가 있다.
+응답 모델:
 
-### 지금 무엇을 쓰는 게 맞는가
-현재는 브로커가 없으므로 `MEMORY`가 가장 적절하다.
+- [SimulatorPreviewResponse.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/dto/SimulatorPreviewResponse.java)
 
-추천 이유:
+응답 필드:
 
-- topic/payload가 실제와 가깝게 만들어진다.
-- 브로커 없이도 최근 publish 결과를 API로 확인할 수 있다.
-- simulator 개발 완료 기준을 만족시킨다.
-- 나중에 broker만 추가되면 `MQTT`로 전환 가능하다.
+- `telemetryEvents`
+- `deviceHealthEvents`
+- `drivingEvents`
 
-즉 현재의 기본값 `MEMORY`는 임시방편이 아니라, 브로커 없는 단계에서 가장 검증성이 좋은 모드다.
+실제 동작 로직:
 
-## 현재 API 역할
-- `POST /sim/v1/start`
-  - 시뮬레이터 시작
-- `POST /sim/v1/stop`
-  - 시뮬레이터 정지
-- `POST /sim/v1/scale`
-  - device 수 변경
-- `POST /sim/v1/scenario/{scenario}`
-  - 시나리오 변경
-- `GET /sim/v1/status`
-  - 런타임 상태 조회
-- `GET /sim/v1/metrics`
-  - 누적 생성 통계와 MQTT 상태 조회
-- `GET /sim/v1/preview`
-  - 샘플 이벤트 즉시 조회
-- `GET /sim/v1/published-messages`
-  - 메모리 publisher에 저장된 최근 메시지 조회
-- `POST /sim/v1/published-messages/clear`
-  - 메모리 버퍼 초기화
+1. 현재 runtime state를 읽는다.
+2. [DeviceEventPreviewService.generatePreview()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceEventPreviewService.java:19)가 `count` 기준으로 샘플 이벤트를 만든다.
+3. 결과는 메모리에 저장되지 않고 실제 publish도 하지 않는다.
 
-## 현재 시점 평가
-현재 `device-simulator`는 브로커 없이 개발 가능한 MVP 범위에서는 완료 상태로 볼 수 있다.
+중요한 점:
 
-이미 가능한 것:
-- 제어 API
-- 이벤트 생성
-- 시나리오 적용
-- 루프 실행
-- topic/payload 직렬화
-- memory publish 검증
-- mqtt 확장 구조 확보
+- `count`는 sample device 수이지 loop의 실제 `deviceCount`를 바꾸지 않는다.
+- 현재 scenario의 영향을 그대로 받는다.
+- `drivingEvents`는 threshold 기반이므로 개수가 `count`보다 적을 수 있다.
 
-아직 남은 것:
-- 실제 브로커와 붙여 end-to-end publish 확인
-- reconnect/backoff/jitter를 실제 연결 실패에 맞춰 정교화
-- device별 연결 세션 모델 고도화
+### 8. `GET /sim/v1/published-messages`
+메모리 publisher에 저장된 최근 메시지를 조회한다.
 
-## 권장 다음 단계
-시뮬레이터는 여기서 잠시 멈추고 `ingestion-service`로 넘어가는 게 맞다.
+정의 위치:
 
-이유:
-- simulator는 현재 목표 범위에서 충분히 동작한다.
-- 이 프로젝트의 핵심 난도는 수집 이후 처리 파이프라인에 있다.
-- 브로커는 나중에 docker로 띄운 뒤 `MQTT` 모드 smoke test만 추가하면 된다.
+- [DeviceSimulatorController.publishedMessages()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:83)
+
+요청 파라미터:
+
+- `limit`
+  - 타입: `int`
+  - 기본값: `20`
+  - 검증: `@Min(1)`, `@Max(200)`
+  - 의미: 최근 메시지를 몇 개까지 볼지
+
+응답 모델:
+
+- [PublishedMessageResponse.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/dto/PublishedMessageResponse.java)
+
+응답 필드:
+
+- `topic`
+- `key`
+- `payload`
+- `publishedAt`
+
+실제 동작 로직:
+
+1. [DeviceSimulatorControlService.getRecentPublishedMessages()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorControlService.java:111)가 in-memory store에서 최근 메시지를 읽는다.
+2. `limit` 개수만큼 잘라서 응답 DTO로 변환한다.
+
+중요한 점:
+
+- 이 API는 `MEMORY` 모드 검증용이다.
+- 운영 모드에서 `published-message-buffer-enabled=false`이면 빈 리스트가 나올 수 있다.
+
+### 9. `POST /sim/v1/published-messages/clear`
+메모리 publisher 버퍼를 비운다.
+
+정의 위치:
+
+- [DeviceSimulatorController.clearPublishedMessages()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/web/DeviceSimulatorController.java:93)
+
+요청 파라미터:
+
+- 없음
+
+응답:
+
+- `ApiResponse<Void>` 성공 응답
+
+실제 동작 로직:
+
+- [DeviceSimulatorControlService.clearPublishedMessages()](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/device-simulator/src/main/java/com/booster/telemetryhub/devicesimulator/application/DeviceSimulatorControlService.java:115)가 in-memory buffer를 clear 한다.
+
+## API 사용 추천 순서
+브로커 없이 simulator만 검증할 때는 보통 아래 순서가 가장 이해하기 쉽다.
+
+1. `GET /sim/v1/status`
+2. `GET /sim/v1/preview?count=3`
+3. `POST /sim/v1/start?...`
+4. `GET /sim/v1/metrics`
+5. `GET /sim/v1/published-messages?limit=20`
+6. `POST /sim/v1/scenario/LATE_EVENT?percent=40`
+7. `GET /sim/v1/preview?count=3`
+8. `POST /sim/v1/stop`
+
+## 자주 헷갈리는 점
+
+- `start`의 `devices`는 한 cycle에서 생성할 device 수다.
+- `preview`의 `count`는 sample device 수다. runtime state를 바꾸지 않는다.
+- `scenarioPercent`는 전체 이벤트 비율이 아니라 현재 구현상 `DrivingEvent` 생성 threshold에 직접 반영된다.
+- `published-messages`는 메모리 버퍼 조회 API다. broker에 실제 전달된 메시지 이력을 조회하는 API가 아니다.
+- `metrics`의 MQTT publisher 정보는 publisher mode가 `MEMORY`여도 구조상 항상 응답에 포함될 수 있다.
