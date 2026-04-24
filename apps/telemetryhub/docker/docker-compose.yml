@@ -1,0 +1,101 @@
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: telemetryhub-mqtt-broker
+    restart: unless-stopped
+    ports:
+      - "${MQTT_BROKER_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - telemetryhub-mosquitto-data:/mosquitto/data
+      - telemetryhub-mosquitto-log:/mosquitto/log
+
+  device-simulator:
+    build:
+      context: ../../..
+      dockerfile: apps/telemetryhub/docker/Dockerfile
+      args:
+        MODULE_TASK: ":apps:telemetryhub:device-simulator"
+        MODULE_DIR: "apps/telemetryhub/device-simulator"
+    container_name: telemetryhub-device-simulator
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mqtt-broker
+    env_file:
+      - ./env/device-simulator.env
+    ports:
+      - "${DEVICE_SIMULATOR_PORT:-8091}:8091"
+
+  ingestion-service:
+    build:
+      context: ../../..
+      dockerfile: apps/telemetryhub/docker/Dockerfile
+      args:
+        MODULE_TASK: ":apps:telemetryhub:ingestion-service"
+        MODULE_DIR: "apps/telemetryhub/ingestion-service"
+    container_name: telemetryhub-ingestion-service
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mqtt-broker
+    env_file:
+      - ./env/ingestion-service.env
+    ports:
+      - "${INGESTION_SERVICE_PORT:-8092}:8092"
+
+  stream-processor:
+    build:
+      context: ../../..
+      dockerfile: apps/telemetryhub/docker/Dockerfile
+      args:
+        MODULE_TASK: ":apps:telemetryhub:stream-processor"
+        MODULE_DIR: "apps/telemetryhub/stream-processor"
+    container_name: telemetryhub-stream-processor
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - ./env/stream-processor.env
+    ports:
+      - "${STREAM_PROCESSOR_PORT:-8093}:8093"
+
+  analytics-api:
+    build:
+      context: ../../..
+      dockerfile: apps/telemetryhub/docker/Dockerfile
+      args:
+        MODULE_TASK: ":apps:telemetryhub:analytics-api"
+        MODULE_DIR: "apps/telemetryhub/analytics-api"
+    container_name: telemetryhub-analytics-api
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - ./env/analytics-api.env
+    ports:
+      - "${ANALYTICS_API_PORT:-8094}:8094"
+
+  batch-backfill:
+    build:
+      context: ../../..
+      dockerfile: apps/telemetryhub/docker/Dockerfile
+      args:
+        MODULE_TASK: ":apps:telemetryhub:batch-backfill"
+        MODULE_DIR: "apps/telemetryhub/batch-backfill"
+    container_name: telemetryhub-batch-backfill
+    restart: unless-stopped
+    profiles:
+      - batch
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - ./env/batch-backfill.env
+    ports:
+      - "${BATCH_BACKFILL_PORT:-8095}:8095"
+
+volumes:
+  telemetryhub-mosquitto-data:
+  telemetryhub-mosquitto-log:

@@ -25,6 +25,9 @@ management:
 
 telemetryhub:
   ingestion:
+    runtime:
+      recent-event-buffer-enabled: true
+      max-recent-events: 500
     mqtt:
       enabled: false
       real-client-enabled: false
@@ -40,3 +43,4 @@ telemetryhub:
       kafka:
         enabled: false
         raw-topic: telemetryhub.raw-events
+        key-strategy: DEVICE_ID

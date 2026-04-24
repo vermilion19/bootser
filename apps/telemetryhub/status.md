@@ -10,6 +10,11 @@
 - `batch-backfill` dry-run replay 경계 완료
 - `batch-backfill` 파일 기반 raw source reader 완료
 - `batch-backfill` target별 실제 writer 완료
+- `device-simulator` / `ingestion-service` stateless 운영 모드 설정 완료
+- `stream-processor` Kafka Streams scale-out 설정 외부화 완료
+- `ingestion-service` Kafka partition key 전략 명시화 완료
+- `stream-processor` JDBC upsert 기반 write contention 완화 완료
+- Docker Compose 기반 runtime 구성 완료
 - `안전 점수`와 `주행 리포트`는 후순위로 보류
 - 실제 MQTT broker 및 Kafka end-to-end smoke test는 아직 보류
 
@@ -32,6 +37,12 @@
 - `batch-backfill` stub source reader / routing writer / dry-run replay step 구현 완료
 - `batch-backfill` NDJSON 파일 기반 source reader 및 fallback routing 구현 완료
 - `batch-backfill` target별 실제 집계 writer 구현 완료
+- `device-simulator` published message buffer 비활성화 설정 추가 완료
+- `ingestion-service` recent event buffer 비활성화 설정 추가 완료
+- `stream-processor` stream threads / state dir / standby replica / processing guarantee 설정 외부화 완료
+- `ingestion-service` Kafka key strategy 설정 추가 완료
+- `stream-processor` projection write JPA select-save -> JDBC upsert 전환 완료
+- MQTT broker + 서비스들 docker-compose 및 env 템플릿 추가 완료
 
 ## device-simulator 완료 범위
 - 제어 API
@@ -80,6 +91,11 @@
 - routing writer 기반 target write 경계
 - NDJSON 파일 기반 raw source reader
 - target별 DB upsert writer
+- stateless 운영 모드용 로컬 버퍼 disable 설정
+- Kafka Streams scale-out 설정 외부화
+- Kafka partition key 전략 명시화
+- JDBC upsert 기반 contention 완화
+- Docker runtime 템플릿
 
 ## 진행 예정
 - 실제 broker + kafka 기반 smoke test
@@ -96,6 +112,7 @@
 ## 참고 문서
 - 기획 문서: [Planning.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/Planning.md)
 - scale readiness 기준: [scale-readiness.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/scale-readiness.md)
+- docker runtime 가이드: [docker-runtime.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/docker-runtime.md)
 - analytics API 설명: [analytics-api-review.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/analytics-api-review.md)
 - batch backfill 설명: [batch-backfill-review.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/batch-backfill-review.md)
 - 시뮬레이터 구조 설명: [device-simulator-review.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/device-simulator-review.md)

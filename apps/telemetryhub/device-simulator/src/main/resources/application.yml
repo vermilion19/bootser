@@ -23,6 +23,9 @@ management:
 
 telemetryhub:
   simulator:
+    runtime:
+      published-message-buffer-enabled: true
+      max-published-messages: 500
     publisher:
       mode: MEMORY
       bridge:

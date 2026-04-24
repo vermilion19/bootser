@@ -49,6 +49,7 @@
 - 이벤트 생성, 제어 API, publish mode가 분리되어 있다.
 - `MEMORY`, `BRIDGE`, `MQTT` 모드가 있어 환경별로 전환 가능하다.
 - 실제 브로커가 없어도 ingestion까지 연결 검증이 가능하다.
+- `telemetryhub.simulator.runtime.published-message-buffer-enabled=false` 로 로컬 메모리 버퍼를 끌 수 있다.
 
 위험:
 - 제어 plane과 생성 loop가 한 프로세스 안에 있어 대규모 분산 simulator로 보긴 어렵다.
@@ -73,6 +74,7 @@
 - normalize / enrich / publish 경계가 분리되어 있다.
 - publisher mode와 subscriber 경계가 분리되어 있다.
 - Kafka로 넘기는 구조는 독립 스케일링에 유리하다.
+- `telemetryhub.ingestion.runtime.recent-event-buffer-enabled=false` 로 최근 이벤트 메모리 버퍼를 끌 수 있다.
 
 위험:
 - 아직 메모리 모드와 개발용 recent event 조회가 남아 있다.
@@ -89,6 +91,10 @@
 - 현재 구조상 독립 scale 하기 가장 쉬운 서비스다.
 - 이후 운영 안정화만 보강하면 된다.
 
+현재 반영된 개선:
+- Kafka raw topic key 전략을 설정으로 명시화했다.
+- 기본값은 `DEVICE_ID`라서 같은 device 이벤트가 같은 partition으로 모이도록 유지한다.
+
 ### 3. stream-processor
 상태: `위험`
 
@@ -97,6 +103,7 @@
 - topology가 집계별로 나뉘어 있다.
 - state store와 read model write 경계가 분리되어 있다.
 - projection write metrics가 있어 병목 관측 출발점은 있다.
+- `num-stream-threads`, `state-dir`, `processing-guarantee`, `num-standby-replicas`를 외부 설정으로 조정할 수 있다.
 
 위험:
 - DB upsert가 직접 병목이 될 가능성이 높다.
@@ -114,6 +121,11 @@
 판단:
 - 구조 방향은 맞지만, 가장 먼저 scale 병목이 드러날 가능성이 높은 곳이다.
 - 이후 구현에서 가장 보수적으로 다뤄야 한다.
+
+현재 반영된 개선:
+- projection write를 JPA `find -> save` 방식에서 JDBC upsert 방식으로 바꿨다.
+- unique key 기준 충돌을 DB에 맡겨 round trip 수를 줄였다.
+- 이 변경으로 bucket 집계 write contention과 ORM 오버헤드를 줄일 수 있다.
 
 ### 4. analytics-api
 상태: `나중에 보강`
@@ -166,6 +178,12 @@
 4. read model 은 unique key 와 upsert 기준을 먼저 정의한다.
 5. 중복 처리와 재처리를 넣을 자리를 미리 남겨둔다.
 6. 개발용 메모리 저장소는 운영 경계와 분리된 모드로만 둔다.
+
+운영 예시:
+- simulator: `telemetryhub.simulator.runtime.published-message-buffer-enabled=false`
+- ingestion: `telemetryhub.ingestion.runtime.recent-event-buffer-enabled=false`
+- stream-processor: `telemetryhub.stream.num-stream-threads`, `telemetryhub.stream.state-dir`, `telemetryhub.stream.num-standby-replicas` 를 인스턴스 수와 파티션 수에 맞춰 조정
+- ingestion Kafka key 전략: `telemetryhub.ingestion.publisher.kafka.key-strategy=DEVICE_ID`
 
 ## 나중에 해도 되는 것
 아래 항목은 MVP 한 사이클 이후 실제 병목을 보고 보강해도 된다.

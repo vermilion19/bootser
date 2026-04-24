@@ -1,5 +1,6 @@
 package com.booster.telemetryhub.ingestion.infrastructure;
 
+import com.booster.telemetryhub.ingestion.config.IngestionRuntimeProperties;
 import com.booster.telemetryhub.ingestion.application.NormalizedRawEvent;
 import org.springframework.stereotype.Component;
 
@@ -11,18 +12,29 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @Component
 public class InMemoryNormalizedRawEventStore {
 
-    private static final int MAX_EVENTS = 500;
-
+    private final IngestionRuntimeProperties runtimeProperties;
     private final Deque<NormalizedRawEvent> events = new ConcurrentLinkedDeque<>();
 
+    public InMemoryNormalizedRawEventStore(IngestionRuntimeProperties runtimeProperties) {
+        this.runtimeProperties = runtimeProperties;
+    }
+
     public void append(NormalizedRawEvent event) {
+        if (!runtimeProperties.isRecentEventBufferEnabled()) {
+            return;
+        }
+
         events.addFirst(event);
-        while (events.size() > MAX_EVENTS) {
+        while (events.size() > runtimeProperties.getMaxRecentEvents()) {
             events.pollLast();
         }
     }
 
     public List<NormalizedRawEvent> recent(int limit) {
+        if (!runtimeProperties.isRecentEventBufferEnabled()) {
+            return List.of();
+        }
+
         List<NormalizedRawEvent> result = new ArrayList<>(Math.min(limit, events.size()));
         int count = 0;
         for (NormalizedRawEvent event : events) {
@@ -36,6 +48,9 @@ public class InMemoryNormalizedRawEventStore {
     }
 
     public void clear() {
+        if (!runtimeProperties.isRecentEventBufferEnabled()) {
+            return;
+        }
         events.clear();
     }
 }

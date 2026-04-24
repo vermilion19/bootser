@@ -19,9 +19,14 @@ import java.time.Instant;
 public class JsonRawEventNormalizer implements RawEventNormalizer {
 
     private final IngestionTopicResolver topicResolver;
+    private final KafkaEventKeyResolver kafkaEventKeyResolver;
 
-    public JsonRawEventNormalizer(IngestionTopicResolver topicResolver) {
+    public JsonRawEventNormalizer(
+            IngestionTopicResolver topicResolver,
+            KafkaEventKeyResolver kafkaEventKeyResolver
+    ) {
         this.topicResolver = topicResolver;
+        this.kafkaEventKeyResolver = kafkaEventKeyResolver;
     }
 
     @Override
@@ -85,7 +90,7 @@ public class JsonRawEventNormalizer implements RawEventNormalizer {
                 eventTime,
                 ingestTime,
                 message.topic(),
-                metadata.deviceId(),
+                kafkaEventKeyResolver.resolve(metadata.eventType(), metadata.eventId(), metadata.deviceId()),
                 message.payload()
         );
     }

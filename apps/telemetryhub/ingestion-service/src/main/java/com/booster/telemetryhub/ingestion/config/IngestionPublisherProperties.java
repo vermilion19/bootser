@@ -29,6 +29,7 @@ public class IngestionPublisherProperties {
     public static class Kafka {
         private boolean enabled;
         private String rawTopic = "telemetryhub.raw-events";
+        private KeyStrategy keyStrategy = KeyStrategy.DEVICE_ID;
 
         public boolean isEnabled() {
             return enabled;
@@ -45,5 +46,19 @@ public class IngestionPublisherProperties {
         public void setRawTopic(String rawTopic) {
             this.rawTopic = rawTopic;
         }
+
+        public KeyStrategy getKeyStrategy() {
+            return keyStrategy;
+        }
+
+        public void setKeyStrategy(KeyStrategy keyStrategy) {
+            this.keyStrategy = keyStrategy;
+        }
+    }
+
+    public enum KeyStrategy {
+        DEVICE_ID,
+        EVENT_ID,
+        EVENT_TYPE_AND_DEVICE_ID
     }
 }

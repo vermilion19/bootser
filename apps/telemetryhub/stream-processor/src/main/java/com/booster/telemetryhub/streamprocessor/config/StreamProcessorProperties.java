@@ -15,6 +15,10 @@ public class StreamProcessorProperties {
     private Duration regionHeatmapWindow = Duration.ofMinutes(1);
     private Duration lateEventGrace = Duration.ofMinutes(2);
     private double heatmapGridSize = 0.01d;
+    private int numStreamThreads = 1;
+    private String processingGuarantee = "at_least_once";
+    private String stateDir = System.getProperty("java.io.tmpdir") + "/telemetryhub-streams";
+    private int numStandbyReplicas = 0;
 
     public String getApplicationId() {
         return applicationId;
@@ -78,5 +82,37 @@ public class StreamProcessorProperties {
 
     public void setHeatmapGridSize(double heatmapGridSize) {
         this.heatmapGridSize = heatmapGridSize;
+    }
+
+    public int getNumStreamThreads() {
+        return numStreamThreads;
+    }
+
+    public void setNumStreamThreads(int numStreamThreads) {
+        this.numStreamThreads = numStreamThreads;
+    }
+
+    public String getProcessingGuarantee() {
+        return processingGuarantee;
+    }
+
+    public void setProcessingGuarantee(String processingGuarantee) {
+        this.processingGuarantee = processingGuarantee;
+    }
+
+    public String getStateDir() {
+        return stateDir;
+    }
+
+    public void setStateDir(String stateDir) {
+        this.stateDir = stateDir;
+    }
+
+    public int getNumStandbyReplicas() {
+        return numStandbyReplicas;
+    }
+
+    public void setNumStandbyReplicas(int numStandbyReplicas) {
+        this.numStandbyReplicas = numStandbyReplicas;
     }
 }
