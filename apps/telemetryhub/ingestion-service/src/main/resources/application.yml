@@ -1,0 +1,32 @@
+server:
+  port: 8092
+
+spring:
+  application:
+    name: telemetryhub-ingestion-service
+  kafka:
+    bootstrap-servers: localhost:9092
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+telemetryhub:
+  ingestion:
+    publisher:
+      mode: MEMORY
+      kafka:
+        enabled: false
+        raw-topic: telemetryhub.raw-events

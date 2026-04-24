@@ -11,6 +11,7 @@
 - `contracts` 모듈 기본 이벤트 계약 정의 완료
 - `device-simulator` MVP 구현 완료
 - `device-simulator` 구조 설명 문서 작성 완료
+- `ingestion-service` 기본 골격 구현 완료
 
 ## device-simulator 완료 범위
 - 제어 API
@@ -22,11 +23,10 @@
 - 실제 MQTT 클라이언트 어댑터 골격 추가
 
 ## 진행 예정
-- `ingestion-service` 기본 구조 설계
-- MQTT subscribe 경계 설계
-- raw event validation / enrichment 설계
-- Kafka raw topic publish 구조 설계
-- observability 기본 메트릭 정의
+- `ingestion-service` MQTT subscribe adapter 추가
+- simulator 와 ingestion-service 연결 방식 정리
+- Kafka raw topic publish 실제 연동
+- observability 메트릭 세분화
 
 ## 보류
 - 실제 MQTT broker 연동 smoke test
