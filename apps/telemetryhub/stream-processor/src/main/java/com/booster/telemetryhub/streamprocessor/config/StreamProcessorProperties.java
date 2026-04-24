@@ -19,6 +19,7 @@ public class StreamProcessorProperties {
     private String processingGuarantee = "at_least_once";
     private String stateDir = System.getProperty("java.io.tmpdir") + "/telemetryhub-streams";
     private int numStandbyReplicas = 0;
+    private ProjectionBatch projectionBatch = new ProjectionBatch();
 
     public String getApplicationId() {
         return applicationId;
@@ -114,5 +115,44 @@ public class StreamProcessorProperties {
 
     public void setNumStandbyReplicas(int numStandbyReplicas) {
         this.numStandbyReplicas = numStandbyReplicas;
+    }
+
+    public ProjectionBatch getProjectionBatch() {
+        return projectionBatch;
+    }
+
+    public void setProjectionBatch(ProjectionBatch projectionBatch) {
+        this.projectionBatch = projectionBatch;
+    }
+
+    public static class ProjectionBatch {
+
+        private int batchSize = 100;
+        private Duration flushInterval = Duration.ofMillis(500);
+        private int maxBufferedEntries = 5000;
+
+        public int getBatchSize() {
+            return batchSize;
+        }
+
+        public void setBatchSize(int batchSize) {
+            this.batchSize = batchSize;
+        }
+
+        public Duration getFlushInterval() {
+            return flushInterval;
+        }
+
+        public void setFlushInterval(Duration flushInterval) {
+            this.flushInterval = flushInterval;
+        }
+
+        public int getMaxBufferedEntries() {
+            return maxBufferedEntries;
+        }
+
+        public void setMaxBufferedEntries(int maxBufferedEntries) {
+            this.maxBufferedEntries = maxBufferedEntries;
+        }
     }
 }

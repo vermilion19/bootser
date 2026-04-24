@@ -36,6 +36,11 @@ docs/
 
 # Playground
 playground/
+!playground/
+!playground/java-coding-test/
+!playground/java-coding-test/build.gradle
+!playground/kotlin-lab/
+!playground/kotlin-lab/build.gradle
 
 # Misc
 .env

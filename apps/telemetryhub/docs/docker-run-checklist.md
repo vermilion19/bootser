@@ -28,9 +28,23 @@ docker compose -f apps/telemetryhub/docker/docker-compose.yml up -d --build
 docker compose -f apps/telemetryhub/docker/docker-compose.yml --profile batch up -d --build
 ```
 
+3. scale-out 예시:
+
+```bash
+docker compose -f apps/telemetryhub/docker/docker-compose.yml up -d --build \
+  --scale ingestion-service=3 \
+  --scale analytics-api=2
+```
+
+4. `stream-processor` scale-out 전 확인:
+   - Kafka source topic partition 수가 replica 수 이상인지
+   - DB write contention이 허용 범위인지
+   - standby replica 수와 recovery cost가 의도와 맞는지
+
 ## 기동 확인
 1. 각 서비스의 `/actuator/health`를 확인한다.
 2. Prometheus를 쓰면 각 서비스 `/actuator/prometheus`가 scrape 가능한지 확인한다.
+3. 외부 접근은 서비스 컨테이너가 아니라 edge proxy 포트로 확인한다.
 
 ## 운영 모드 확인
 1. simulator는 `published-message-buffer-enabled=false`인지 확인한다.

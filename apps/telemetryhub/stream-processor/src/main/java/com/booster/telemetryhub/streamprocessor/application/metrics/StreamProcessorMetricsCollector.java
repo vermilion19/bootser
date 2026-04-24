@@ -19,6 +19,10 @@ public class StreamProcessorMetricsCollector {
     }
 
     public void recordProjectionWriteSuccess(ProjectionType projectionType) {
+        recordProjectionWriteSuccess(projectionType, 1);
+    }
+
+    public void recordProjectionWriteSuccess(ProjectionType projectionType, long writeCount) {
         snapshotRef.updateAndGet(current -> {
             long deviceLastSeenWrites = current.deviceLastSeenWrites();
             long eventsPerMinuteWrites = current.eventsPerMinuteWrites();
@@ -26,14 +30,14 @@ public class StreamProcessorMetricsCollector {
             long regionHeatmapWrites = current.regionHeatmapWrites();
 
             switch (projectionType) {
-                case DEVICE_LAST_SEEN -> deviceLastSeenWrites++;
-                case EVENTS_PER_MINUTE -> eventsPerMinuteWrites++;
-                case DRIVING_EVENT_COUNTER -> drivingEventCounterWrites++;
-                case REGION_HEATMAP -> regionHeatmapWrites++;
+                case DEVICE_LAST_SEEN -> deviceLastSeenWrites += writeCount;
+                case EVENTS_PER_MINUTE -> eventsPerMinuteWrites += writeCount;
+                case DRIVING_EVENT_COUNTER -> drivingEventCounterWrites += writeCount;
+                case REGION_HEATMAP -> regionHeatmapWrites += writeCount;
             }
 
             return new StreamProcessorMetricsSnapshot(
-                    current.totalProjectionWrites() + 1,
+                    current.totalProjectionWrites() + writeCount,
                     current.totalProjectionWriteFailures(),
                     deviceLastSeenWrites,
                     current.deviceLastSeenFailures(),
@@ -50,10 +54,14 @@ public class StreamProcessorMetricsCollector {
             );
         });
 
-        counter("telemetryhub.stream.projection.write.success", projectionType).increment();
+        counter("telemetryhub.stream.projection.write.success", projectionType).increment(writeCount);
     }
 
     public void recordProjectionWriteFailure(ProjectionType projectionType, Exception exception) {
+        recordProjectionWriteFailure(projectionType, exception, 1);
+    }
+
+    public void recordProjectionWriteFailure(ProjectionType projectionType, Exception exception, long failureCount) {
         snapshotRef.updateAndGet(current -> {
             long deviceLastSeenFailures = current.deviceLastSeenFailures();
             long eventsPerMinuteFailures = current.eventsPerMinuteFailures();
@@ -61,15 +69,15 @@ public class StreamProcessorMetricsCollector {
             long regionHeatmapFailures = current.regionHeatmapFailures();
 
             switch (projectionType) {
-                case DEVICE_LAST_SEEN -> deviceLastSeenFailures++;
-                case EVENTS_PER_MINUTE -> eventsPerMinuteFailures++;
-                case DRIVING_EVENT_COUNTER -> drivingEventCounterFailures++;
-                case REGION_HEATMAP -> regionHeatmapFailures++;
+                case DEVICE_LAST_SEEN -> deviceLastSeenFailures += failureCount;
+                case EVENTS_PER_MINUTE -> eventsPerMinuteFailures += failureCount;
+                case DRIVING_EVENT_COUNTER -> drivingEventCounterFailures += failureCount;
+                case REGION_HEATMAP -> regionHeatmapFailures += failureCount;
             }
 
             return new StreamProcessorMetricsSnapshot(
                     current.totalProjectionWrites(),
-                    current.totalProjectionWriteFailures() + 1,
+                    current.totalProjectionWriteFailures() + failureCount,
                     current.deviceLastSeenWrites(),
                     deviceLastSeenFailures,
                     current.eventsPerMinuteWrites(),
@@ -85,7 +93,7 @@ public class StreamProcessorMetricsCollector {
             );
         });
 
-        counter("telemetryhub.stream.projection.write.failure", projectionType).increment();
+        counter("telemetryhub.stream.projection.write.failure", projectionType).increment(failureCount);
     }
 
     public StreamProcessorMetricsSnapshot snapshot() {

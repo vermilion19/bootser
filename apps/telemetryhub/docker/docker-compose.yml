@@ -1,7 +1,8 @@
+name: telemetry-hub
+
 services:
   mqtt-broker:
     image: eclipse-mosquitto:2.0
-    container_name: telemetryhub-mqtt-broker
     restart: unless-stopped
     ports:
       - "${MQTT_BROKER_PORT:-1883}:1883"
@@ -9,6 +10,26 @@ services:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - telemetryhub-mosquitto-data:/mosquitto/data
       - telemetryhub-mosquitto-log:/mosquitto/log
+    networks:
+      - telemetryhub
+
+  edge:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - device-simulator
+      - ingestion-service
+      - stream-processor
+      - analytics-api
+    ports:
+      - "${EDGE_DEVICE_SIMULATOR_PORT:-8091}:8091"
+      - "${EDGE_INGESTION_SERVICE_PORT:-8092}:8092"
+      - "${EDGE_STREAM_PROCESSOR_PORT:-8093}:8093"
+      - "${EDGE_ANALYTICS_API_PORT:-8094}:8094"
+    volumes:
+      - ./nginx/telemetryhub-edge.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - telemetryhub
 
   device-simulator:
     build:
@@ -17,7 +38,6 @@ services:
       args:
         MODULE_TASK: ":apps:telemetryhub:device-simulator"
         MODULE_DIR: "apps/telemetryhub/device-simulator"
-    container_name: telemetryhub-device-simulator
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -25,8 +45,11 @@ services:
       - mqtt-broker
     env_file:
       - ./env/device-simulator.env
-    ports:
-      - "${DEVICE_SIMULATOR_PORT:-8091}:8091"
+    expose:
+      - "8091"
+    networks:
+      - telemetryhub
+      - booster-network
 
   ingestion-service:
     build:
@@ -35,7 +58,6 @@ services:
       args:
         MODULE_TASK: ":apps:telemetryhub:ingestion-service"
         MODULE_DIR: "apps/telemetryhub/ingestion-service"
-    container_name: telemetryhub-ingestion-service
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -43,8 +65,11 @@ services:
       - mqtt-broker
     env_file:
       - ./env/ingestion-service.env
-    ports:
-      - "${INGESTION_SERVICE_PORT:-8092}:8092"
+    expose:
+      - "8092"
+    networks:
+      - telemetryhub
+      - booster-network
 
   stream-processor:
     build:
@@ -53,16 +78,19 @@ services:
       args:
         MODULE_TASK: ":apps:telemetryhub:stream-processor"
         MODULE_DIR: "apps/telemetryhub/stream-processor"
-    container_name: telemetryhub-stream-processor
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
       - ./env/stream-processor.env
     volumes:
-      - telemetryhub-stream-processor-state:/var/lib/telemetryhub-streams
-    ports:
-      - "${STREAM_PROCESSOR_PORT:-8093}:8093"
+      - type: volume
+        target: /var/lib/telemetryhub-streams
+    expose:
+      - "8093"
+    networks:
+      - telemetryhub
+      - booster-network
 
   analytics-api:
     build:
@@ -71,14 +99,16 @@ services:
       args:
         MODULE_TASK: ":apps:telemetryhub:analytics-api"
         MODULE_DIR: "apps/telemetryhub/analytics-api"
-    container_name: telemetryhub-analytics-api
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
       - ./env/analytics-api.env
-    ports:
-      - "${ANALYTICS_API_PORT:-8094}:8094"
+    expose:
+      - "8094"
+    networks:
+      - telemetryhub
+      - booster-network
 
   batch-backfill:
     build:
@@ -87,7 +117,6 @@ services:
       args:
         MODULE_TASK: ":apps:telemetryhub:batch-backfill"
         MODULE_DIR: "apps/telemetryhub/batch-backfill"
-    container_name: telemetryhub-batch-backfill
     restart: unless-stopped
     profiles:
       - batch
@@ -95,10 +124,32 @@ services:
       - "host.docker.internal:host-gateway"
     env_file:
       - ./env/batch-backfill.env
+    expose:
+      - "8095"
+    networks:
+      - telemetryhub
+      - booster-network
+
+  batch-edge:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    profiles:
+      - batch
+    depends_on:
+      - batch-backfill
     ports:
-      - "${BATCH_BACKFILL_PORT:-8095}:8095"
+      - "${EDGE_BATCH_BACKFILL_PORT:-8095}:8095"
+    volumes:
+      - ./nginx/telemetryhub-batch-edge.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - telemetryhub
 
 volumes:
   telemetryhub-mosquitto-data:
   telemetryhub-mosquitto-log:
-  telemetryhub-stream-processor-state:
+
+networks:
+  telemetryhub:
+  booster-network:
+    external: true
+    name: booster-network

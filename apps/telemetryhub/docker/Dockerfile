@@ -1,4 +1,4 @@
-FROM gradle:9.2.1-jdk21-alpine AS builder
+FROM eclipse-temurin:25-jdk AS builder
 
 WORKDIR /workspace
 COPY . .
@@ -8,7 +8,7 @@ ARG MODULE_DIR
 
 RUN chmod +x gradlew && ./gradlew ${MODULE_TASK}:bootJar --no-daemon
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 
