@@ -5,6 +5,8 @@ import com.booster.telemetryhub.devicesimulator.application.DeviceEventPreviewSe
 import com.booster.telemetryhub.devicesimulator.application.DeviceSimulatorControlService;
 import com.booster.telemetryhub.devicesimulator.application.SimulatorRuntimeState;
 import com.booster.telemetryhub.devicesimulator.domain.SimulationScenario;
+import com.booster.telemetryhub.devicesimulator.web.dto.PublishedMessageResponse;
+import com.booster.telemetryhub.devicesimulator.web.dto.SimulatorMetricsResponse;
 import com.booster.telemetryhub.devicesimulator.web.dto.SimulatorPreviewResponse;
 import com.booster.telemetryhub.devicesimulator.web.dto.SimulatorStatusResponse;
 import jakarta.validation.constraints.Max;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Validated
 @RestController
@@ -67,6 +71,13 @@ public class DeviceSimulatorController {
         return Mono.just(ApiResponse.success(SimulatorStatusResponse.from(controlService.getStatus())));
     }
 
+    @GetMapping("/metrics")
+    public Mono<ApiResponse<SimulatorMetricsResponse>> metrics() {
+        return Mono.just(ApiResponse.success(
+                SimulatorMetricsResponse.from(controlService.getMetrics(), controlService.getMqttPublisherSnapshot())
+        ));
+    }
+
     @GetMapping("/preview")
     public Mono<ApiResponse<SimulatorPreviewResponse>> preview(
             @RequestParam(defaultValue = "5") @Min(1) @Max(100) int count
@@ -76,5 +87,21 @@ public class DeviceSimulatorController {
                 previewService.generatePreview(currentState, count)
         );
         return Mono.just(ApiResponse.success(response));
+    }
+
+    @GetMapping("/published-messages")
+    public Mono<ApiResponse<List<PublishedMessageResponse>>> publishedMessages(
+            @RequestParam(defaultValue = "20") @Min(1) @Max(200) int limit
+    ) {
+        List<PublishedMessageResponse> response = controlService.getRecentPublishedMessages(limit).stream()
+                .map(PublishedMessageResponse::from)
+                .toList();
+        return Mono.just(ApiResponse.success(response));
+    }
+
+    @PostMapping("/published-messages/clear")
+    public Mono<ApiResponse<Void>> clearPublishedMessages() {
+        controlService.clearPublishedMessages();
+        return Mono.just(ApiResponse.success());
     }
 }

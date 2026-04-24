@@ -18,7 +18,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class DeviceEventPreviewService {
 
-    public PreviewBatch generatePreview(SimulatorRuntimeState runtimeState, int count) {
+    public SimulationEventBatch generatePreview(SimulatorRuntimeState runtimeState, int count) {
         List<TelemetryEvent> telemetryEvents = new ArrayList<>(count);
         List<DeviceHealthEvent> deviceHealthEvents = new ArrayList<>(count);
         List<DrivingEvent> drivingEvents = new ArrayList<>();
@@ -34,7 +34,7 @@ public class DeviceEventPreviewService {
             }
         }
 
-        return new PreviewBatch(telemetryEvents, deviceHealthEvents, drivingEvents);
+        return new SimulationEventBatch(telemetryEvents, deviceHealthEvents, drivingEvents);
     }
 
     private TelemetryEvent createTelemetryEvent(String deviceId, SimulationScenario scenario) {
@@ -138,12 +138,5 @@ public class DeviceEventPreviewService {
 
     private double randomBetween(double min, double max) {
         return ThreadLocalRandom.current().nextDouble(min, max);
-    }
-
-    public record PreviewBatch(
-            List<TelemetryEvent> telemetryEvents,
-            List<DeviceHealthEvent> deviceHealthEvents,
-            List<DrivingEvent> drivingEvents
-    ) {
     }
 }

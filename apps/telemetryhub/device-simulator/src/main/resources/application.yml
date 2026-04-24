@@ -20,3 +20,23 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+
+telemetryhub:
+  simulator:
+    publisher:
+      mode: MEMORY
+      mqtt:
+        enabled: false
+        real-client-enabled: false
+        broker-uri: tcp://localhost:1883
+        client-id: telemetryhub-device-simulator
+        qos: 0
+        retain: false
+        connection-timeout-seconds: 5
+        completion-timeout-seconds: 10
+        retry:
+          max-attempts: 5
+          initial-delay-ms: 1000
+          backoff-multiplier: 2.0
+          max-delay-ms: 30000
+          jitter-enabled: true
