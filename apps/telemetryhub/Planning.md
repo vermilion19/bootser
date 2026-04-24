@@ -2,6 +2,40 @@
 
 > 프로젝트 목적: **커넥티드 디바이스(차량/블랙박스/IoT)** 에서 발생하는 텔레메트리(주기 센서/상태/이벤트)를 **고성능으로 수집·적재**하고, **실시간/배치 분석 결과(통계·리포트·지표)** 를 제공하는 **데이터 파이프라인**을 Spring 생태계 기반으로 설계·구현한다.
 
+> 진행 현황은 [status.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/status.md) 기준으로 관리한다.
+
+---
+
+## 진행 현황
+
+### 완료
+- `apps/telemetryhub` 멀티모듈 등록 완료
+- 최상위 모듈 디렉토리 구성 완료
+- `contracts` 모듈 기본 이벤트 계약 정의 완료
+- `device-simulator` MVP 구현 완료
+  - 제어 API
+  - 이벤트 생성기
+  - 시뮬레이터 loop
+  - publisher 라우팅(`LOGGING` / `MEMORY` / `MQTT`)
+  - 브로커 없는 `MEMORY` 모드 검증 API
+  - 실제 MQTT 연결 확장 지점 확보
+
+### 진행 예정
+- `ingestion-service` 기본 구조 및 MQTT subscribe 경계 설계
+- raw event validation / enrichment 설계
+- Kafka raw topic publish 구조 설계
+- observability 기본 메트릭 정의
+
+### 보류
+- 실제 MQTT broker 연동 smoke test
+- docker 기반 broker 환경 구성
+- stream processor / batch backfill 세부 구현
+- analytics api / serving db 구현
+- OLAP / schema registry / DLQ 같은 확장 로드맵 항목
+
+### 참고 문서
+- `device-simulator` 구조 설명: `apps/telemetryhub/docs/device-simulator-review.md`
+
 ---
 
 ## 1. 배경과 문제 정의
