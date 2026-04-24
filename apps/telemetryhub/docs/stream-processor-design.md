@@ -1,5 +1,74 @@
 # TelemetryHub Stream Processor Design
 
+## 업데이트 2026-04-24
+
+현재 구현은 초기 설계 전용 단계에서 더 진행된 상태다.
+
+### 새로 강제되는 런타임 규칙
+
+이제 stream-processor는 count 성격의 집계 전에 두 가지 정책을 명시적으로 적용한다.
+
+1. `eventId` 기반 deduplication
+2. `eventTime`과 `ingestTime` 기준의 late-event grace filtering
+
+구현 위치는 아래와 같다.
+
+- `RawEventDeduplicationSupport`
+- `LateEventPolicySupport`
+
+### dedup 적용 범위
+
+현재 dedup은 다음 count 중심 topology들에 적용된다.
+
+- `events_per_minute`
+- `driving_event_counter`
+- `region_heatmap`
+
+현재 규칙은 단순하다.
+
+- 같은 `eventId`가 stream processor 내부에서 다시 보이면, 이후 중복 이벤트는 집계 전에 걸러낸다
+
+즉 MQTT나 Kafka 재전달로 인한 가장 직접적인 중복 카운팅 경로를 막는다.
+
+### late-event 정책
+
+설정만 있던 `late-event-grace`가 이제 실제로 사용된다.
+
+현재 규칙:
+
+- `ingestTime - eventTime <= late-event-grace` 이면 이벤트를 허용한다
+- grace를 초과하면 해당 topology에서 필터링한다
+
+이건 Kafka Streams의 완전한 watermark/window-grace 구현은 아니다. 현재 수동 bucket 구조에 맞춘 애플리케이션 레벨의 lateness filter다.
+
+### 현재 `device_last_seen` write 정합성
+
+`device_last_seen` projection upsert는 이제 최신성 기준으로 보호된다.
+
+- 더 최신 `last_event_time`이 우선한다
+- eventTime이 같으면 더 최신 `last_ingest_time`이 우선한다
+
+그래서 오래된 realtime write나 backfill write가 더 최신 상태를 덮어쓰지 못한다.
+
+### 현재 persistence / runtime 기준
+
+Docker runtime 기준으로는 아래 값을 production-like 기본값으로 본다.
+
+- `TELEMETRYHUB_STREAM_STATE_DIR=/var/lib/telemetryhub-streams`
+- `TELEMETRYHUB_STREAM_NUM_STANDBY_REPLICAS=1`
+
+Compose는 이제 Kafka Streams state directory를 persistent named volume에 마운트한다.
+
+### 현재 topology 상태
+
+지금 stream-processor는 아래를 포함한다.
+
+- state-store aggregation
+- read-model JDBC upsert projection
+- projection write metrics
+- count 계열 topology dedup filtering
+- 명시적 late-event grace filtering
+
 ## 목적
 `stream-processor`는 `ingestion-service`가 Kafka raw topic에 적재한 이벤트를 실시간 집계로 변환하고, 그 결과를 state store와 read model 테이블에 반영하는 모듈이다.
 

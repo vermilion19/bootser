@@ -1,5 +1,34 @@
 # TelemetryHub Scale Readiness
 
+## 업데이트 2026-04-24
+
+최근 구현 변경으로 scale readiness가 아래처럼 실제로 좋아졌다.
+
+- `ingestion-service`
+  - 고유 MQTT `clientId` 처리 추가
+  - shared subscription 지원 추가
+  - MQTT callback thread와 애플리케이션 처리를 inbound queue + worker로 분리
+  - Kafka producer 신뢰성 설정 명시
+- `device-simulator`
+  - lifecycle mutation 직렬화
+  - in-memory published message buffer bounded 처리
+- `stream-processor`
+  - `device_last_seen` write 경로에서 오래된 값이 최신 상태를 덮지 못하게 보호
+  - Docker runtime에서 persistent state dir와 standby replica 기본값 적용
+  - dedup 및 명시적 late-event grace filtering 구현
+- `batch-backfill`
+  - full-file materialization 대신 chunk 기반 source 읽기
+  - replay된 `device_last_seen` write가 ingest-time 의미를 보존
+
+### 수정된 현재 판단
+
+이전 상태와 비교하면 지금 남은 주요 scale/readiness 간극은 더 좁아졌다.
+
+1. 실제 broker + Kafka end-to-end smoke 검증은 아직 남아 있다
+2. DLQ 정책은 아직 구현되지 않았다
+3. stream-processor write batching은 여전히 향후 병목 후보이다
+4. late-event 처리는 이제 명시적이지만, 아직 full window-grace semantics는 아니다
+
 ## 목적
 이 문서는 TelemetryHub 각 서비스가 `독립적으로 scale 하기 쉬운 상태인지`를 점검하기 위한 기준 문서다.
 

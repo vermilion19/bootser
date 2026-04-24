@@ -1,5 +1,44 @@
 # TelemetryHub Docker Runtime
 
+## 업데이트 2026-04-24
+
+Docker runtime 전제도 최신 구현 변경에 맞춰 정렬됐다.
+
+### ingestion-service 런타임 기본값
+
+현재 Docker env의 `ingestion-service`는 아래를 전제로 한다.
+
+- 컨테이너별 고유 MQTT client id suffix
+- scale-out을 위한 shared subscription 활성화
+- bounded MQTT inbound queue
+- 명시적인 Kafka producer 신뢰성 설정
+
+관련 env key:
+
+- `TELEMETRYHUB_INGESTION_MQTT_CLIENT_ID_SUFFIX`
+- `TELEMETRYHUB_INGESTION_MQTT_SHARED_SUBSCRIPTION_ENABLED`
+- `TELEMETRYHUB_INGESTION_MQTT_SHARED_SUBSCRIPTION_GROUP`
+- `TELEMETRYHUB_INGESTION_MQTT_INBOUND_QUEUE_CAPACITY`
+- `TELEMETRYHUB_INGESTION_MQTT_INBOUND_WORKER_THREADS`
+- `SPRING_KAFKA_PRODUCER_ACKS`
+- `SPRING_KAFKA_PRODUCER_RETRIES`
+- `SPRING_KAFKA_PRODUCER_PROPERTIES_ENABLE_IDEMPOTENCE`
+- `SPRING_KAFKA_PRODUCER_PROPERTIES_MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION`
+- `SPRING_KAFKA_PRODUCER_PROPERTIES_LINGER_MS`
+- `SPRING_KAFKA_PRODUCER_PROPERTIES_COMPRESSION_TYPE`
+
+### stream-processor 런타임 기본값
+
+현재 Docker runtime은 Kafka Streams local state를 tmp 데이터가 아니라 영속 컨테이너 데이터로 취급한다.
+
+즉:
+
+- Compose가 `/var/lib/telemetryhub-streams`를 마운트하고
+- `TELEMETRYHUB_STREAM_STATE_DIR=/var/lib/telemetryhub-streams`
+- `TELEMETRYHUB_STREAM_NUM_STANDBY_REPLICAS=1`
+
+이 구성을 앞으로의 기본 런타임 형태로 보면 된다.
+
 ## 목적
 이 문서는 `MQTT broker + TelemetryHub 마이크로서비스`만 Docker Compose로 올리고, Kafka / DB / Prometheus / Grafana는 기존 infrastructure를 재사용하는 실행 기준 문서다.
 

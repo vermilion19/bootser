@@ -1,5 +1,32 @@
 # TelemetryHub Status
 
+## Update 2026-04-24
+- `analysis-prioritized.md` 기준 P0, P1, P2 항목 반영 완료
+- `ingestion-service`
+  - MQTT client id suffix 지원
+  - shared subscription 지원
+  - inbound MQTT queue + worker 분리
+  - ack 기준 Kafka publish snapshot 갱신
+  - 명시적 Kafka producer 신뢰성 기본값 추가
+- `device-simulator`
+  - lifecycle mutation 동기화
+  - bounded published message debug buffer 적용
+- `stream-processor`
+  - `device_last_seen` latest-write guard 적용
+  - count 계열 topology에 `eventId` 기반 dedup 적용
+  - 명시적 late-event grace filtering 적용
+  - Docker 기준 persistent state-dir + standby replica 기본값 적용
+- `batch-backfill`
+  - chunked NDJSON source 처리
+  - backfill raw event 모델에 `ingestTime` 추가
+  - 더 안전한 `device_last_seen` replay upsert 규칙 적용
+- 구현 기준으로 문서 갱신 완료
+  - `ingestion-service-review.md`
+  - `stream-processor-design.md`
+  - `batch-backfill-review.md`
+  - `docker-runtime.md`
+  - `scale-readiness.md`
+
 ## 현재 상태
 - `device-simulator` MVP 완료
 - `ingestion-service` MVP 1차 완료

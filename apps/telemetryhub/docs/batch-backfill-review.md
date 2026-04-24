@@ -1,5 +1,71 @@
 # TelemetryHub Batch Backfill Review
 
+## 업데이트 2026-04-24
+
+현재 구현은 더 이상 dry-run 골격만 있는 상태가 아니다.
+
+### 현재 source read 모델
+
+backfill source loading은 이제 전체 source를 먼저 메모리에 올리는 방식이 아니라 chunk 중심 방식이다.
+
+`BackfillSourceReader`는 이제 chunk 전달 의미를 가진다.
+
+- source reader가 전체 `List<BackfillRawEvent>`를 반환할 필요가 없고
+- job은 source를 chunk 단위로 소비하며
+- 각 chunk는 즉시 target writer로 전달된다
+
+구현 위치는 아래와 같다.
+
+- `BackfillSourceReader.readChunks(...)`
+- `FileBackfillSourceReader`
+- `RoutingBackfillSourceReader`
+- `BatchBackfillJobConfig`
+
+### 현재 NDJSON 파일 처리 방식
+
+`FileBackfillSourceReader`는 이제:
+
+- NDJSON을 line 단위로 읽고
+- 읽는 동안 plan 시간 범위로 필터링하며
+- `plan.chunkSize()` 기준으로 chunk를 내보내고
+- 전체 파일을 한 번에 메모리에 물질화하지 않는다
+
+그래서 큰 replay source에서도 이전의 full-file 메모리 압박 위험이 줄었다.
+
+### 현재 raw event 모델
+
+`BackfillRawEvent`에는 이제 `ingestTime`이 포함된다.
+
+이 변경이 중요한 이유는:
+
+- `device_last_seen.last_ingest_time`에 실제 backfill 이벤트 메타데이터가 기록되고
+- replay 데이터가 더 이상 `eventTime`을 ingest-time 필드에 중복 기록하지 않기 때문이다
+
+### 현재 `device_last_seen` write 규칙
+
+`DeviceLastSeenBackfillWriter`는 이제:
+
+- `select count(*)` 후 insert/update 분기 대신 직접 insert/upsert를 사용하고
+- `SKIP_EXISTING`을 유지하며
+- 오래된 backfill 데이터가 최신 row를 덮지 못하게 한다
+
+현재 overwrite guard:
+
+- 더 최신 `eventTime`이 우선
+- eventTime이 같으면 더 최신 `ingestTime`이 우선
+
+### 현재 실행 모델
+
+batch job은 이제 아래 순서로 동작한다.
+
+1. plan 준비
+2. source를 chunk 단위로 읽기
+3. chunk 단위로 target writer 실행
+4. 전체 read/write 수 누적
+5. execution snapshot 기록
+
+즉 예전의 full-list 방식보다 실제 replay 흐름에 훨씬 가까워졌다.
+
 ## 목적
 `batch-backfill`은 실시간 처리로 놓친 late event 보정, 산식 변경 이후 재계산, 과거 기간 rebuild를 담당하는 배치 모듈이다.
 

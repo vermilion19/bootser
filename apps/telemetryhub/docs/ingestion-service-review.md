@@ -1,5 +1,79 @@
 # TelemetryHub Ingestion Service Review
 
+## 업데이트 2026-04-24
+
+현재 구현은 초기 MVP 골격보다 다음 항목들이 더 엄격해졌다.
+
+- MQTT subscriber scale-out을 위해 고유 `clientId` 해석과 shared subscription을 지원한다.
+- MQTT inbound 처리는 더 이상 Paho callback thread에서 전부 처리하지 않는다.
+- Kafka publish metrics는 `send()` 직후가 아니라 broker ack 기준으로 반영된다.
+- Kafka producer 신뢰성 설정이 명시적으로 들어갔다.
+- recent-event 디버그 버퍼는 여전히 사용할 수 있지만, 이제 무제한 trim 방식이 아니라 bounded 구조를 사용한다.
+
+### 현재 MQTT 런타임 모델
+
+`MqttInboundSubscriberLifecycle`는 이제 실제 런타임 `clientId`를 다음 순서로 결정한다.
+
+1. `telemetryhub.ingestion.mqtt.client-id`
+2. 선택값인 `telemetryhub.ingestion.mqtt.client-id-suffix`
+3. suffix가 없으면 인스턴스용 fallback suffix
+
+추가로 아래 설정도 지원한다.
+
+- `telemetryhub.ingestion.mqtt.shared-subscription-enabled`
+- `telemetryhub.ingestion.mqtt.shared-subscription-group`
+
+즉 지금은 다음 두 방식으로 실행할 수 있다.
+
+- 일반 topic subscription을 쓰는 단일 subscriber 모드
+- shared subscription + 고유 client id를 쓰는 scale-out 모드
+
+### 현재 MQTT inbound 스레딩 모델
+
+이제 `messageArrived()`는 아래 작업만 한다.
+
+- 수신 메타데이터 기록
+- 카운터 증가
+- 내부 bounded queue에 메시지 적재
+
+실제 애플리케이션 처리는 아래 설정으로 제어되는 worker thread가 담당한다.
+
+- `telemetryhub.ingestion.mqtt.inbound-queue-capacity`
+- `telemetryhub.ingestion.mqtt.inbound-worker-threads`
+
+`GET /ingestion/v1/mqtt/subscriber`에는 이제 아래 값도 포함된다.
+
+- 총 수신 메시지 수
+- 현재 queue 적재 수
+- drop된 메시지 수
+
+### 현재 Kafka publish 동작
+
+`KafkaIngestionPublisher`는 이제:
+
+- publish snapshot을 atomic update 함수로 갱신하고
+- Kafka async callback이 성공적으로 끝났을 때만 success를 기록하며
+- async publish failure도 같은 snapshot 모델에 반영한다
+
+현재 producer 기본값은 `application.yml`에 명시돼 있다.
+
+- `acks=all`
+- `retries=3`
+- `enable.idempotence=true`
+- `max.in.flight.requests.per.connection=5`
+- `linger.ms=5`
+- `compression.type=lz4`
+
+### 현재 in-memory 디버그 버퍼 동작
+
+`InMemoryNormalizedRawEventStore`는 이제 bounded deque 방식을 사용한다.
+
+즉:
+
+- append가 capacity를 인지하고
+- burst 트래픽에서 디버그 모드가 더 안전하며
+- 운영 모드에서는 여전히 `telemetryhub.ingestion.runtime.recent-event-buffer-enabled=false`를 유지하는 것이 맞다
+
 ## 목적
 `ingestion-service`는 시뮬레이터나 실제 디바이스가 보낸 메시지를 수신 경계에서 받아, 내부 파이프라인이 처리하기 쉬운 raw event 형태로 정규화하는 모듈이다.
 
