@@ -1,0 +1,35 @@
+server:
+  port: 8093
+
+spring:
+  application:
+    name: telemetryhub-stream-processor
+  kafka:
+    bootstrap-servers: localhost:9092
+    streams:
+      application-id: telemetryhub-stream-processor
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+telemetryhub:
+  stream:
+    application-id: telemetryhub-stream-processor
+    source-topic: telemetryhub.raw-events
+    device-last-seen-window: 5m
+    events-per-minute-window: 1m
+    driving-event-counter-window: 1m
+    late-event-grace: 2m
