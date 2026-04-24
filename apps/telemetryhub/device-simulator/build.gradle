@@ -1,0 +1,6 @@
+dependencies {
+    implementation project(':libs:core-webflux')
+    implementation project(':libs:core-observability')
+    implementation project(':apps:telemetryhub:contracts')
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
+}

@@ -1,0 +1,50 @@
+server:
+  port: 8091
+
+spring:
+  application:
+    name: telemetryhub-device-simulator
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+telemetryhub:
+  simulator:
+    runtime:
+      published-message-buffer-enabled: true
+      max-published-messages: 500
+    publisher:
+      mode: MEMORY
+      bridge:
+        enabled: false
+        ingestion-base-url: http://localhost:8092
+        mqtt-batch-path: /ingestion/v1/mqtt/messages/batch
+        request-timeout-seconds: 5
+      mqtt:
+        enabled: false
+        real-client-enabled: false
+        broker-uri: tcp://localhost:1883
+        client-id: telemetryhub-device-simulator
+        qos: 0
+        retain: false
+        connection-timeout-seconds: 5
+        completion-timeout-seconds: 10
+        retry:
+          max-attempts: 5
+          initial-delay-ms: 1000
+          backoff-multiplier: 2.0
+          max-delay-ms: 30000
+          jitter-enabled: true

@@ -1,0 +1,59 @@
+server:
+  port: 8092
+
+spring:
+  application:
+    name: telemetryhub-ingestion-service
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        linger.ms: 5
+        compression.type: lz4
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+telemetryhub:
+  ingestion:
+    runtime:
+      recent-event-buffer-enabled: true
+      max-recent-events: 500
+    mqtt:
+      enabled: false
+      real-client-enabled: false
+      broker-uri: tcp://localhost:1883
+      client-id: telemetryhub-ingestion-service
+      client-id-suffix:
+      connection-timeout-seconds: 5
+      shared-subscription-enabled: false
+      shared-subscription-group: telemetryhub-ingestion
+      inbound-queue-capacity: 10000
+      inbound-worker-threads: 1
+      subscriptions:
+        - telemetryhub/devices/+/telemetry
+        - telemetryhub/devices/+/device-health
+        - telemetryhub/devices/+/driving-event
+    publisher:
+      mode: MEMORY
+      kafka:
+        enabled: false
+        raw-topic: telemetryhub.raw-events
+        key-strategy: DEVICE_ID

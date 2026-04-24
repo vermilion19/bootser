@@ -1,0 +1,22 @@
+server:
+  port: 8094
+
+spring:
+  application:
+    name: telemetryhub-analytics-api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}

@@ -1,0 +1,9 @@
+dependencies {
+    implementation project(':libs:core-webflux')
+    implementation project(':libs:common')
+    implementation project(':libs:core-observability')
+    implementation project(':libs:storage-db')
+    implementation project(':libs:storage-kafka')
+    implementation project(':apps:telemetryhub:contracts')
+    implementation 'org.apache.kafka:kafka-streams'
+}

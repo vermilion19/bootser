@@ -7,18 +7,23 @@ import com.booster.queryburstmsa.catalog.domain.entity.ProductEntity;
 import com.booster.queryburstmsa.catalog.domain.repository.CategoryRepository;
 import com.booster.queryburstmsa.catalog.domain.repository.InventoryReservationRepository;
 import com.booster.queryburstmsa.catalog.domain.repository.ProductRepository;
+import com.booster.queryburstmsa.catalog.lock.DistributedLock;
+import com.booster.queryburstmsa.catalog.lock.FencingToken;
+import com.booster.queryburstmsa.catalog.lock.RedisUnavailableException;
 import com.booster.queryburstmsa.catalog.web.dto.CategoryCreateRequest;
 import com.booster.queryburstmsa.catalog.web.dto.CategoryResponse;
 import com.booster.queryburstmsa.catalog.web.dto.ProductCreateRequest;
 import com.booster.queryburstmsa.catalog.web.dto.ProductResponse;
 import com.booster.queryburstmsa.contracts.inventory.InventoryReservationRequest;
-import com.booster.queryburstmsa.contracts.inventory.InventoryReservationResultItem;
 import com.booster.queryburstmsa.contracts.inventory.InventoryReservationResponse;
+import com.booster.queryburstmsa.contracts.inventory.InventoryReservationResultItem;
 import com.booster.queryburstmsa.contracts.inventory.InventoryReservationStatus;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -28,18 +33,23 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class CatalogService {
 
+    private static final Duration PRODUCT_LOCK_TTL = Duration.ofSeconds(5);
+
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
+    private final DistributedLock distributedLock;
 
     public CatalogService(
             ProductRepository productRepository,
             CategoryRepository categoryRepository,
-            InventoryReservationRepository inventoryReservationRepository
+            InventoryReservationRepository inventoryReservationRepository,
+            DistributedLock distributedLock
     ) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.inventoryReservationRepository = inventoryReservationRepository;
+        this.distributedLock = distributedLock;
     }
 
     public List<ProductResponse> getProducts(Long cursor, Long categoryId, ProductStatus status, int size) {
@@ -90,7 +100,7 @@ public class CatalogService {
                 ? 1
                 : categoryRepository.findById(request.parentId())
                         .map(parent -> parent.getDepth() + 1)
-                        .orElseThrow(() -> new IllegalArgumentException("상위 카테고리를 찾을 수 없습니다."));
+                        .orElseThrow(() -> new IllegalArgumentException("Parent category not found."));
         CategoryEntity entity = CategoryEntity.create(request.name(), request.parentId(), depth);
         return categoryRepository.save(entity).getId();
     }
@@ -116,13 +126,16 @@ public class CatalogService {
     public InventoryReservationResponse release(String reservationId) {
         return inventoryReservationRepository.findById(reservationId)
                 .map(reservation -> {
-                    Map<Long, ProductEntity> productsById = productRepository.findAllById(
-                                    reservation.getItems().stream().map(item -> item.getProductId()).toList())
-                            .stream()
-                            .collect(Collectors.toMap(ProductEntity::getId, Function.identity()));
-                    reservation.getItems().forEach(item -> productsById.get(item.getProductId()).restore(item.getQuantity()));
-                    reservation.release();
-                    return new InventoryReservationResponse(reservation.getId(), reservation.getStatus(), null, List.of());
+                    List<Long> productIds = reservation.getItems().stream()
+                            .map(item -> item.getProductId())
+                            .distinct()
+                            .sorted()
+                            .toList();
+                    try {
+                        return withProductLocks(productIds, fencingTokens -> releaseWithFencing(reservation, fencingTokens));
+                    } catch (RedisUnavailableException e) {
+                        return releaseWithPessimisticLock(reservation);
+                    }
                 })
                 .orElse(new InventoryReservationResponse(reservationId, InventoryReservationStatus.REJECTED, "RESERVATION_NOT_FOUND", List.of()));
     }
@@ -138,6 +151,58 @@ public class CatalogService {
     }
 
     private InventoryReservationResponse createReservation(InventoryReservationRequest request) {
+        List<Long> productIds = request.items().stream()
+                .map(item -> item.productId())
+                .distinct()
+                .sorted()
+                .toList();
+
+        try {
+            return withProductLocks(productIds, fencingTokens -> createReservationWithFencing(request, fencingTokens));
+        } catch (RedisUnavailableException e) {
+            return createReservationWithPessimisticLock(request);
+        }
+    }
+
+    private InventoryReservationResponse createReservationWithFencing(InventoryReservationRequest request, Map<Long, Long> fencingTokens) {
+        Map<Long, ProductEntity> productsById = productRepository.findAllById(
+                        request.items().stream().map(item -> item.productId()).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(ProductEntity::getId, Function.identity()));
+
+        for (var item : request.items()) {
+            ProductEntity product = productsById.get(item.productId());
+            if (product == null) {
+                return new InventoryReservationResponse(null, InventoryReservationStatus.REJECTED, "PRODUCT_NOT_FOUND", List.of());
+            }
+            if (product.getStock() < item.quantity()) {
+                return new InventoryReservationResponse(null, InventoryReservationStatus.REJECTED, "INSUFFICIENT_STOCK", List.of());
+            }
+        }
+
+        InventoryReservationEntity reservation = InventoryReservationEntity.create(
+                request.requestId(),
+                request.orderId(),
+                request.memberId()
+        );
+
+        for (var item : request.items()) {
+            ProductEntity product = productsById.get(item.productId());
+            product.reserve(item.quantity(), fencingTokens.get(item.productId()));
+            reservation.addItem(item.productId(), item.quantity());
+        }
+
+        InventoryReservationEntity saved = inventoryReservationRepository.save(reservation);
+        List<InventoryReservationResultItem> resultItems = request.items().stream()
+                .map(item -> {
+                    ProductEntity product = productsById.get(item.productId());
+                    return new InventoryReservationResultItem(product.getId(), product.getCategoryId(), item.quantity(), product.getPrice());
+                })
+                .toList();
+        return new InventoryReservationResponse(saved.getId(), saved.getStatus(), null, resultItems);
+    }
+
+    private InventoryReservationResponse createReservationWithPessimisticLock(InventoryReservationRequest request) {
         List<Long> productIds = request.items().stream()
                 .map(item -> item.productId())
                 .distinct()
@@ -164,7 +229,7 @@ public class CatalogService {
 
         for (var item : request.items()) {
             ProductEntity product = productsById.get(item.productId());
-            product.reserve(item.quantity());
+            product.reserveFallback(item.quantity());
             reservation.addItem(item.productId(), item.quantity());
         }
 
@@ -176,5 +241,50 @@ public class CatalogService {
                 })
                 .toList();
         return new InventoryReservationResponse(saved.getId(), saved.getStatus(), null, resultItems);
+    }
+
+    private InventoryReservationResponse releaseWithFencing(InventoryReservationEntity reservation, Map<Long, Long> fencingTokens) {
+        Map<Long, ProductEntity> productsById = productRepository.findAllById(
+                        reservation.getItems().stream().map(item -> item.getProductId()).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(ProductEntity::getId, Function.identity()));
+        reservation.getItems().forEach(item ->
+                productsById.get(item.getProductId()).restore(item.getQuantity(), fencingTokens.get(item.getProductId())));
+        reservation.release();
+        return new InventoryReservationResponse(reservation.getId(), reservation.getStatus(), null, List.of());
+    }
+
+    private InventoryReservationResponse releaseWithPessimisticLock(InventoryReservationEntity reservation) {
+        Map<Long, ProductEntity> productsById = productRepository.findAllByIdInForUpdate(
+                        reservation.getItems().stream().map(item -> item.getProductId()).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(ProductEntity::getId, Function.identity()));
+        reservation.getItems().forEach(item -> productsById.get(item.getProductId()).restoreFallback(item.getQuantity()));
+        reservation.release();
+        return new InventoryReservationResponse(reservation.getId(), reservation.getStatus(), null, List.of());
+    }
+
+    private InventoryReservationResponse withProductLocks(List<Long> productIds,
+                                                          Function<Map<Long, Long>, InventoryReservationResponse> action) {
+        List<LockedProduct> lockedProducts = new ArrayList<>();
+        try {
+            for (Long productId : productIds) {
+                String lockKey = "product:" + productId + ":stock";
+                FencingToken token = distributedLock.tryLock(lockKey, PRODUCT_LOCK_TTL);
+                lockedProducts.add(new LockedProduct(productId, lockKey, token));
+            }
+
+            Map<Long, Long> fencingTokens = lockedProducts.stream()
+                    .collect(Collectors.toMap(LockedProduct::productId, lock -> lock.token().value()));
+            return action.apply(fencingTokens);
+        } finally {
+            for (int i = lockedProducts.size() - 1; i >= 0; i--) {
+                LockedProduct lock = lockedProducts.get(i);
+                distributedLock.unlock(lock.lockKey(), lock.token());
+            }
+        }
+    }
+
+    private record LockedProduct(Long productId, String lockKey, FencingToken token) {
     }
 }
