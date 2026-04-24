@@ -1,0 +1,38 @@
+server:
+  port: 8095
+
+spring:
+  application:
+    name: telemetryhub-batch-backfill
+  batch:
+    job:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+telemetryhub:
+  backfill:
+    default-lookback: 1d
+    chunk-size: 500
+    dry-run: true
+    source-type: RAW_TOPIC_EXPORT
+    overwrite-mode: MERGE
+    default-targets:
+      - DEVICE_LAST_SEEN
+      - EVENTS_PER_MINUTE
+      - DRIVING_EVENT_COUNTER
+      - REGION_HEATMAP

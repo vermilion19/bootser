@@ -24,7 +24,8 @@ public class DefaultStreamTopologyPlanner implements StreamTopologyPlanner {
                 List.of(
                         deviceLastSeenPlan(),
                         eventsPerMinutePlan(),
-                        drivingEventCounterPlan()
+                        drivingEventCounterPlan(),
+                        regionHeatmapPlan()
                 )
         );
     }
@@ -62,6 +63,18 @@ public class DefaultStreamTopologyPlanner implements StreamTopologyPlanner {
                 "driving-event-counter-store",
                 "driving_event_counter",
                 "Counts HARD_BRAKE, OVERSPEED, and CRASH events per device and time window."
+        );
+    }
+
+    private AggregationPlan regionHeatmapPlan() {
+        return new AggregationPlan(
+                AggregationType.REGION_HEATMAP,
+                List.of(EventType.TELEMETRY),
+                properties.getRegionHeatmapWindow(),
+                properties.getLateEventGrace(),
+                "region-heatmap-store",
+                "region_heatmap",
+                "Counts telemetry events per minute and spatial grid bucket for regional heatmap queries."
         );
     }
 }

@@ -16,6 +16,8 @@
 2. `events_per_minute`
 3. `driving_event_counter`
 
+이후 가장 단순한 serving 확장을 위해 `region_heatmap` 집계가 추가되었다.
+
 이 집계 계획은 [DefaultStreamTopologyPlanner.java](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/stream-processor/src/main/java/com/booster/telemetryhub/streamprocessor/application/DefaultStreamTopologyPlanner.java) 에서 코드로 고정되어 있다.
 
 ## 전체 구조
@@ -77,6 +79,7 @@ StreamProcessorApplication
 - `DeviceLastSeenProjectionWriter`
 - `EventsPerMinuteProjectionWriter`
 - `DrivingEventCounterProjectionWriter`
+- `RegionHeatmapProjectionWriter`
   - topology에서 DB upsert를 직접 모르도록 분리한 쓰기 포트
 
 ### domain
@@ -87,12 +90,15 @@ StreamProcessorApplication
 - `EventsPerMinuteAggregate`
 - `DrivingEventCounterKey`
 - `DrivingEventCounterAggregate`
+- `RegionHeatmapKey`
+- `RegionHeatmapAggregate`
   - Kafka Streams 집계 중간 모델
 
 ### domain.entity / domain.repository
 - `DeviceLastSeenEntity` / `DeviceLastSeenRepository`
 - `EventsPerMinuteEntity` / `EventsPerMinuteRepository`
 - `DrivingEventCounterEntity` / `DrivingEventCounterRepository`
+- `RegionHeatmapEntity` / `RegionHeatmapRepository`
   - read model 저장용 JPA entity와 repository
 
 ### infrastructure
@@ -103,10 +109,13 @@ StreamProcessorApplication
 - `JsonSerdeFactory`
   - JSON serde 생성
 - `DrivingEventCounterProjection`
-  - raw payload에서 driving event key를 추출
+- `RegionHeatmapProjection`
+- raw payload에서 driving event key를 추출
+- raw payload에서 telemetry 좌표를 grid key로 변환
 - `JpaDeviceLastSeenProjectionWriter`
 - `JpaEventsPerMinuteProjectionWriter`
 - `JpaDrivingEventCounterProjectionWriter`
+- `JpaRegionHeatmapProjectionWriter`
   - write port 구현체
 - `StreamProcessorMetricsCollector`
   - projection write 성공/실패 관측 수집기
@@ -172,6 +181,27 @@ StreamProcessorApplication
 - `DRIVING_EVENT`만 필터링한다
 - payload를 `DrivingEvent` 기준으로 해석해 event subtype을 뽑는다
 - `deviceId + drivingEventType + minuteBucketStart` 기준 key를 만든다
+- count를 증가시킨다
+- state store에 반영한다
+- projection writer가 read model 테이블에 upsert 한다
+
+### 4. region_heatmap
+- source event types
+  - `TELEMETRY`
+- 목적
+  - 위치 이벤트를 고정 grid bucket 기준으로 집계
+  - 지역별 이벤트 밀도 조회의 기초 데이터 제공
+- state store
+  - `region-heatmap-store`
+- target table
+  - `telemetryhub_region_heatmap`
+
+처리 방식:
+- raw event를 읽는다
+- `TELEMETRY`만 필터링한다
+- payload를 `TelemetryEvent`로 파싱한다
+- `lat/lon`을 `0.01` grid bucket으로 내린다
+- `gridLat + gridLon + minuteBucketStart` 기준 key를 만든다
 - count를 증가시킨다
 - state store에 반영한다
 - projection writer가 read model 테이블에 upsert 한다

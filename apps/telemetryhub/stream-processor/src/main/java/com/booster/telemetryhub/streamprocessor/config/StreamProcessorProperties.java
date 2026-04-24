@@ -12,7 +12,9 @@ public class StreamProcessorProperties {
     private Duration deviceLastSeenWindow = Duration.ofMinutes(5);
     private Duration eventsPerMinuteWindow = Duration.ofMinutes(1);
     private Duration drivingEventCounterWindow = Duration.ofMinutes(1);
+    private Duration regionHeatmapWindow = Duration.ofMinutes(1);
     private Duration lateEventGrace = Duration.ofMinutes(2);
+    private double heatmapGridSize = 0.01d;
 
     public String getApplicationId() {
         return applicationId;
@@ -54,11 +56,27 @@ public class StreamProcessorProperties {
         this.drivingEventCounterWindow = drivingEventCounterWindow;
     }
 
+    public Duration getRegionHeatmapWindow() {
+        return regionHeatmapWindow;
+    }
+
+    public void setRegionHeatmapWindow(Duration regionHeatmapWindow) {
+        this.regionHeatmapWindow = regionHeatmapWindow;
+    }
+
     public Duration getLateEventGrace() {
         return lateEventGrace;
     }
 
     public void setLateEventGrace(Duration lateEventGrace) {
         this.lateEventGrace = lateEventGrace;
+    }
+
+    public double getHeatmapGridSize() {
+        return heatmapGridSize;
+    }
+
+    public void setHeatmapGridSize(double heatmapGridSize) {
+        this.heatmapGridSize = heatmapGridSize;
     }
 }

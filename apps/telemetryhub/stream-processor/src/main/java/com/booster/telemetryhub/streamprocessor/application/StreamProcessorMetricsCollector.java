@@ -23,11 +23,13 @@ public class StreamProcessorMetricsCollector {
             long deviceLastSeenWrites = current.deviceLastSeenWrites();
             long eventsPerMinuteWrites = current.eventsPerMinuteWrites();
             long drivingEventCounterWrites = current.drivingEventCounterWrites();
+            long regionHeatmapWrites = current.regionHeatmapWrites();
 
             switch (projectionType) {
                 case DEVICE_LAST_SEEN -> deviceLastSeenWrites++;
                 case EVENTS_PER_MINUTE -> eventsPerMinuteWrites++;
                 case DRIVING_EVENT_COUNTER -> drivingEventCounterWrites++;
+                case REGION_HEATMAP -> regionHeatmapWrites++;
             }
 
             return new StreamProcessorMetricsSnapshot(
@@ -39,6 +41,8 @@ public class StreamProcessorMetricsCollector {
                     current.eventsPerMinuteFailures(),
                     drivingEventCounterWrites,
                     current.drivingEventCounterFailures(),
+                    regionHeatmapWrites,
+                    current.regionHeatmapFailures(),
                     Instant.now(),
                     current.lastFailureTime(),
                     current.lastFailureProjection(),
@@ -54,11 +58,13 @@ public class StreamProcessorMetricsCollector {
             long deviceLastSeenFailures = current.deviceLastSeenFailures();
             long eventsPerMinuteFailures = current.eventsPerMinuteFailures();
             long drivingEventCounterFailures = current.drivingEventCounterFailures();
+            long regionHeatmapFailures = current.regionHeatmapFailures();
 
             switch (projectionType) {
                 case DEVICE_LAST_SEEN -> deviceLastSeenFailures++;
                 case EVENTS_PER_MINUTE -> eventsPerMinuteFailures++;
                 case DRIVING_EVENT_COUNTER -> drivingEventCounterFailures++;
+                case REGION_HEATMAP -> regionHeatmapFailures++;
             }
 
             return new StreamProcessorMetricsSnapshot(
@@ -70,6 +76,8 @@ public class StreamProcessorMetricsCollector {
                     eventsPerMinuteFailures,
                     current.drivingEventCounterWrites(),
                     drivingEventCounterFailures,
+                    current.regionHeatmapWrites(),
+                    regionHeatmapFailures,
                     current.lastSuccessTime(),
                     Instant.now(),
                     projectionType,

@@ -32,4 +32,6 @@ telemetryhub:
     device-last-seen-window: 5m
     events-per-minute-window: 1m
     driving-event-counter-window: 1m
+    region-heatmap-window: 1m
     late-event-grace: 2m
+    heatmap-grid-size: 0.01

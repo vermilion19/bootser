@@ -11,6 +11,8 @@ public record StreamProcessorMetricsSnapshot(
         long eventsPerMinuteFailures,
         long drivingEventCounterWrites,
         long drivingEventCounterFailures,
+        long regionHeatmapWrites,
+        long regionHeatmapFailures,
         Instant lastSuccessTime,
         Instant lastFailureTime,
         ProjectionType lastFailureProjection,
@@ -18,6 +20,8 @@ public record StreamProcessorMetricsSnapshot(
 ) {
     public static StreamProcessorMetricsSnapshot empty() {
         return new StreamProcessorMetricsSnapshot(
+                0,
+                0,
                 0,
                 0,
                 0,
