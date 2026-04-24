@@ -6,6 +6,7 @@
 - `stream-processor` MVP 실시간 집계 3종 완료
 - `stream-processor` DB upsert 경계 1차 완료
 - `stream-processor` projection write metrics / API 완료
+- scale readiness 기준 문서 작성 완료
 - 실제 MQTT broker 및 Kafka end-to-end smoke test는 아직 보류
 
 ## 완료
@@ -29,6 +30,7 @@
 - `stream-processor` topology -> DB upsert 경계 연결 완료
 - `stream-processor` projection write 성공/실패 metrics 추가 완료
 - `stream-processor` `/stream/v1/metrics` API 추가 완료
+- 서비스별 scale readiness 기준 문서 작성 완료
 
 ## device-simulator 완료 범위
 - 제어 API
@@ -74,6 +76,7 @@
 
 ## 참고 문서
 - 기획 문서: [Planning.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/Planning.md)
+- scale readiness 기준: [scale-readiness.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/scale-readiness.md)
 - 시뮬레이터 구조 설명: [device-simulator-review.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/device-simulator-review.md)
 - 인제션 구조 설명: [ingestion-service-review.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/ingestion-service-review.md)
 - 실행 흐름 문서: [runtime-flows.md](/abs/path/C:/Users/NCand/Documents/bootser/apps/telemetryhub/docs/runtime-flows.md)
