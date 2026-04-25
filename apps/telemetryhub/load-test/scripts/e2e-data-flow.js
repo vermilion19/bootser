@@ -84,18 +84,21 @@ export function e2eVerificationFlow() {
 
   group('1_send_event', () => {
     // 텔레메트리 이벤트 발송
+    const eventId = uuidv4();
     const payload = JSON.stringify({
-      deviceId: testDeviceId,
-      eventType: 'TELEMETRY',
-      timestamp: testTimestamp.toISOString(),
-      latitude: 37.5665 + (Math.random() - 0.5) * 0.01,
-      longitude: 126.9780 + (Math.random() - 0.5) * 0.01,
+      metadata: {
+        eventId,
+        deviceId: testDeviceId,
+        eventType: 'TELEMETRY',
+        eventTime: testTimestamp.toISOString(),
+        ingestTime: testTimestamp.toISOString(),
+      },
+      lat: 37.5665 + (Math.random() - 0.5) * 0.01,
+      lon: 126.9780 + (Math.random() - 0.5) * 0.01,
       speed: 50 + Math.random() * 50,
       heading: Math.random() * 360,
-      altitude: 50,
-      accuracy: 5,
-      batteryLevel: 80,
-      signalStrength: -70,
+      accelX: (Math.random() - 0.5) * 2,
+      accelY: (Math.random() - 0.5) * 2,
     });
 
     const res = http.post(
@@ -125,7 +128,7 @@ export function e2eVerificationFlow() {
   group('2_verify_in_analytics', () => {
     const startVerify = Date.now();
     let found = false;
-    const maxAttempts = 5;
+    const maxAttempts = 20;
     const retryInterval = 2;  // 2초 간격
 
     for (let attempt = 1; attempt <= maxAttempts && !found; attempt++) {
@@ -139,7 +142,7 @@ export function e2eVerificationFlow() {
 
       if (res.status === 200) {
         const body = JSON.parse(res.body);
-        if (body.success && body.data) {
+        if (body.result === 'SUCCESS' && body.data) {
           found = true;
           eventsVerified.add(1);
           e2eLatency.add(Date.now() - startVerify);
@@ -179,7 +182,7 @@ export function dataFlowCheckFlow() {
     if (ingestionOk) {
       const body = JSON.parse(ingestionMetrics.body);
       if (body.data) {
-        console.log(`Ingestion - Total: ${body.data.totalIngested || 0}, Published: ${body.data.totalPublished || 0}`);
+        console.log(`Ingestion - Total: ${body.data.totalReceived || 0}, Published: ${body.data.totalPublished || 0}`);
       }
     }
 

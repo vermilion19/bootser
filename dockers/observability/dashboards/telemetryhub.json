@@ -291,11 +291,11 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "kafka_streams_stream_thread_metrics_poll_records_avg{application=\"telemetryhub-stream-processor\"}",
+          "expr": "kafka_stream_alive_stream_threads{application=\"telemetryhub-stream-processor\"}",
           "refId": "A"
         }
       ],
-      "title": "Kafka Poll Records (Avg)",
+      "title": "Alive Stream Threads",
       "type": "stat"
     },
     {
@@ -330,7 +330,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(kafka_consumer_fetch_manager_metrics_records_lag{application=\"telemetryhub-stream-processor\"})",
+          "expr": "sum(kafka_consumer_fetch_manager_records_lag{application=\"telemetryhub-stream-processor\"})",
           "refId": "A"
         }
       ],
@@ -429,7 +429,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "kafka_consumer_fetch_manager_metrics_records_lag{application=\"telemetryhub-stream-processor\"}",
+          "expr": "kafka_consumer_fetch_manager_records_lag{application=\"telemetryhub-stream-processor\"}",
           "legendFormat": "{{topic}}-{{partition}}",
           "refId": "A"
         }
@@ -964,8 +964,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(kafka_producer_topic_metrics_record_send_total{application=~\"telemetryhub-.*\"}[1m])",
-          "legendFormat": "{{application}} - {{topic}}",
+          "expr": "sum by (application, name, result) (rate(spring_kafka_template_seconds_count{application=\"telemetryhub-ingestion-service\"}[1m]))",
+          "legendFormat": "{{application}} - {{name}} - {{result}}",
           "refId": "A"
         }
       ],
@@ -1014,7 +1014,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(kafka_consumer_fetch_manager_metrics_records_consumed_total{application=~\"telemetryhub-.*\"}[1m])",
+          "expr": "rate(kafka_consumer_fetch_manager_records_consumed_total{application=~\"telemetryhub-.*\"}[1m])",
           "legendFormat": "{{application}} - {{topic}}",
           "refId": "A"
         }
@@ -1064,12 +1064,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "kafka_producer_metrics_record_queue_time_avg{application=~\"telemetryhub-.*\"} * 1000",
-          "legendFormat": "{{application}}",
+          "expr": "(sum by (application, name) (spring_kafka_template_seconds_sum{application=\"telemetryhub-ingestion-service\"}) / sum by (application, name) (spring_kafka_template_seconds_count{application=\"telemetryhub-ingestion-service\"}) * 1000) and on (application, name) (sum by (application, name) (spring_kafka_template_seconds_count{application=\"telemetryhub-ingestion-service\"}) > 0)",
+          "legendFormat": "{{application}} - {{name}}",
           "refId": "A"
         }
       ],
-      "title": "Kafka Producer - Record Queue Time (Avg)",
+      "title": "Kafka Producer - Send Latency (Avg)",
       "type": "timeseries"
     },
     {
@@ -1114,7 +1114,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "kafka_consumer_fetch_manager_metrics_fetch_latency_avg{application=~\"telemetryhub-.*\"}",
+          "expr": "kafka_consumer_fetch_manager_fetch_latency_avg{application=~\"telemetryhub-.*\"}",
           "legendFormat": "{{application}}",
           "refId": "A"
         }

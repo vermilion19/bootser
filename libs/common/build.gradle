@@ -2,7 +2,6 @@ dependencies {
 
     // 1. Jackson (JSON 직렬화/역직렬화)
     api 'org.springframework.boot:spring-boot-starter-json'
-    api 'tools.jackson.datatype:jackson-datatype-jsr310:3.0.0-rc2'
 
     // 2. Apache Commons (강력한 String, Collection 유틸)
     // StringUtils.isEmpty() 등을 쓰기 위해 추가

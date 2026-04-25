@@ -2,12 +2,15 @@ package com.booster.common;
 
 import tools.jackson.databind.*;
 import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.ext.javatime.deser.InstantDeserializer;
+import tools.jackson.databind.ext.javatime.deser.LocalDateTimeDeserializer;
+import tools.jackson.databind.ext.javatime.ser.InstantSerializer;
 import tools.jackson.databind.ext.javatime.ser.LocalDateTimeSerializer;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import tools.jackson.databind.module.SimpleModule;
-import tools.jackson.datatype.jsr310.JavaTimeModule;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -16,16 +19,21 @@ public class JsonUtils {
     // 1. 공통 설정을 담은 빌더 팩토리 (내부용)
     private static JsonMapper.Builder baseBuilder() {
 
-        // [핵심 수정] Jackson 3.0.0-rc2 버그 우회
-        // 포맷터를 명시적으로 지정하여, 내부적으로 사라진 SerializationFeature 필드를 참조하지 않도록 강제합니다.
-        SimpleModule fixModule = new SimpleModule();
-        fixModule.addSerializer(LocalDateTime.class,
-                new LocalDateTimeSerializer(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        SimpleModule javaTimeModule = new SimpleModule();
+        javaTimeModule.addSerializer(Instant.class, InstantSerializer.INSTANCE);
+        javaTimeModule.addDeserializer(Instant.class, InstantDeserializer.INSTANT);
+        javaTimeModule.addSerializer(
+                LocalDateTime.class,
+                new LocalDateTimeSerializer(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        );
+        javaTimeModule.addDeserializer(
+                LocalDateTime.class,
+                new LocalDateTimeDeserializer(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        );
 
 
         return JsonMapper.builder()
-                .addModule(new JavaTimeModule())
-                .addModule(fixModule)
+                .addModule(javaTimeModule)
                 .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
