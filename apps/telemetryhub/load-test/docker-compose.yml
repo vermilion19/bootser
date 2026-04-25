@@ -1,0 +1,34 @@
+name: telemetryhub-load-test
+
+# 사용법:
+#   # 단일 시나리오 실행
+#   docker compose -f apps/telemetryhub/load-test/docker-compose.yml \
+#     run --rm k6 run /scripts/throughput-ingestion.js
+#
+#   # Prometheus로 메트릭 전송하며 실행 (Grafana 실시간 확인)
+#   docker compose -f apps/telemetryhub/load-test/docker-compose.yml \
+#     run --rm k6 run --out experimental-prometheus-rw /scripts/realistic-iot-scenario.js
+
+services:
+  k6:
+    image: grafana/k6:latest
+    networks:
+      - booster-network
+    environment:
+      # TelemetryHub 서비스 엔드포인트 (로컬 실행 시 host.docker.internal 사용)
+      BASE_URL_SIMULATOR: http://host.docker.internal:8091
+      BASE_URL_INGESTION: http://host.docker.internal:8092
+      BASE_URL_STREAM:    http://host.docker.internal:8093
+      BASE_URL_ANALYTICS: http://host.docker.internal:8094
+      # Prometheus remote write (메트릭을 Grafana에서 실시간 확인)
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9091/api/v1/write
+      K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"
+    volumes:
+      - ./scripts:/scripts
+    # 기본 실행 스크립트 (override 가능)
+    command: run /scripts/realistic-iot-scenario.js
+
+networks:
+  booster-network:
+    external: true
+    name: booster-network

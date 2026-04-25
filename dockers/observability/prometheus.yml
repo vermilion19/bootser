@@ -74,3 +74,36 @@ scrape_configs:
     relabel_configs:
       - target_label: application
         replacement: query-burst-order-service
+
+  # TelemetryHub 서비스들 - host.docker.internal로 호스트 접근
+  - job_name: 'telemetryhub-device-simulator'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8091']
+        labels:
+          application: telemetryhub-device-simulator
+
+  - job_name: 'telemetryhub-ingestion-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8092']
+        labels:
+          application: telemetryhub-ingestion-service
+
+  - job_name: 'telemetryhub-stream-processor'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8093']
+        labels:
+          application: telemetryhub-stream-processor
+
+  - job_name: 'telemetryhub-analytics-api'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8094']
+        labels:
+          application: telemetryhub-analytics-api
