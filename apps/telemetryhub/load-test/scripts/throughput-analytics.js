@@ -161,8 +161,8 @@ function queryDrivingEventCounters() {
       url += `&deviceId=device-${String(randomIntBetween(1, 100)).padStart(5, '0')}`;
     }
     if (Math.random() < 0.5) {
-      const types = ['SUDDEN_ACCELERATION', 'SUDDEN_BRAKING', 'SHARP_TURN', 'OVERSPEED'];
-      url += `&drivingEventType=${types[randomIntBetween(0, 3)]}`;
+      const types = ['HARD_BRAKE', 'OVERSPEED', 'CRASH'];
+      url += `&drivingEventType=${types[randomIntBetween(0, 2)]}`;
     }
 
     const res = http.get(url, {

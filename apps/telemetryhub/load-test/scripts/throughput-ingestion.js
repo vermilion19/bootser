@@ -30,7 +30,7 @@ const ingestionFailure = new Counter('ingestion_failure_total');
 // 디바이스 및 이벤트 타입 풀
 const DEVICE_IDS = Array.from({ length: 1000 }, (_, i) => `device-${String(i + 1).padStart(5, '0')}`);
 const EVENT_TYPES = ['TELEMETRY', 'DEVICE_HEALTH', 'DRIVING_EVENT'];
-const DRIVING_EVENT_TYPES = ['SUDDEN_ACCELERATION', 'SUDDEN_BRAKING', 'SHARP_TURN', 'OVERSPEED'];
+const DRIVING_EVENT_TYPES = ['HARD_BRAKE', 'OVERSPEED', 'CRASH'];
 
 export const options = {
   scenarios: {
@@ -65,48 +65,57 @@ export const options = {
 // 텔레메트리 이벤트 생성
 function generateTelemetryPayload(deviceId) {
   return JSON.stringify({
-    deviceId,
-    eventType: 'TELEMETRY',
-    timestamp: new Date().toISOString(),
-    latitude: 37.5665 + (Math.random() - 0.5) * 0.1,
-    longitude: 126.9780 + (Math.random() - 0.5) * 0.1,
+    metadata: {
+      eventId: uuidv4(),
+      deviceId,
+      eventType: 'TELEMETRY',
+      eventTime: new Date().toISOString(),
+      ingestTime: null,
+    },
+    lat: 37.5665 + (Math.random() - 0.5) * 0.1,
+    lon: 126.9780 + (Math.random() - 0.5) * 0.1,
     speed: Math.random() * 120,
     heading: Math.random() * 360,
-    altitude: 50 + Math.random() * 100,
-    accuracy: 5 + Math.random() * 10,
-    batteryLevel: Math.random() * 100,
-    signalStrength: -50 - Math.random() * 50,
+    accelX: (Math.random() - 0.5) * 2,
+    accelY: (Math.random() - 0.5) * 2,
   });
 }
 
 // Device Health 이벤트 생성
 function generateDeviceHealthPayload(deviceId) {
   return JSON.stringify({
-    deviceId,
-    eventType: 'DEVICE_HEALTH',
-    timestamp: new Date().toISOString(),
-    cpuUsage: Math.random() * 100,
-    memoryUsage: Math.random() * 100,
-    diskUsage: Math.random() * 100,
+    metadata: {
+      eventId: uuidv4(),
+      deviceId,
+      eventType: 'DEVICE_HEALTH',
+      eventTime: new Date().toISOString(),
+      ingestTime: null,
+    },
+    battery: 50 + Math.random() * 50,
     temperature: 30 + Math.random() * 40,
-    uptime: randomIntBetween(0, 86400),
-    errorCount: randomIntBetween(0, 10),
+    signalStrength: randomIntBetween(-100, -30),
+    firmwareVersion: '2.1.0',
+    errorCode: null,
   });
 }
 
 // Driving Event 생성
 function generateDrivingEventPayload(deviceId) {
-  const eventType = DRIVING_EVENT_TYPES[randomIntBetween(0, DRIVING_EVENT_TYPES.length - 1)];
+  const drivingEventType = DRIVING_EVENT_TYPES[randomIntBetween(0, DRIVING_EVENT_TYPES.length - 1)];
   return JSON.stringify({
-    deviceId,
-    eventType: 'DRIVING_EVENT',
-    drivingEventType: eventType,
-    timestamp: new Date().toISOString(),
-    latitude: 37.5665 + (Math.random() - 0.5) * 0.1,
-    longitude: 126.9780 + (Math.random() - 0.5) * 0.1,
-    speed: Math.random() * 120,
+    metadata: {
+      eventId: uuidv4(),
+      deviceId,
+      eventType: 'DRIVING_EVENT',
+      eventTime: new Date().toISOString(),
+      ingestTime: null,
+    },
+    type: drivingEventType,
     severity: randomIntBetween(1, 5),
-    duration: randomIntBetween(100, 5000),
+    context: JSON.stringify({
+      speed: Math.random() * 120,
+      duration: randomIntBetween(100, 5000),
+    }),
   });
 }
 
