@@ -44,7 +44,7 @@ const DEVICE_POOL = Array.from({ length: 5000 }, (_, i) => ({
   type: ['TRUCK', 'BUS', 'TAXI', 'DELIVERY'][i % 4],
 }));
 
-const DRIVING_EVENT_TYPES = ['SUDDEN_ACCELERATION', 'SUDDEN_BRAKING', 'SHARP_TURN', 'OVERSPEED', 'HARSH_CORNERING'];
+const DRIVING_EVENT_TYPES = ['HARD_BRAKE', 'OVERSPEED', 'CRASH'];
 
 export const options = {
   scenarios: {
@@ -154,41 +154,44 @@ function generateTelemetryEvent(device) {
     topic: `telemetryhub/devices/${device.id}/telemetry`,
     qos: 0,
     payload: JSON.stringify({
-      deviceId: device.id,
-      eventType: 'TELEMETRY',
-      timestamp: new Date().toISOString(),
-      latitude: base.lat + (Math.random() - 0.5) * 0.1,
-      longitude: base.lon + (Math.random() - 0.5) * 0.1,
+      metadata: {
+        eventId: uuidv4(),
+        deviceId: device.id,
+        eventType: 'TELEMETRY',
+        eventTime: new Date().toISOString(),
+        ingestTime: null,
+      },
+      lat: base.lat + (Math.random() - 0.5) * 0.1,
+      lon: base.lon + (Math.random() - 0.5) * 0.1,
       speed: Math.random() * 100,
       heading: Math.random() * 360,
-      altitude: 20 + Math.random() * 50,
-      accuracy: 3 + Math.random() * 7,
-      batteryLevel: 50 + Math.random() * 50,
-      signalStrength: -60 - Math.random() * 30,
-      fuelLevel: Math.random() * 100,
-      engineRpm: 800 + Math.random() * 5000,
-      coolantTemp: 80 + Math.random() * 20,
+      accelX: (Math.random() - 0.5) * 2,
+      accelY: (Math.random() - 0.5) * 2,
     }),
   };
 }
 
 function generateDrivingEvent(device) {
-  const eventType = DRIVING_EVENT_TYPES[randomIntBetween(0, DRIVING_EVENT_TYPES.length - 1)];
+  const drivingEventType = DRIVING_EVENT_TYPES[randomIntBetween(0, DRIVING_EVENT_TYPES.length - 1)];
 
   return {
     topic: `telemetryhub/devices/${device.id}/driving-event`,
     qos: 1,
     payload: JSON.stringify({
-      deviceId: device.id,
-      eventType: 'DRIVING_EVENT',
-      drivingEventType: eventType,
-      timestamp: new Date().toISOString(),
-      latitude: 37.5665 + (Math.random() - 0.5) * 0.1,
-      longitude: 126.9780 + (Math.random() - 0.5) * 0.1,
-      speed: 30 + Math.random() * 90,
+      metadata: {
+        eventId: uuidv4(),
+        deviceId: device.id,
+        eventType: 'DRIVING_EVENT',
+        eventTime: new Date().toISOString(),
+        ingestTime: null,
+      },
+      type: drivingEventType,
       severity: randomIntBetween(1, 5),
-      duration: randomIntBetween(500, 3000),
-      gForce: 0.3 + Math.random() * 0.7,
+      context: JSON.stringify({
+        speed: 30 + Math.random() * 90,
+        duration: randomIntBetween(500, 3000),
+        gForce: 0.3 + Math.random() * 0.7,
+      }),
     }),
   };
 }
@@ -198,16 +201,18 @@ function generateDeviceHealthEvent(device) {
     topic: `telemetryhub/devices/${device.id}/device-health`,
     qos: 0,
     payload: JSON.stringify({
-      deviceId: device.id,
-      eventType: 'DEVICE_HEALTH',
-      timestamp: new Date().toISOString(),
-      cpuUsage: Math.random() * 100,
-      memoryUsage: Math.random() * 100,
-      diskUsage: 20 + Math.random() * 60,
+      metadata: {
+        eventId: uuidv4(),
+        deviceId: device.id,
+        eventType: 'DEVICE_HEALTH',
+        eventTime: new Date().toISOString(),
+        ingestTime: null,
+      },
+      battery: 50 + Math.random() * 50,
       temperature: 35 + Math.random() * 25,
-      uptime: randomIntBetween(3600, 864000),
+      signalStrength: randomIntBetween(-100, -30),
       firmwareVersion: '2.1.0',
-      lastReboot: new Date(Date.now() - randomIntBetween(3600000, 86400000)).toISOString(),
+      errorCode: null,
     }),
   };
 }
