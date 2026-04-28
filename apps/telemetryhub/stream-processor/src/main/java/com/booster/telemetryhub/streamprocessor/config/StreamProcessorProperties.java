@@ -19,6 +19,7 @@ public class StreamProcessorProperties {
     private String processingGuarantee = "at_least_once";
     private String stateDir = System.getProperty("java.io.tmpdir") + "/telemetryhub-streams";
     private int numStandbyReplicas = 0;
+    private long commitIntervalMs = 1000;
     private ProjectionBatch projectionBatch = new ProjectionBatch();
 
     public String getApplicationId() {
@@ -115,6 +116,14 @@ public class StreamProcessorProperties {
 
     public void setNumStandbyReplicas(int numStandbyReplicas) {
         this.numStandbyReplicas = numStandbyReplicas;
+    }
+
+    public long getCommitIntervalMs() {
+        return commitIntervalMs;
+    }
+
+    public void setCommitIntervalMs(long commitIntervalMs) {
+        this.commitIntervalMs = commitIntervalMs;
     }
 
     public ProjectionBatch getProjectionBatch() {

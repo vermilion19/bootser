@@ -39,6 +39,7 @@ telemetryhub:
     processing-guarantee: at_least_once
     state-dir: ${java.io.tmpdir}/telemetryhub-streams
     num-standby-replicas: 0
+    commit-interval-ms: 1000
     projection-batch:
       batch-size: 100
       flush-interval: 500ms

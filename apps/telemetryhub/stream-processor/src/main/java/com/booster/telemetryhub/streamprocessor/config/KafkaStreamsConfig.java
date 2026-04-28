@@ -28,6 +28,7 @@ public class KafkaStreamsConfig {
         config.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, properties.getProcessingGuarantee());
         config.put(StreamsConfig.STATE_DIR_CONFIG, properties.getStateDir());
         config.put(StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, properties.getNumStandbyReplicas());
+        config.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, properties.getCommitIntervalMs());
         return new KafkaStreamsConfiguration(config);
     }
 }
