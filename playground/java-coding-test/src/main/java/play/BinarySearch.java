@@ -25,6 +25,11 @@ public class BinarySearch {
         int target = 7;
         int result = search(nums, target);
         System.out.println("Target " + target + " found at index: " + result);
+
+        String s = String.valueOf(target);
+        for (int num : nums) {
+
+        }
     }
 
 }
