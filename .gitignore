@@ -50,6 +50,9 @@ tmpclaude*
 nul
 /lib/
 
+### 코딩테스트 개인 풀이 (추적 제외) ###
+playground/java-coding-test/src/main/java/hackerrank/CTest.java
+
 ### Environment files (민감한 정보 보호) ###
 .env
 !.env.example
