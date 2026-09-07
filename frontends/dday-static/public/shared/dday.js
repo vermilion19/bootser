@@ -424,10 +424,15 @@
         var brk = $('#break');
         if (brk) brk.innerHTML = breakHtml(breaks && breaks.upcoming);
     }
+    /* 다음(D-)과 지난(D+)은 카드에서 위아래로 나란히 선다. 색이 같으면 어느 쪽이
+       앞이고 어느 쪽이 뒤인지 부호 하나로만 갈린다 — 표의 td.mark 가 이미 쓰는
+       규칙(다가올 것은 --soon, 지나간 것은 --past)을 카드에도 그대로 쓴다. */
+    function ddClass(sign) { return sign === '+' ? 'dd past' : 'dd'; }
+
     function fill(dd, entry, sign) {
         if (!dd) return;
         dd.innerHTML = entry
-            ? '<span class="dd">D' + sign + Math.abs(entry.diff) + '</span>' +
+            ? '<span class="' + ddClass(sign) + '">D' + sign + Math.abs(entry.diff) + '</span>' +
               nameHtml(entry.item) + '<em>' + shortHuman(entry.item.d) + '</em>'
             : '<em>' + T.outOfRange + '</em>';
     }
@@ -731,7 +736,7 @@
 
         var line = function (label, e, sign) {
             return '<dt>' + label + '</dt><dd>' + (e
-                ? '<span class="dd">D' + sign + Math.abs(e.diff) + '</span>' + nameHtml(e.item) +
+                ? '<span class="' + ddClass(sign) + '">D' + sign + Math.abs(e.diff) + '</span>' + nameHtml(e.item) +
                   '<em>' + shortHuman(e.item.d) + '</em>'
                 : '<em>' + T.outOfRange + '</em>') + '</dd>';
         };

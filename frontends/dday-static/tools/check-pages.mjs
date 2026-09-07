@@ -173,6 +173,7 @@ check('favicon.svg', (file) => {
         [/\.bridge\{/, '징검다리 배지 스타일이 없다'],
         [/td\.range\{/, '연휴 기간 칸 스타일이 없다 — 줄바꿈이 나 버린다'],
         [/\.now \.pair dd \.dd\.on\{/, '연휴 중 표시 색이 없다 — 다가오는 연휴와 같아 보인다'],
+        [/\.now \.pair dd \.dd\.past\{/, '지난 공휴일의 D+ 가 다음 것과 같은 색이다 — 두 줄이 한눈에 안 갈린다'],
         [/td\.date \.at\{/, '하늘 표의 시각 스타일이 없다'],
         [/td\.ev\{/, '하늘 표의 이름 칸 스타일이 없다'],
         [/\.cardinal\{/, '분점·지점 배지 스타일이 없다'],
@@ -1667,6 +1668,12 @@ for (const { page, lang, slug, kind, label } of ALL) {
         if (!html2.includes(`D${sign}${Math.abs(e.diff)}<`)) {
             bad(label, `${key}: D${sign}${Math.abs(e.diff)} 이 없다 — "${html2}"`);
         }
+        /* 다음·지난은 나란히 서는 두 줄이라 색으로도 갈려야 한다. 색 자체는
+           화면에서만 보이니 여기서는 그 색을 무는 class 까지만 계약으로 둔다. */
+        const wantCls = sign === '+' ? 'dd past' : 'dd';
+        if (!html2.includes(`<span class="${wantCls}">D${sign}`)) {
+            bad(label, `${key}: D-day 배지가 class="${wantCls}" 가 아니다 — "${html2}"`);
+        }
         /* 카드는 이름을 이스케이프해서 넣는다 — 필리핀 공휴일처럼 따옴표가 든
            이름이 있어서, 날것으로 견주면 멀쩡한 카드를 틀렸다고 한다 */
         const wantName = esc(nameAt(e.d) || '');
@@ -2182,6 +2189,14 @@ for (const [page, lang, langs, wantCc] of [
                      + ` (${TODAY} 의 ${wantCc} 공휴일 ${todays.length}건)`);
         }
         if (!/D[-+]\d+/.test(drawn)) bad(label, '요약 카드에 D-day 숫자가 없다');
+        /* 국가 페이지 카드와 같은 갈림이어야 한다 — 첫 화면만 조용히 한 색으로
+           돌아가면 "다음" 과 "지난" 이 다시 한 덩어리로 읽힌다. */
+        if (/D-\d/.test(drawn) && !/<span class="dd">D-/.test(drawn)) {
+            bad(label, '요약 카드의 다음 공휴일 배지가 class="dd" 가 아니다');
+        }
+        if (/D\+\d/.test(drawn) && !/<span class="dd past">D\+/.test(drawn)) {
+            bad(label, '요약 카드의 지난 공휴일 배지가 class="dd past" 가 아니다 — 다음 것과 같은 색으로 보인다');
+        }
 
         /* 다음·지난 공휴일의 이름과 다른 언어 이름까지. 국가 페이지 카드와 같은
            내용을 그려야 하는데, 예전에 첫 화면만 조용히 빠뜨린 적이 있다. */

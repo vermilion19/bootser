@@ -45,6 +45,10 @@
 }
 /* 지금 연휴 중일 때. D-0 이라고 적으면 "오늘 시작" 인지 "오늘 끝" 인지 모른다 */
 .now .pair dd .dd.on{color:var(--today)}
+/* 지난 공휴일. 다음 줄 바로 아래에 같은 모양으로 서기 때문에 색이 같으면
+   "D-16" 과 "D+22" 가 한 덩어리로 읽힌다. 표의 td.mark 와 같은 갈림이다 —
+   다가올 것은 --soon, 지나간 것은 --past. 새 색을 들이지 않는다. */
+.now .pair dd .dd.past{color:var(--past)}
 .now .pair dd em{font-style:normal;color:var(--ink-3);font-size:12px;margin-left:6px}
 /* 다른 언어로 적힌 이름. 敬老の日 만 있으면 무슨 날인지 알 수 없다 */
 .now .pair dd .sub{color:var(--ink-3);font-size:12px;margin-left:6px}
