@@ -1637,24 +1637,31 @@ for (const { page, lang, slug, kind, label } of ALL) {
     /* 영어 페이지는 영어 이름을 앞세운다 — 생성기·클라이언트와 같은 규칙이어야 한다.
        두 번째 이름(다른 언어)도 카드에 붙어야 한다. 敬老の日 만 있으면 무슨 날인지
        알 수 없어서 넣은 것이라, 붙는지까지 본다. */
+    const nameOf = (day) => (lang === 'en' ? (day.e || day.n) : day.n);
+    const subOf = (day) => (lang === 'en' ? (day.e ? day.n : '') : (day.e || ''));
+    const fullOf = (day) => nameOf(day) + (subOf(day) ? ` (${subOf(day)})` : '');
+    /* 다음·지난은 날짜 하나를 고른 결과다. 그 날에 공휴일이 둘이면 dday.js 의
+       classify 가 먼저 만난 것을 잡으므로(부등호가 <) 여기서도 첫 건을 쓴다. */
     const dayAt = (d) => data.days.find((x) => x.d === d) || {};
-    const nameAt = (d) => {
-        const day = dayAt(d);
-        return lang === 'en' ? (day.e || day.n) : day.n;
-    };
-    const subAt = (d) => {
-        const day = dayAt(d);
-        return lang === 'en' ? (day.e ? day.n : '') : (day.e || '');
-    };
+    const nameAt = (d) => nameOf(dayAt(d));
+    const subAt = (d) => subOf(dayAt(d));
 
     if (!drawn.asof.includes(String(new Date().getFullYear()))) {
         bad(label, `기준 날짜 문안이 이상하다: "${drawn.asof}"`);
     }
     const w = WORDS[lang];
-    const full = (d) => nameAt(d) + (subAt(d) ? ` (${subAt(d)})` : '');
-    const wantVerdict = want2.todays.length
-        ? want2.todays.map(full).join(' · ') +
-            (want2.todays.every((d) => dayAt(d).r) ? w.partial : w.off)
+    /* 판정 칸은 오늘의 공휴일을 **전부** 늘어놓는다. 그래서 날짜가 아니라 항목을
+       그대로 써야 한다 — 날짜로 되짚으면 dayAt 이 늘 첫 건을 주므로, 같은 날에
+       공휴일이 둘인 나라에서 "A · A" 라는 기대값이 나온다. 스페인 9월 8일이
+       그렇다(아스투리아스 · 엑스트레마두라). 순서도 자료 순서 그대로여야 한다 —
+       dday.js 는 표를 위에서 아래로 읽고, 표는 자료 순서로 찍힌다. */
+    const todayDays = data.days.filter((x) => x.d === TODAY);
+    if (todayDays.length !== want2.todays.length) {
+        bad(label, `오늘 공휴일 ${todayDays.length}건 / expectRef ${want2.todays.length}건`);
+    }
+    const wantVerdict = todayDays.length
+        ? todayDays.map(fullOf).join(' · ') +
+            (todayDays.every((day) => day.r) ? w.partial : w.off)
         : w.noHoliday;
     if (drawn.verdict !== wantVerdict) {
         bad(label, `오늘 카드 문안 "${drawn.verdict}" / 기대 "${wantVerdict}"`);
@@ -2181,7 +2188,10 @@ for (const [page, lang, langs, wantCc] of [
            전부 local(일부 지역만 쉼)은 아닐 때. */
         const src = JSON.parse(readFileSync(join(DATA, `${wantCc}.json`), 'utf8'));
         const todays = src.days.filter((x) => x.d === TODAY);
-        const wantRest = todays.length > 0 && !todays.every((x) => x.local);
+        /* 지역 한정 표시는 JSON 에서 `r` 다. `local` 은 dday.js 가 안에서 쓰려고
+           바꿔 다는 이름이라 여기서는 늘 undefined 였고, 그래서 이 줄은 오늘이
+           있기만 하면 항상 rest 를 기대했다 — 검사가 아니었다. */
+        const wantRest = todays.length > 0 && !todays.every((x) => x.r);
         const wantClass = `class="verdict${wantRest ? ' rest' : ''}"`;
         if (!drawn.includes(wantClass)) {
             const got = (drawn.match(/class="verdict[^"]*"/) || ['없음'])[0];
