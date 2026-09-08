@@ -174,6 +174,13 @@ check('favicon.svg', (file) => {
         [/td\.range\{/, '연휴 기간 칸 스타일이 없다 — 줄바꿈이 나 버린다'],
         [/\.now \.pair dd \.dd\.on\{/, '연휴 중 표시 색이 없다 — 다가오는 연휴와 같아 보인다'],
         [/\.now \.pair dd \.dd\.past\{/, '지난 공휴일의 D+ 가 다음 것과 같은 색이다 — 두 줄이 한눈에 안 갈린다'],
+        /* 카드의 D-day 와 표의 다가오는 표시는 같은 것을 가리킨다. 한쪽만 색을
+           갈아 두면 같은 뜻이 자리마다 다른 색으로 보인다. */
+        [/\.now \.pair dd \.dd\{[^}]*color:var\(--soon\)/, '카드의 D-day 가 --soon 을 안 쓴다 — 표의 다가오는 표시와 색이 갈린다'],
+        [/td\.mark \.soon\{color:var\(--soon\)\}/, '표의 다가오는 표시가 --soon 을 안 쓴다'],
+        /* 링크 색은 --link 로 따로 뺐다. 다시 --soon 을 타면 사이트의 모든 링크가
+           "다음 공휴일" 색으로 물든다 — 뜻이 없는 자리에 뜻이 붙는다. */
+        [/^a\{color:var\(--link\)\}$/m, '링크가 --link 를 안 쓴다 — --soon 을 타면 모든 링크가 공휴일 색으로 물든다'],
         [/td\.date \.at\{/, '하늘 표의 시각 스타일이 없다'],
         [/td\.ev\{/, '하늘 표의 이름 칸 스타일이 없다'],
         [/\.cardinal\{/, '분점·지점 배지 스타일이 없다'],
@@ -217,6 +224,59 @@ check('favicon.svg', (file) => {
        그림이 없던 시절에는 첫 항목이 글자라 아무 일도 없었고, 되돌리기도 쉽다. */
     if (/\.worldwide \.who\{[^}]*flex/.test(css)) {
         bad('shared/*.css', '.worldwide .who 가 다시 플렉스다 — 줄의 밑선이 그림 아래 모서리로 잡혀 오른쪽 칸이 내려간다');
+    }
+
+    /* 다음 공휴일의 색만은 수로 무다.
+
+       카드에서 "다음" 은 D-day 숫자 하나로 서고, 그 숫자가 바탕에 잠기면 카드가
+       사실상 아무것도 말하지 않는다. 파랑(#2c5f8a)일 때 실제로 그랬다 — 카드
+       바탕(--paper-2)이 푸른 회색이라 같은 계열이었다. 색은 화면으로만 보이니
+       두 가지를 잰다: (1) --soon 이 초록 계열인가, (2) 카드 바탕과 4.5:1 이상인가.
+
+       테마마다 따로 본다. 어두운 테마에서 토큰 한 줄을 빠뜨리면 밝은 테마의 값이
+       그대로 흘러 내려와(#12704a 가 #151a22 위에 선다) 바탕에 잠기기 때문이다. */
+    const baseCss = readFileSync(join(PUB, 'shared', 'base.css'), 'utf8');
+    const cut = baseCss.indexOf('@media (prefers-color-scheme: dark)');
+    const themes = [['밝은 테마', baseCss.slice(0, Math.max(cut, 0))], ['어두운 테마', baseCss.slice(Math.max(cut, 0))]];
+    if (cut < 0) bad('shared/base.css', '어두운 테마 블록이 없다 — 색 계약을 잴 수 없다');
+    else for (const [theme, src] of themes) {
+        /* 토큰 하나를 값으로 읽는다. `--soon:#12704a` 처럼 붙여 적는 것이 이 파일의
+           모양이라 정규식을 세울 것도 없다. 모양이 달라지면 아래에서 걸린다. */
+        const tok = (n) => {
+            const at = src.indexOf('--' + n + ':');
+            if (at < 0) return null;
+            const v = src.slice(at + n.length + 3).trim().slice(0, 7);
+            return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toLowerCase() : null;
+        };
+        const P = 'shared/base.css';
+        const [soon, bg, link] = ['soon', 'paper-2', 'link'].map(tok);
+        if (!soon || !bg || !link) {
+            bad(P, `${theme}: --soon · --paper-2 · --link 을 6자리 hex 로 못 읽었다 (${soon} · ${bg} · ${link})`);
+            continue;
+        }
+        const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+        const lum = (h) => {
+            const [r, g, b] = rgb(h).map((v) => {
+                const c = v / 255;
+                return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+            });
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const ratio = (a, b) => {
+            const [hi, lo] = [lum(a), lum(b)].sort((m, n) => n - m);
+            return (hi + 0.05) / (lo + 0.05);
+        };
+        const [r, g, b] = rgb(soon);
+        /* 24 는 "초록다움" 의 문턱이 아니라 "파랑도 회색도 아니다" 의 문턱이다.
+           #2c5f8a(44·95·138)은 g-b 가 -43 이라 한참 못 넘고, 회색은 0 근처다. */
+        if (g - r < 24 || g - b < 24) {
+            bad(P, `${theme}: --soon(${soon})이 초록 계열이 아니다 — 바탕이 푸른 회색이라 카드의 D-day 가 잠긴다`);
+        }
+        const c = ratio(soon, bg);
+        if (c < 4.5) {
+            bad(P, `${theme}: --soon(${soon})과 카드 바탕(${bg})이 ${c.toFixed(2)}:1 이다 — 4.5 아래면 D-day 가 안 읽힌다`);
+        }
+        if (soon === link) bad(P, `${theme}: --soon 과 --link 가 같은 색(${soon})이다 — 링크와 "다음 공휴일" 이 한 색으로 뭉친다`);
     }
 }
 

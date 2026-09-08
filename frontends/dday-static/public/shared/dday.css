@@ -208,7 +208,7 @@ table.who td.name{
 .ccs .one::after{content:'·';color:var(--ink-3);margin:0 5px 0 7px}
 .ccs .one:last-child::after{content:''}
 .ccs a{color:var(--ink-2);text-decoration:none}
-.ccs a:hover{color:var(--soon);text-decoration:underline}
+.ccs a:hover{color:var(--link);text-decoration:underline}
 
 /* ------------------------------------------------ 순위 표 (/rank/)
    행이 나라다. 첫 칸의 숫자는 장식이 아니라 순위이므로 표 밖으로 빼지 않는다. */
@@ -227,7 +227,7 @@ table.wk td.num{
 }
 table.wk thead th:not(:first-child){text-align:right}
 table.wk td a{color:var(--ink);text-decoration:none}
-table.wk td a:hover{color:var(--soon);text-decoration:underline}
+table.wk td a:hover{color:var(--link);text-decoration:underline}
 td.no{
   font-family:var(--mono);font-variant-numeric:tabular-nums;
   color:var(--ink-3);width:1%;white-space:nowrap;text-align:right;
@@ -235,7 +235,7 @@ td.no{
 td.who{white-space:nowrap;font-weight:500}
 td.who img.flag{margin-right:7px}
 td.who a{color:var(--ink);text-decoration:none}
-td.who a:hover{color:var(--soon);text-decoration:underline}
+td.who a:hover{color:var(--link);text-decoration:underline}
 
 details.year{margin-top:10px}
 details.year > summary{
@@ -313,7 +313,7 @@ details.year[open] > summary::before{content:'▾ '}
 .worldwide .who{white-space:nowrap}
 .worldwide .who img{margin-right:7px}
 .worldwide .who a{color:var(--ink);text-decoration:none}
-.worldwide .who a:hover{color:var(--soon);text-decoration:underline}
+.worldwide .who a:hover{color:var(--link);text-decoration:underline}
 .worldwide .what{color:var(--ink-2)}
 .worldwide .what .en{color:var(--ink-3);font-size:12px;margin-left:6px}
 
@@ -352,7 +352,7 @@ details.year[open] > summary::before{content:'▾ '}
   display:inline-flex;align-items:center;gap:7px;
 }
 /* 밑줄은 이름에만 긋는다 — 링크 전체에 그으면 국기 밑에도 선이 지나간다 */
-.countries a:hover .cn{color:var(--soon);text-decoration:underline}
+.countries a:hover .cn{color:var(--link);text-decoration:underline}
 .countries .cc{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-left:5px}
 
 @media (max-width:640px){

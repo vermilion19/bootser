@@ -19,11 +19,18 @@
   --rule:#d4dce8;
 
   --today:#d81e5b;     /* 오늘 — 이 사이트의 유일한 따뜻한 색 */
-  --soon:#2c5f8a;      /* 다가오는 공휴일 */
+  /* 다가오는 공휴일. 파랑(#2c5f8a)이었는데 카드(.now)의 바탕이 푸른 회색
+     (--paper-2)이라 맨 윗줄인 "다음 D-16 추석" 이 바탕에 잠겼다 — 가장 먼저
+     읽혀야 하는 줄이다. 초록은 이 사이트에서 여기만 쓰는 색이라 바탕과 계열이
+     갈리고, 찬색이므로 "따뜻한 색은 --today 하나" 는 그대로다. 밀려난 파랑은
+     --link 로 옮겨 두었다 — 링크가 그대로 쓴다. */
+  --soon:#12704a;
   --past:#78849a;      /* 지나간 날 */
   --local:#9a7420;     /* 지역 한정 */
   --sat:#2c5f8a;
   --sun:#c2325c;
+  /* 링크. 뜻이 아니라 "누를 수 있다" 는 표시라 공휴일 색들과 따로 둔다 */
+  --link:#2c5f8a;
 
   /* 앞의 이름 셋은 우리가 public/fonts/ 에 실어 나르는 것과 정확히 같아야 한다 —
      check-pages 가 base.css 를 진짜로 놓고 fonts.css 와 견준다. 예전에 첫 자리에
@@ -42,8 +49,8 @@
     --paper:#0d1117; --paper-2:#151a22; --paper-3:#1f262f;
     --ink:#e9edf3; --ink-2:#a6b0be; --ink-3:#737f8f;
     --rule:#262d38;
-    --today:#ff5c8a; --soon:#7fb2e3; --past:#737f8f; --local:#d9a83a;
-    --sat:#7fb2e3; --sun:#ff8a9c;
+    --today:#ff5c8a; --soon:#6ecf9a; --past:#737f8f; --local:#d9a83a;
+    --sat:#7fb2e3; --sun:#ff8a9c; --link:#7fb2e3;
   }
 }
 
@@ -150,7 +157,7 @@ section{margin-bottom:34px}
   font-size:12px;color:var(--ink-3);
 }
 .foot a{color:var(--ink-2)}
-a{color:var(--soon)}
+a{color:var(--link)}
 
 /* --- 국기 ---
    예전에는 이모지였다. **윈도우에서 국기로 그려지지 않아서**(지역 표시 기호를
