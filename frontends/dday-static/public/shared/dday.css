@@ -423,10 +423,17 @@ details.year[open] > summary::before{content:'▾ '}
    두 모습 다 캔버스의 시작점이 곧 (0, 0) 이다.
 
    칠해서 세운다. 앞선 판은 파란 글자 한 줄이었는데 격자와 해안선 위에 겹치면
-   그대로 묻혔다 — 문제는 색조가 아니라 무게였다. --ink 바탕에 --paper 글자면
-   두 테마에서 이 팔레트로 낼 수 있는 가장 센 대비이고, 새 색을 들이지 않는다:
-   이 사이트의 따뜻한 색은 --today 하나뿐이고 --link · --soon · --local 은
-   저마다 다른 뜻을 지고 있다(base.css 머리말). */
+   그대로 묻혔다 — 문제는 색조가 아니라 무게였다.
+
+   칠은 밝은 쪽이다. 한동안 --ink 바탕에 --paper 글자로 두었는데, 15px 흰 글자가
+   검은 알약 안에서 가늘고 흐리게 읽힌다는 말을 들었다. 대비값은 뒤집어도 같지만
+   눈에는 같지 않다. 그래서 --paper-2 바탕에 --ink 글자다.
+
+   이 짝은 새로 지어낸 것이 아니다. .panel(국가 고르기)과 .picker > summary 가
+   「떠 있는 것」 에 쓰는 짝을 그대로 가져왔다 — 바탕 한 단계, --rule 테두리
+   한 줄, 그림자. --paper 가 아니라 --paper-2 인 까닭은 다크 모드다: --paper 로
+   두면 이름표가 바로 아래 종이와 같은 색이 되어, 지구본 밖으로 걸친 쪽에서
+   테두리 한 줄에만 의지하게 된다. 한 단계 올려 두면 두 테마에서 스스로 갈린다. */
 .globe .globe-name{
   position:absolute;left:0;top:0;z-index:1;
   display:flex;margin:0;max-width:100%;
@@ -434,9 +441,9 @@ details.year[open] > summary::before{content:'▾ '}
 }
 .globe .globe-name a{
   display:inline-block;max-width:100%;padding:7px 12px;
-  border-radius:7px;
-  background:var(--ink);color:var(--paper);
-  box-shadow:0 3px 12px rgba(0,0,0,.24);
+  border:1px solid var(--rule);border-radius:7px;
+  background:var(--paper-2);color:var(--ink);
+  box-shadow:0 3px 12px rgba(0,0,0,.18);
   font-size:15px;font-weight:600;line-height:1.35;text-align:center;
   text-decoration:none;
 }
@@ -447,17 +454,32 @@ details.year[open] > summary::before{content:'▾ '}
 .globe.touch .globe-name a{pointer-events:auto}
 /* 점을 가리키는 지시선. 점이 몰린 데서 「이 이름이 저 점」 이라고 말하는 것이
    이것이다. 이름표가 창틀에 밀려도 제자리를 지킨다 — globe.js 가 밀린 만큼을
-   --tx 로 되돌려 준다. 위가 좁아 아래로 뒤집히면 .below 가 붙는다. */
+   --tx 로 되돌려 준다. 위가 좁아 아래로 뒤집히면 .below 가 붙는다.
+
+   두 장으로 겹치는 것은 이름표에 테두리가 생겼기 때문이다. 한 장(::before)은
+   --rule 로 조금 크게 깔고, 그 위에 한 장(::after)을 --paper-2 로 1px 물려
+   얹는다 — 그러면 옆면에 테두리 굵기만 남아 이름표의 테두리와 이어진다.
+   한 장으로 두면 이름표에는 테두리가 있고 지시선에는 없어서 목이 끊겨 보인다. */
+.globe .globe-name::before,
 .globe .globe-name::after{
   content:'';position:absolute;top:100%;left:var(--tx,50%);
-  margin-top:-1px;transform:translateX(-50%);
-  border:6px solid transparent;border-top-color:var(--ink);
+  transform:translateX(-50%);
+  border:7px solid transparent;border-top-color:var(--rule);
+}
+.globe .globe-name::after{
+  margin-top:-1px;
+  border-width:6px;border-top-color:var(--paper-2);
+}
+.globe .globe-name.below::before,
+.globe .globe-name.below::after{
+  top:auto;bottom:100%;
+  border-top-color:transparent;border-bottom-color:var(--rule);
 }
 .globe .globe-name.below::after{
-  top:auto;bottom:100%;margin:0 0 -1px;
-  border-top-color:transparent;border-bottom-color:var(--ink);
+  margin:0 0 -1px;border-bottom-color:var(--paper-2);
 }
 /* 아무것도 안 골랐으면 지시선만 남아 허공에 뜬다 */
+.globe .globe-name:empty::before,
 .globe .globe-name:empty::after{display:none}
 
 /* 안내는 이제 캔버스 바로 아래다 — 이름표가 흐름에서 빠지면서 그 자리를 물려받았다.
