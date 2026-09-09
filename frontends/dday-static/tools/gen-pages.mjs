@@ -150,7 +150,7 @@ const L = {
         placeholderVerdict: (c, n) => `${c.ko} 공휴일 ${n}일`,
         checking: '날짜를 확인하는 중…', computing: '계산하는 중…',
         dtNext: '다음', dtPrev: '지난', dtBreak: '다음 연휴',
-        otherCountries: '다른 국가 공휴일 보기 →',
+        otherCountries: '다른 국가 공휴일 보기',
         localBadge: (n) => `일부 지역 ${n}곳`,
         foot: (g) => `공휴일 자료 <a href="https://date.nager.at/" rel="noopener">Nager.Date</a> · <code>types</code> 가 <code>Public</code> 인 항목만 담았습니다. 갱신 ${g}.`,
         footTz: 'D-day 는 이 기기의 날짜로 계산합니다 — 다른 시간대의 국가를 볼 때는 하루 어긋날 수 있습니다.',
@@ -169,7 +169,7 @@ const L = {
         nameListCap: (n) => `이름 ${n}가지`,
         nameListH2: '이름별로 보기',
         nameCount: (n) => `${n}개국`,
-        nameLink: '공휴일 이름으로 보기 →',
+        nameLink: '공휴일 이름으로 보기',
         togetherCap: (y, n) => `${y}년 · ${n}일`,
         togetherH2: (y) => `${y}년, 가장 많은 나라가 함께 쉬는 날`,
         togetherNote: (m, y) => `${y}년에 ${m}개국 이상이 같은 날 쉬는 날짜입니다. 국가별 공휴일을 날짜로 뒤집어 셌습니다 — 이름이 나라마다 달라도 같은 날이면 함께 셉니다.`,
@@ -194,7 +194,7 @@ const L = {
         nameYearH2: (e, y) => `${y}년 ${e.ko}`,
         thWho: '쉬는 나라',
         nameNote: '같은 이름을 쓰는 날짜를 모두 담았습니다. 표기만 다른 이름(All Saints’ Day · All Saints Day)은 한 이름으로 묶었고, 낱말이 다른 이름은 묶지 않았습니다.',
-        nameBackHub: '공휴일 이름 전체 보기 →',
+        nameBackHub: '공휴일 이름 전체 보기',
         dtNextName: '다음',
         dtPrevName: '지난',
         nameVerdict: (e) => `${e.ko}`,
@@ -207,7 +207,7 @@ const L = {
         rankH1: '나라끼리 견주기',
         rankLede: '국가 페이지는 한 나라만 보여 줍니다. 여기서는 담긴 나라 전부를 한 줄에 세워 봅니다.',
         rankCrumb: '나라끼리 견주기',
-        rankLink: '나라끼리 견주기 →',
+        rankLink: '나라끼리 견주기',
         rankNote: (y, n) => `${y}년 자료를 담긴 ${n}개국에 대해 세었습니다. 세는 단위는 "공휴일이 있는 날짜" 입니다 — 한 날짜에 공휴일이 둘 겹치는 나라가 있어 건수와는 다릅니다.`,
         rankMostCap: (n) => `상위 ${n}개국`,
         rankMostH2: (y) => `${y}년 공휴일이 많은 나라`,
@@ -227,7 +227,7 @@ const L = {
         wkH1: '공휴일은 무슨 요일에 몰리나',
         wkLede: '요일이 고르게 흩어질 이유가 없습니다. 1월 1일 하나가 200개국에서 같은 요일에 떨어지기 때문입니다.',
         wkCrumb: '요일 분포',
-        wkLink: '요일 분포 →',
+        wkLink: '요일 분포',
         wkNote: (y, n) => `${y}년 자료를 담긴 ${n}개국에 대해 세었습니다. 세는 단위는 순위 페이지와 같은 "공휴일이 있는 날짜" 입니다 — 그래서 요일 일곱 칸의 합이 그 페이지의 날짜 수와 맞습니다.`,
         wkDistCap: (n) => `${n}개국 합계`,
         wkDistH2: (y) => `${y}년 요일별 분포`,
@@ -283,10 +283,10 @@ const L = {
         skyH1: '하늘',
         skyLede: '절기와 삭망, 유성우, 그리고 음력 달력입니다. 갈래를 골라 들어가면 3년치를 날짜순으로 봅니다.',
         skyCrumb: '하늘',
-        skyLink: '하늘 전체 보기 →',
+        skyLink: '하늘 전체 보기',
         skyTopicsCap: '갈래',
         skyTopicsH2: '갈래별로 보기',
-        skyBackHub: '하늘 전체 보기 →',
+        skyBackHub: '하늘 전체 보기',
         skyCount: (n) => `${n}건`,
 
         /* 갈래 세 벌. 제목·설명·H1 이 갈래마다 따로여야 검색어에 대응한다 —
@@ -395,7 +395,7 @@ const L = {
         nfTitle: `없는 쪽입니다 — ${SITE}`,
         nfH1: '없는 쪽입니다',
         nfLede: '주소를 다시 확인해 주세요. 국가 페이지 주소는 두 글자 국가 코드입니다 — 대한민국은 <code>/kr/</code>, 미국은 <code>/us/</code>.',
-        nfBack: '국가 목록으로 →',
+        nfBack: '국가 목록으로',
     },
     en: {
         lang: 'en', dir: '/en', other: 'ko', locale: 'en_US',
@@ -449,7 +449,7 @@ const L = {
         placeholderVerdict: (c, n) => `${n} public holidays in ${c.name}`,
         checking: 'Checking the date…', computing: 'Computing…',
         dtNext: 'Next', dtPrev: 'Last', dtBreak: 'Next break',
-        otherCountries: 'Holidays in other countries →',
+        otherCountries: 'Holidays in other countries',
         localBadge: (n) => `${n} regions`,
         foot: (g) => `Holiday data from <a href="https://date.nager.at/" rel="noopener">Nager.Date</a> · only entries whose <code>types</code> includes <code>Public</code>. Updated ${g}.`,
         footTz: 'The countdown uses this device’s date — it can be a day out when you view a country in another time zone.',
@@ -465,7 +465,7 @@ const L = {
         nameListCap: (n) => `${n} names`,
         nameListH2: 'Browse by name',
         nameCount: (n) => `${n}`,
-        nameLink: 'Holidays by name →',
+        nameLink: 'Holidays by name',
         togetherCap: (y, n) => `${y} · ${n} dates`,
         togetherH2: (y) => `Days the most countries share in ${y}`,
         togetherNote: (m, y) => `Dates on which ${m} or more countries take a public holiday in ${y}, counted by turning the per-country data on its date axis — countries count together whenever the date matches, whatever the holiday is called.`,
@@ -488,7 +488,7 @@ const L = {
         nameYearH2: (e, y) => `${e.en} in ${y}`,
         thWho: 'Countries',
         nameNote: 'Every date that carries this name is here. Names that differ only in spelling (All Saints’ Day · All Saints Day) are one name; names that differ in wording are kept apart.',
-        nameBackHub: 'All holiday names →',
+        nameBackHub: 'All holiday names',
         dtNextName: 'Next',
         dtPrevName: 'Last',
         nameVerdict: (e) => `${e.en}`,
@@ -501,7 +501,7 @@ const L = {
         rankH1: 'Countries compared',
         rankLede: 'A country page shows one country. This one lines up every country in the data.',
         rankCrumb: 'countries compared',
-        rankLink: 'Countries compared →',
+        rankLink: 'Countries compared',
         rankNote: (y, n) => `Counted over ${y} for all ${n} countries in the data. The unit is “dates carrying a public holiday” — a few countries stack two holidays on one date, so this differs from a count of entries.`,
         rankMostCap: (n) => `Top ${n}`,
         rankMostH2: (y) => `Most public holidays in ${y}`,
@@ -521,7 +521,7 @@ const L = {
         wkH1: 'Which weekday do public holidays land on?',
         wkLede: 'There is no reason for weekdays to come out even. One first of January falls on the same weekday in two hundred countries at once.',
         wkCrumb: 'by weekday',
-        wkLink: 'By weekday →',
+        wkLink: 'By weekday',
         wkNote: (y, n) => `Counted over ${y} for all ${n} countries in the data. The unit is the same as on the rankings page — “dates carrying a public holiday” — so the seven weekday cells add up to the date counts there.`,
         wkDistCap: (n) => `${n} countries`,
         wkDistH2: (y) => `Distribution by weekday, ${y}`,
@@ -575,10 +575,10 @@ const L = {
         skyH1: 'The Sky',
         skyLede: 'Solar terms, moon phases, meteor showers and the lunisolar calendar. Pick a kind to see three years in date order.',
         skyCrumb: 'the sky',
-        skyLink: 'The whole sky →',
+        skyLink: 'The whole sky',
         skyTopicsCap: 'Kinds',
         skyTopicsH2: 'Browse by kind',
-        skyBackHub: 'The whole sky →',
+        skyBackHub: 'The whole sky',
         skyCount: (n) => `${n}`,
 
         sky: {
@@ -682,7 +682,7 @@ const L = {
         nfTitle: `Not here — ${SITE}`,
         nfH1: 'Not here',
         nfLede: 'Check the address. Country pages use the two-letter country code — <code>/en/kr/</code> for South Korea, <code>/en/us/</code> for the United States.',
-        nfBack: 'Back to the country list →',
+        nfBack: 'Back to the country list',
     },
 };
 
@@ -1115,9 +1115,9 @@ ${top(t, { slug, axis: 'country', label: `${flag(data.code, { eager: true })}${e
 
 ${sections}${breaks}
 
-  <section>
-    <p><a href="${t.dir}/#countries">${esc(t.otherCountries)}</a></p>
-  </section>
+  <p class="more">
+    <a href="${t.dir}/#countries">${esc(t.otherCountries)}</a>
+  </p>
 
 ${foot(t, data.generated)}
 </main>
@@ -1373,9 +1373,9 @@ ${links}
 
   <p class="note">${esc(t.skyNote)}</p>
 
-  <section>
-    <p><a href="${t.dir}/#countries">${esc(t.otherCountries)}</a></p>
-  </section>
+  <p class="more">
+    <a href="${t.dir}/#countries">${esc(t.otherCountries)}</a>
+  </p>
 
   <div class="foot">
     <p>${esc(t.skyFoot)}</p>
@@ -1429,10 +1429,10 @@ ${pairs}
 
 ${body}
 
-${topic.extra ? topic.extra(t, sky) : ''}  <section>
-    <p><a href="${t.dir}/sky/">${esc(t.skyBackHub)}</a></p>
-    <p><a href="${t.dir}/#countries">${esc(t.otherCountries)}</a></p>
-  </section>
+${topic.extra ? topic.extra(t, sky) : ''}  <p class="more">
+    <a href="${t.dir}/sky/">${esc(t.skyBackHub)}</a>
+    <a href="${t.dir}/#countries">${esc(t.otherCountries)}</a>
+  </p>
 
   <div class="foot">
     <p>${esc(s.foot || t.skyFoot)}</p>
@@ -1708,10 +1708,10 @@ ${top(t, { slug, axis: 'name', label: esc(t.pickerLabel) })}
 
 ${body}
 
-  <section>
-    <p><a href="${t.dir}/${NAME_ROOT}/">${esc(t.nameBackHub)}</a></p>
-    <p><a href="${t.dir}/#countries">${esc(t.otherCountries)}</a></p>
-  </section>
+  <p class="more">
+    <a href="${t.dir}/${NAME_ROOT}/">${esc(t.nameBackHub)}</a>
+    <a href="${t.dir}/#countries">${esc(t.otherCountries)}</a>
+  </p>
 
 ${foot(t, generated)}
 </main>
@@ -1786,9 +1786,9 @@ ${links}
     </ul>
   </section>
 
-  <section>
-    <p><a href="${t.dir}/#countries">${esc(t.otherCountries)}</a></p>
-  </section>
+  <p class="more">
+    <a href="${t.dir}/#countries">${esc(t.otherCountries)}</a>
+  </p>
 
 ${foot(t, generated)}
 </main>
@@ -2112,10 +2112,10 @@ ${rankTable(t, wk.worst, t.thWeekendHit, (c) => t.wkRatio(c.we, c.n))}
 ${rankTable(t, wk.mondays, t.thCount, (c) => t.wkRatio(c.w[1], c.n))}
   </section>
 
-  <section>
-    <p><a href="${t.dir}/rank/">${esc(t.rankLink)}</a></p>
-    <p><a href="${t.dir}/#countries">${esc(t.otherCountries)}</a></p>
-  </section>
+  <p class="more">
+    <a href="${t.dir}/rank/">${esc(t.rankLink)}</a>
+    <a href="${t.dir}/#countries">${esc(t.otherCountries)}</a>
+  </p>
 
 ${foot(t, generated)}
 </main>
@@ -2185,10 +2185,10 @@ ${rankTable(t, rank.least, t.thDayCount, (c) => t.rankDays(c.n))}
 ${rankTable(t, rank.busiest, t.thBreakCount, (c) => t.rankTimes(c.breaks.length))}
   </section>
 
-  <section>
-    <p><a href="${t.dir}/weekday/">${esc(t.wkLink)}</a></p>
-    <p><a href="${t.dir}/#countries">${esc(t.otherCountries)}</a></p>
-  </section>
+  <p class="more">
+    <a href="${t.dir}/weekday/">${esc(t.wkLink)}</a>
+    <a href="${t.dir}/#countries">${esc(t.otherCountries)}</a>
+  </p>
 
 ${foot(t, generated)}
 </main>
@@ -2237,7 +2237,7 @@ ${top(t, { slug: '', home: true, axis: 'country', label: esc(t.pickerLabel) })}
     <span class="cap">${esc(t.skyHomeCap)}</span>
     <h2>${esc(t.skyHomeH2)}</h2>
     <ul class="worldwide" id="skylist"></ul>
-    <p><a href="${t.dir}/sky/">${esc(t.skyLink)}</a></p>
+    <p class="more"><a href="${t.dir}/sky/">${esc(t.skyLink)}</a></p>
   </section>
 
   <section id="countries">
@@ -2292,7 +2292,7 @@ function notFoundPage(t) {
 <main class="wrap">
   <h1>${esc(t.nfH1)}</h1>
   <p class="lede">${t.nfLede}</p>
-  <p><a href="${t.dir}/#countries">${esc(t.nfBack)}</a></p>
+  <p class="more"><a href="${t.dir}/#countries">${esc(t.nfBack)}</a></p>
 
   <div class="foot">
     <p>${t.contact} ${CONTACT}</p>
