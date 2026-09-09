@@ -40,7 +40,17 @@ export function makeEl(tag = 'div', { attrs: init = {}, kids = {} } = {}) {
         get textContent() { return this._text; },
         set textContent(v) { this._text = String(v); this.children = []; },
         className: '', id: '', hidden: false,
-        style: {}, dataset: {}, children: [], parentNode: null,
+        /* 진짜 style 은 사용자 정의 속성도 받는다. 지구본이 꼬리 자리를
+           --tx 로 넘기므로, 없으면 이름표를 세우다가 그 자리에서 던진다. */
+        style: (() => {
+            const v = {};
+            return {
+                setProperty(k, val) { v[k] = String(val); },
+                getPropertyValue(k) { return k in v ? v[k] : ''; },
+                removeProperty(k) { delete v[k]; },
+            };
+        })(),
+        dataset: {}, children: [], parentNode: null,
         classList: {
             _s: new Set(),
             add(...c) { c.forEach((x) => this._s.add(x)); },

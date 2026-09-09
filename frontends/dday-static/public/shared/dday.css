@@ -443,20 +443,55 @@ details.year[open] > summary::before{content:'▾ '}
     border:1px solid var(--rule);border-radius:6px;background:none;
     font:inherit;font-size:13px;color:var(--ink);cursor:pointer;
   }
+  /* position:relative 가 아래 이름표의 기준점이다. globe.js 가 캔버스 좌표로
+     자리를 재므로, 기준이 이 상자가 아니면 이름표가 엉뚱한 데로 날아간다. */
   .globe.touch.on{
-    display:block;margin:14px auto 6px;width:100%;max-width:320px;
+    display:block;position:relative;margin:14px auto 6px;width:100%;max-width:320px;
   }
   .globe.touch canvas{
     display:block;width:100%;height:auto;touch-action:none;
   }
-  /* 이름은 링크가 된다. 손가락이 닿을 자리를 만들어야 하므로 글자에 밑줄을
-     긋는 대신 테두리를 둘러 단추처럼 세운다. */
-  .globe.touch .globe-name{min-height:2.6em}
-  .globe.touch .globe-name a{
-    display:inline-block;padding:6px 12px;
-    border:1px solid var(--link);border-radius:6px;
-    color:var(--link);text-decoration:none;font-size:15px;
+  /* 이름표는 **누른 점 옆에**, 지구본 위에 뜬다. 캔버스 아래 글줄에 적던 자리인데
+     거기서는 못 보고 지나가는 사람이 있었다 — 손가락은 방금 누른 점을 보고 있으니
+     답도 그 자리에 있어야 한다. 자리는 globe.js 가 픽셀로 재서 transform 으로
+     옮긴다: transform 은 흐름을 안 건드리므로 옮긴 뒤에도 재 둔 폭이 그대로다.
+
+     display:flex 는 멋이 아니다. 블록에 인라인블록을 담으면 글줄의 밑선 아래로
+     내림 공간이 남고, 그만큼 지시선이 이름표에서 떨어져 뜬다.
+
+     칠해서 세운다. 앞선 판은 파란 글자에 얇은 테두리였는데 격자와 해안선 위에
+     겹치면 그대로 묻혔다 — 문제는 색조가 아니라 무게였다. --ink 바탕에 --paper
+     글자면 두 테마에서 이 팔레트로 낼 수 있는 가장 센 대비이고, 새 색을 들이지
+     않는다: 이 사이트의 따뜻한 색은 --today 하나뿐이고 --link · --soon · --local
+     은 저마다 다른 뜻을 지고 있다(base.css 머리말). */
+  .globe.touch .globe-name{
+    position:absolute;left:0;top:0;z-index:1;
+    display:flex;margin:0;max-width:100%;min-height:0;
+    pointer-events:none;                /* 빈 자리는 캔버스가 받아야 지구가 돈다 */
   }
+  .globe.touch .globe-name a{
+    pointer-events:auto;
+    display:inline-block;max-width:100%;padding:7px 12px;
+    border-radius:7px;
+    background:var(--ink);color:var(--paper);
+    box-shadow:0 3px 12px rgba(0,0,0,.24);
+    font-size:15px;font-weight:600;line-height:1.35;text-align:center;
+    text-decoration:none;
+  }
+  /* 점을 가리키는 지시선. 점이 몰린 데서 「이 이름이 저 점」 이라고 말하는 것이
+     이것이다. 이름표가 창틀에 밀려도 제자리를 지킨다 — globe.js 가 밀린 만큼을
+     --tx 로 되돌려 준다. 위가 좁아 아래로 뒤집히면 .below 가 붙는다. */
+  .globe.touch .globe-name::after{
+    content:'';position:absolute;top:100%;left:var(--tx,50%);
+    margin-top:-1px;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:var(--ink);
+  }
+  .globe.touch .globe-name.below::after{
+    top:auto;bottom:100%;margin:0 0 -1px;
+    border-top-color:transparent;border-bottom-color:var(--ink);
+  }
+  /* 아무것도 안 골랐으면 지시선만 남아 허공에 뜬다 */
+  .globe.touch .globe-name:empty::after{display:none}
 }
 /* 버튼은 globe.js 가 좁은 화면에서만 hidden 을 떼지만, 그 뒤 창을 넓히면
    미디어 밖으로 나가므로 여기서 한 번 더 닫는다. */

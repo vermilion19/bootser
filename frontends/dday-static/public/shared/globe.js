@@ -151,6 +151,27 @@
             && Math.abs(dx) <= TAP_PX && Math.abs(dy) <= TAP_PX;
     }
 
+    /* 이름표와 점 사이. 손가락이 점을 덮고 있으므로 그보다 넉넉해야 한다 —
+       12px 이면 이름표가 제 손끝 밑에 깔린다. 창틀에서 띄우는 여백도 여기 둔다. */
+    var PIN_GAP = 16, PIN_EDGE = 2;
+
+    /**
+     * 이름표를 놓는 자리. 점 (px, py) 위에 폭 w · 높이 h 의 이름표를 얹고,
+     * 상자 폭 bw 를 넘으면 좌우로 민다. 밀린 만큼 지시선을 되돌려야 여전히 그 점을
+     * 가리키므로 tx 를 함께 돌려준다 — 이름표 앞끝에서 점까지의 거리다.
+     * 위가 좁으면 아래로 뒤집는다(below).
+     *
+     * 화면 기하지만 계산이라 이 칸에 있다. radius() 와 같은 까닭이다:
+     * 하니스는 캔버스를 못 보므로 자리가 맞는지는 이 함수로만 물을 수 있다.
+     */
+    function pin(px, py, w, h, bw) {
+        var far = Math.max(PIN_EDGE, bw - w - PIN_EDGE);
+        var x = Math.min(Math.max(px - w / 2, PIN_EDGE), far);
+        var y = py - h - PIN_GAP;
+        var below = y < PIN_EDGE;
+        return { x: x, y: below ? py + PIN_GAP : y, tx: px - x, below: below };
+    }
+
     /* 점 크기와 잡히는 반경. 좁은 화면은 지구본이 화면 폭을 거의 다 쓰므로 점을
        조금 키운다 — 같은 2.6px 이 손가락 밑에서는 안 보인다. 잡히는 반경은 그보다
        훨씬 넉넉하게 둔다. 크게 잡아도 pick() 이 가장 가까운 것을 고르므로, 넓은
@@ -197,6 +218,7 @@
         rezoom: rezoom, pinch: pinch, MAX_ZOOM: MAX_ZOOM,
         retap: retap, TAP_MS: TAP_MS, TAP_PX: TAP_PX,
         radius: radius, GRAB: GRAB, GRAB_T: GRAB_T,
+        pin: pin, PIN_GAP: PIN_GAP, PIN_EDGE: PIN_EDGE,
         DOT_WIDE: DOT_WIDE, DOT_TOUCH: DOT_TOUCH,
         mark: mark, marked: marked
     };
@@ -271,6 +293,9 @@
            ctx.arc 가 그 자리에서 던진다 — 접은 채 화면을 돌리면 그렇게 됐다.
            돌아서면 앞서 재 둔 값이 그대로 남으므로, 다시 펼칠 때 쓰인다. */
         if (!(w > 0)) return;
+        /* 이름표는 옛 반지름으로 재 둔 자리에 떠 있다. 폭이 바뀌면 그 자리가
+           가리키는 점도 바뀌므로 접는다 — 낡은 자리를 옮기는 것보다 정직하다. */
+        say(-1);
         var dpr = window.devicePixelRatio || 1;
         cv.width = Math.round(w * dpr);
         cv.height = Math.round(w * dpr);
@@ -407,6 +432,14 @@
         a.setAttribute('tabindex', '-1');
         a.textContent = m.name + ' →';
         out.appendChild(a);
+        /* 글을 넣은 **뒤에** 재야 폭이 나온다. 자리는 CSS 가 아니라 여기서 정한다 —
+           까닭은 dday.css 의 .globe.touch .globe-name 머리말에 적었다. */
+        var v = project(pts[i][1], pts[i][2], l0, p0);
+        var at = pin(cx + v.x * R(), cy - v.y * R(),
+            out.offsetWidth || 0, out.offsetHeight || 0, box.clientWidth || 0);
+        out.classList.toggle('below', at.below);
+        out.style.transform = 'translate(' + Math.round(at.x) + 'px,' + Math.round(at.y) + 'px)';
+        out.style.setProperty('--tx', Math.round(at.tx) + 'px');
     }
 
     /** 눌려 있는 두 손가락 사이 거리. 두 개가 아니면 0. */

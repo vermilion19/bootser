@@ -2946,6 +2946,29 @@ for (const [file, lang, needle] of [
         bad('shared/dday.css', '.globe-open{display:none} 이 없다 — 넓은 화면에 버튼이 남는다');
     }
 
+    /* 2-2. 이름표가 점 옆에 뜨는 것은 CSS 와 globe.js 가 반씩 지고 있다.
+          globe.js 가 transform 으로 자리를 정해도 CSS 가 이름표를 흐름 안에 두면
+          그 값이 아무 일도 하지 않고, 이름표는 조용히 캔버스 아래로 되돌아간다 —
+          화면으로만 보이는 고장이라 계약으로 문다. 기준점도 같이 본다:
+          .globe.touch.on 이 position:relative 가 아니면 재 둔 픽셀이 상자 밖
+          어딘가를 가리킨다. */
+    const rule = (sel) => {
+        const at = css.indexOf(sel + '{');
+        return at < 0 ? '' : css.slice(at + sel.length + 1, css.indexOf('}', at));
+    };
+    if (!/position:absolute/.test(rule('.globe.touch .globe-name'))) {
+        bad('shared/dday.css', '.globe.touch .globe-name 이 position:absolute 가 아니다'
+            + ' — globe.js 의 transform 이 헛돌고 이름표가 캔버스 아래로 내려간다');
+    }
+    if (!/position:relative/.test(rule('.globe.touch.on'))) {
+        bad('shared/dday.css', '.globe.touch.on 에 position:relative 가 없다'
+            + ' — 이름표의 기준점이 상자를 벗어나 엉뚱한 자리에 뜬다');
+    }
+    if (!/background:var\(--/.test(rule('.globe.touch .globe-name a'))) {
+        bad('shared/dday.css', '이름표에 바탕색이 없다 — 격자와 해안선 위에 겹치면'
+            + ' 얇은 글자는 그대로 묻힌다. 칠해서 세우기로 했다');
+    }
+
     /* 3. 자리 — 홈 두 장에만 있어야 한다 */
     const withGlobe = ALL.filter(({ page }) => {
         const h = readFileSync(join(PUB, page, 'index.html'), 'utf8');
@@ -3229,7 +3252,43 @@ for (const [file, lang, needle] of [
                 bad(L, `retap(${args.join(', ')}) 가 ${!want} — ${why}`);
             }
         }
-        touchInfo = `손가락 문턱 ${G.SLOP_T}px · 두 손가락 · 다시 눌러 ${G.TAP_MS}ms/${G.TAP_PX}px`;
+        /* 9-4. 이름표 자리. 「점을 눌렀는데 어디에 떴는지 못 찾겠다」 를 고친
+              자리다(캔버스 아래 글줄 → 점 옆). 그래서 이 셋을 문다 —
+              여유가 있으면 점 위 가운데, 창틀을 넘으면 안으로 밀되 꼬리는
+              그 점에 남고, 위가 좁으면 아래로 뒤집는다. */
+        if (!G.pin) bad(L, 'window.GLOBE 에 pin 이 없다 — 이름표 자리가 순수 함수가 아니다');
+        else {
+            const BW = 240, PW = 160, PH = 34, GAP = G.PIN_GAP, ED = G.PIN_EDGE;
+
+            /* 가운데 — 점 위에 가운데로 선다 */
+            const mid = G.pin(120, 120, PW, PH, BW);
+            if (mid.x !== 120 - PW / 2) bad(L, `여유가 있는데 이름표가 x=${mid.x} — 점 위 가운데여야 한다`);
+            if (mid.y !== 120 - PH - GAP) bad(L, `이름표가 y=${mid.y} — 점보다 ${GAP}px 위여야 한다`);
+            if (mid.below) bad(L, '가운데 점인데 아래로 뒤집었다');
+            if (mid.x + mid.tx !== 120) bad(L, '꼬리가 점을 안 가리킨다');
+
+            /* 오른쪽 끝 — 안으로 밀고, 꼬리는 그 점에 남는다 */
+            const east = G.pin(BW - 4, 120, PW, PH, BW);
+            if (east.x + PW > BW - ED) bad(L, `이름표가 상자를 ${east.x + PW - BW}px 넘었다 — 안으로 밀어야 한다`);
+            if (east.x + east.tx !== BW - 4) bad(L, '밀린 뒤 꼬리가 점을 안 가리킨다 — tx 를 되돌리지 않았다');
+            /* 왼쪽 끝도 같은 문이다 */
+            const west = G.pin(4, 120, PW, PH, BW);
+            if (west.x < ED) bad(L, `이름표가 왼쪽으로 ${ED - west.x}px 넘었다`);
+            if (west.x + west.tx !== 4) bad(L, '왼쪽에서 밀린 뒤 꼬리가 점을 안 가리킨다');
+
+            /* 위쪽 끝 — 위가 좁으면 아래로 뒤집는다. 안 뒤집으면 이름표가
+               지구본 위로 잘려 나가 반만 보인다. */
+            const north = G.pin(120, 6, PW, PH, BW);
+            if (!north.below) bad(L, '맨 위의 점인데 이름표를 위에 세웠다 — 잘려 나간다');
+            if (north.y !== 6 + GAP) bad(L, `뒤집힌 이름표가 y=${north.y} — 점보다 ${GAP}px 아래여야 한다`);
+
+            /* 이름표가 상자보다 넓어도 왼쪽으로는 안 넘어간다 */
+            const huge = G.pin(120, 120, BW * 2, PH, BW);
+            if (huge.x < ED) bad(L, '이름표가 상자보다 넓으면 왼쪽으로 새어 나간다');
+        }
+
+        touchInfo = `손가락 문턱 ${G.SLOP_T}px · 두 손가락 · 다시 눌러 ${G.TAP_MS}ms/${G.TAP_PX}px`
+            + ` · 이름표 ${G.PIN_GAP}px 띄워 점 옆`;
     }
 
     /* 10. 게이트 두 갈래. 이 칸이 이 절에서 가장 재발하기 쉬운 것을 막는다 —
@@ -3391,6 +3450,30 @@ for (const [file, lang, needle] of [
             }
         }
 
+        /* 12-1-b. 이름표가 **점 옆에** 섰는가. 자리를 정하는 것은 CSS 가 아니라
+              globe.js 라서, 계약(2-2)만으로는 「실제로 옮겼나」를 알 수 없다.
+              스텁의 이름표는 폭·높이가 0 이므로 여기서는 밀림이 안 일어난다 —
+              「점을 따라갔나」만 묻고, 밀리고 뒤집히는 것은 12-5 가 문다. */
+        const where = (el) => {
+            const m = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(el.style.transform || '');
+            return m ? { x: +m[1], y: +m[2] } : null;
+        };
+        const put = where(nname);
+        if (!put) {
+            bad(L, '이름표에 transform 이 없다 — 점 옆으로 옮기지 않았다'
+                + ' (캔버스 아래 글줄에 적으면 보고도 지나친다)');
+        } else {
+            if (Math.abs(put.x - KR.x) > 1) {
+                bad(L, `이름표가 x=${put.x} 에 섰다 — KR 점은 x=${Math.round(KR.x)} 다`);
+            }
+            if (put.y >= KR.y) {
+                bad(L, '이름표가 점 아래에 섰다 — 손가락이 덮는 자리라 위로 올려야 한다');
+            }
+            if (!nname.style.getPropertyValue('--tx')) {
+                bad(L, '--tx 가 없다 — 꼬리가 어디를 가리켜야 할지 모른다');
+            }
+        }
+
         /* 12-2. 끌기가 지구를 돌리는가. 돌았으면 같은 자리에 KR 이 더는 없다.
               돌지 않으면(옛 e.movementX 고장) 같은 자리가 그대로 KR 이다. */
         ncv.fire('pointerdown', { pointerId: 2, pointerType: 'touch', clientX: KR.x, clientY: KR.y });
@@ -3449,7 +3532,72 @@ for (const [file, lang, needle] of [
             bad(L, `마우스로 KR 을 눌렀는데 ${w2.win.location.href} 다 — /kr/ 로 옮겨야 한다`);
         }
 
-        wireInfo = '배선 — 손가락 두 걸음 · 끌기 · 확대 걸쇠 · 마우스 한 걸음';
+        /* 12-5. 창틀에 밀리는가 · 아래로 뒤집히는가. 9-4 가 pin() 자체를 다 밟았지만
+              화면이 그 값을 정말 쓰는지는 다른 문제다 — 스텁의 이름표는 폭이 0 이라
+              12-1-b 에서는 밀림이 아예 안 일어났다. 여기서만 실제 크기를 심는다.
+
+              끝점은 이름으로 짚지 않고 자료에서 찾는다. 나라를 적어 두면 자료가
+              바뀌어 그 나라가 더는 끝이 아닐 때 검사가 조용히 헛돈다 — 그래서
+              「정말로 밀렸나」 까지 아래에서 되묻는다. */
+        const CW = 160, CH = 34;
+        const e2 = boot('');
+        e2.doc.getElementById('globeopen').fire('click');
+        await new Promise((res) => setImmediate(res));
+        const ebox = e2.doc.getElementById('globe');
+        const ecv = ebox.querySelector('canvas');
+        const ename = ebox.querySelector('.globe-name');
+        ename.offsetWidth = CW;
+        ename.offsetHeight = CH;
+
+        const rT = G.radius(W, G.DOT_TOUCH);
+        const front = globe.p
+            .map(([code, lon, lat]) => {
+                const v = G.project(lon, lat, L0, P0);
+                return { code, x: W / 2 + v.x * rT, y: W / 2 - v.y * rT, z: v.z };
+            })
+            .filter((q) => q.z > 0);
+        const ends = [
+            ['오른쪽', front.reduce((a, b) => (b.x > a.x ? b : a))],
+            ['왼쪽', front.reduce((a, b) => (b.x < a.x ? b : a))],
+            ['위쪽', front.reduce((a, b) => (b.y < a.y ? b : a))],
+        ];
+        for (let k = 0; k < ends.length; k++) {
+            const [side, q] = ends[k];
+            ename.textContent = '';
+            tap(ecv, q, 'touch', 11 + k);
+            const a = ename.children[ename.children.length - 1];
+            if (!a) { bad(L, `${side} 끝의 점을 눌렀는데 이름 칸이 비어 있다`); continue; }
+            /* 눌린 것이 **그 점**이라는 보장은 없다 — 잡히는 반경 안에 이웃이 있으면
+               그쪽이 잡힌다. 그래서 무엇이 잡혔는지를 링크에서 되읽어 견준다. */
+            const code = (a.getAttribute('href') || '').replace(/\//g, '').toUpperCase();
+            const got = front.find((f) => f.code === code);
+            if (!got) { bad(L, `이름표가 ${code} 를 가리키는데 앞면에 그 점이 없다`); continue; }
+            const want = G.pin(got.x, got.y, CW, CH, W);
+            const at2 = where(ename);
+            if (!at2) { bad(L, `${side} 끝에서 이름표에 transform 이 없다`); continue; }
+            if (at2.x !== Math.round(want.x) || at2.y !== Math.round(want.y)) {
+                bad(L, `${side} 끝(${code})에서 이름표가 (${at2.x}, ${at2.y}) —`
+                    + ` pin() 은 (${Math.round(want.x)}, ${Math.round(want.y)}) 라고 한다`);
+            }
+            if (ename.classList.contains('below') !== want.below) {
+                bad(L, `${side} 끝(${code})에서 .below 가 ${!want.below} — pin() 과 어긋난다`);
+            }
+            const tx = ename.style.getPropertyValue('--tx');
+            if (tx !== Math.round(want.tx) + 'px') {
+                bad(L, `${side} 끝(${code})에서 --tx 가 「${tx}」 —`
+                    + ` ${Math.round(want.tx)}px 여야 꼬리가 그 점에 남는다`);
+            }
+            /* 이 검사가 헛돌지 않는지 되묻는다. 가운데로 세워도 창틀에 안 닿는
+               점이었다면 밀림을 한 번도 밟지 않은 것이다. */
+            const plain = side === '위쪽' ? !want.below : want.x === got.x - CW / 2;
+            if (plain) {
+                bad(L, `${side} 끝(${code})조차 이름표가 그냥 선다 — 이 검사가 헛돈다.`
+                    + ' 상자나 점 배치가 바뀌었으면 CW · CH 를 다시 고를 것');
+            }
+        }
+
+        wireInfo = '배선 — 손가락 두 걸음 · 끌기 · 확대 걸쇠 · 마우스 한 걸음'
+            + ' · 이름표 점 옆 · 창틀에서 밀림 · 위에서 뒤집힘';
     }
 
     if (fail.length === before) {
