@@ -10,6 +10,8 @@
         (파비콘은 파일까지 열어서 정사각 + 48 의 배수인지 본다 — 구글 검색결과 아이콘 조건)
      6. ko/en i18n 키 집합이 같나
      7. 인덱스의 그룹별 카드 수와 <span class="count"> 표기가 맞나
+     8. 범례에 인라인으로 적힌 색이 어딘가의 팔레트에 있는 값인가
+        (캔버스는 CSS 변수를 못 읽어 색이 두 벌 있다 — 한 벌만 옮기면 어긋난다)
 
    실패가 하나라도 있으면 종료 코드 1 이다.
    ============================================================ */
@@ -312,6 +314,50 @@ for (const page of ['', 'en']) {
     walk(PUB);
 
     if (fail.length === before) console.log(`유령 주소 — 스크립트의 주소꼴 리터럴 ${seen}개 전부 실제 자산`);
+}
+
+/* 범례와 그림이 같은 색을 쓰나
+
+   실험대 몇 개는 캔버스에 그린다. 캔버스는 CSS 변수를 못 읽으므로 색을 JS 에
+   하드코딩해 두었고(raft-lab.js 의 HUE · hashring-lab.js 의 RING), 그 옆의
+   범례 조각은 HTML 에 style="border-color:#…" 로 또 적혀 있다. 같은 색이 두 벌
+   있는 것이다.
+
+   종이색을 찬 흰색으로 옮길 때 이것이 실제로 어긋났다 — raft 의 「정지」 가
+   JS 에서는 새 회색인데 범례에서는 따뜻한 옛 회색으로 남았다. 화면에서는 작은
+   네모 하나라 눈에 걸리지 않는다.
+
+   그래서 페이지의 인라인 색이 **어딘가의 팔레트에 있는 값인지**만 본다.
+   기대값을 여기 적지 않는 것이 중요하다: 팔레트가 진짜고, 범례가 그것을 따라야
+   한다. 팔레트를 옮기고 범례를 안 옮기면 여기서 걸린다. */
+{
+    const before = fail.length;
+    const read = (rel) => readFileSync(join(PUB, rel), 'utf8');
+    const hexes = (text) => (text.match(/#[0-9a-fA-F]{6}/g) || []).map((h) => h.toLowerCase());
+
+    /* 팔레트 셋 — 토큰 · 캔버스 색 둘. 색을 새로 하드코딩하는 자리가 늘면 여기 더한다. */
+    const palette = new Set([
+        ...hexes((read('shared/base.css').match(/:root\{[\s\S]*?\}/) || [''])[0]),
+        ...hexes(read('shared/raft-lab.js')),
+        ...hexes(read('shared/hashring-lab.js')),
+    ]);
+    if (palette.size < 8) bad('shared/base.css', `팔레트를 ${palette.size}개만 읽었다 — 모양이 바뀌었으면 이 검사가 헛돈다`);
+
+    let swatches = 0;
+    for (const page of ALL) {
+        const label = '/' + (page ? page + '/' : '');
+        const html = readFileSync(join(PUB, page, 'index.html'), 'utf8');
+        for (const m of html.matchAll(/style="([^"]*#[0-9a-fA-F]{6}[^"]*)"/g)) {
+            for (const h of hexes(m[1])) {
+                swatches++;
+                if (!palette.has(h)) {
+                    bad(label, `범례 조각이 ${h} 를 쓰는데 어느 팔레트에도 없다`
+                        + ' — 캔버스 색을 옮기고 범례를 안 옮겼을 때 이렇게 된다');
+                }
+            }
+        }
+    }
+    if (fail.length === before) console.log(`범례 — 인라인 색 ${swatches}개 전부 팔레트 안 (팔레트 ${palette.size}색)`);
 }
 
 console.log('');

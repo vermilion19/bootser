@@ -1,20 +1,28 @@
 /* ============================================================
    Backend Internals — 공통 토큰
    기술 매뉴얼/실험 노트의 인상. 종이 바탕 + 잉크.
-   ============================================================ */
+
+   ⚠ 종이색을 따뜻한 쪽(#f5f2ec 계열)에서 **찬 흰 종이**로 옮겼다. dday-static 이
+   먼저 옮겨 갔고(그쪽 base.css 머리말에 그 판단이 적혀 있다), 두 사이트가 나란히
+   놓이면 이쪽만 누렇게 보였다. 이제 중성색은 같은 계열을 쓴다.
+
+   뜻을 지고 있는 색(--live · --blocked · --free · --horizon)은 그대로 뒀다.
+   자료를 가리키는 색이라 바탕이 바뀌었다고 뜻이 바뀌지는 않고, 실험대마다
+   그 색으로 검산해 둔 그림이 있다. 다만 --pending 은 회색이라 함께 옮겼다 —
+   따뜻한 회색을 찬 종이에 얹으면 그것만 탁해 보인다. */
 :root{
-  --paper:#f5f2ec;
-  --paper-2:#ebe5d9;
-  --paper-3:#e0d9ca;
-  --ink:#1b1917;
-  --ink-2:#4e483f;
-  --ink-3:#8b8277;
-  --rule:#d5cdbe;
+  --paper:#fcfdfe;
+  --paper-2:#eef2f7;
+  --paper-3:#dee6ef;
+  --ink:#0f1620;
+  --ink-2:#3f4a5a;
+  --ink-3:#78849a;
+  --rule:#d4dce8;
 
   --live:#2f6b4f;      /* 살아 있는 튜플 */
   --blocked:#b0392c;   /* 죽었지만 회수 불가 */
   --free:#a8791a;      /* 죽었고 회수 가능 */
-  --pending:#6b6156;   /* 커밋 전 */
+  --pending:#5f6b7a;   /* 커밋 전 — 뜻이 아니라 「아직」 이라 중성색을 따라간다 */
   --horizon:#1b4f7a;   /* xmin horizon */
 
   --serif:'Gowun Batang', 'Noto Serif KR', Georgia, serif;
@@ -29,11 +37,11 @@
 
 @media (prefers-color-scheme: dark){
   :root{
-    --paper:#17161a; --paper-2:#1f1e23; --paper-3:#2a282f;
-    --ink:#ece7dd; --ink-2:#b3ab9f; --ink-3:#7d766c;
-    --rule:#35323a;
+    --paper:#0d1117; --paper-2:#151a22; --paper-3:#1f262f;
+    --ink:#e9edf3; --ink-2:#a6b0be; --ink-3:#737f8f;
+    --rule:#262d38;
     --live:#5fbf8c; --blocked:#e2695a; --free:#d9a83a;
-    --pending:#8b8277; --horizon:#6aa9dd;
+    --pending:#8a94a3; --horizon:#6aa9dd;
   }
 }
 

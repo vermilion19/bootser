@@ -208,10 +208,10 @@ const $ = s => document.querySelector(s);
 /* --- 색 ------------------------------------------------------------------ */
 
 const HUE = {
-  light:{ leader:'#2f6b4f', cand:'#a8791a', follower:'#5b6470', down:'#b9b2a6',
-          edge:'rgba(120,112,128,.28)', msg:'#1b4f7a', ink:'#1b1917', paper:'#f5f2ec' },
-  dark: { leader:'#5fbf8c', cand:'#d9a83a', follower:'#8f99a8', down:'#4a4550',
-          edge:'rgba(160,152,170,.24)', msg:'#6aa9dd', ink:'#ece7dd', paper:'#17161a' },
+  light:{ leader:'#2f6b4f', cand:'#a8791a', follower:'#5b6470', down:'#b4bdca',
+          edge:'rgba(120,112,128,.28)', msg:'#1b4f7a', ink:'#0f1620', paper:'#fcfdfe' },
+  dark: { leader:'#5fbf8c', cand:'#d9a83a', follower:'#8f99a8', down:'#39414d',
+          edge:'rgba(160,152,170,.24)', msg:'#6aa9dd', ink:'#e9edf3', paper:'#0d1117' },
 };
 let C_ = HUE.light;
 const setHue = () => { C_ = matchMedia('(prefers-color-scheme: dark)').matches ? HUE.dark : HUE.light; };
