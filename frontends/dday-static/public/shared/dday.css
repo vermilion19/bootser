@@ -407,14 +407,63 @@ details.year[open] > summary::before{content:'▾ '}
    셋(WIDE · min-width · max-width)을 맞춰 본다. */
 .globe{display:none}
 
-/* 이름 칸은 비어 있어도 자리를 지킨다 — 점을 스칠 때마다 아래가 흔들리면
-   읽기 어렵다. 한 줄 높이를 미리 잡아 둔다. */
-.globe-name{
-  margin:10px 0 0;min-height:1.5em;
-  font-size:14px;line-height:1.5;color:var(--ink);font-weight:500;
+/* 이름표는 **가리킨 점 옆에**, 지구본 위에 뜬다. 캔버스 아래 글줄에 적던 자리인데
+   거기서는 못 보고 지나가는 사람이 있었다 — 눈은 방금 누른(가리킨) 점에 있으니
+   답도 그 자리에 있어야 한다. 두 모습이 이 하나를 같이 쓴다.
+
+   자리는 globe.js 가 픽셀로 재서 transform 으로 옮긴다: transform 은 흐름을 안
+   건드리므로 옮긴 뒤에도 재 둔 폭이 그대로다. 지구가 도는 동안에도 draw() 가 칸마다
+   다시 부르므로 지시선이 점에 붙어 있다.
+
+   display:flex 는 멋이 아니다. 블록에 인라인블록을 담으면 글줄의 밑선 아래로
+   내림 공간이 남고, 그만큼 지시선이 이름표에서 떨어져 뜬다.
+
+   기준점은 .globe 자신이다 — 넓은 화면은 position:absolute 로 이미 기준이고,
+   좁은 화면은 아래에서 position:relative 를 받는다. 캔버스가 상자의 첫 자식이라
+   두 모습 다 캔버스의 시작점이 곧 (0, 0) 이다.
+
+   칠해서 세운다. 앞선 판은 파란 글자 한 줄이었는데 격자와 해안선 위에 겹치면
+   그대로 묻혔다 — 문제는 색조가 아니라 무게였다. --ink 바탕에 --paper 글자면
+   두 테마에서 이 팔레트로 낼 수 있는 가장 센 대비이고, 새 색을 들이지 않는다:
+   이 사이트의 따뜻한 색은 --today 하나뿐이고 --link · --soon · --local 은
+   저마다 다른 뜻을 지고 있다(base.css 머리말). */
+.globe .globe-name{
+  position:absolute;left:0;top:0;z-index:1;
+  display:flex;margin:0;max-width:100%;
+  pointer-events:none;
 }
+.globe .globe-name a{
+  display:inline-block;max-width:100%;padding:7px 12px;
+  border-radius:7px;
+  background:var(--ink);color:var(--paper);
+  box-shadow:0 3px 12px rgba(0,0,0,.24);
+  font-size:15px;font-weight:600;line-height:1.35;text-align:center;
+  text-decoration:none;
+}
+/* 이름표를 누르는 것은 손가락뿐이다. 마우스는 점을 직접 눌러 한 걸음에 옮기므로
+   이름표가 포인터를 받으면 안 된다 — 커서가 이름표에 얹히는 순간 캔버스가
+   pointerleave 를 받아 이름표가 사라지고, 커서가 다시 캔버스에 놓여 이름표가
+   돌아온다. 그 자리에서 떨린다. */
+.globe.touch .globe-name a{pointer-events:auto}
+/* 점을 가리키는 지시선. 점이 몰린 데서 「이 이름이 저 점」 이라고 말하는 것이
+   이것이다. 이름표가 창틀에 밀려도 제자리를 지킨다 — globe.js 가 밀린 만큼을
+   --tx 로 되돌려 준다. 위가 좁아 아래로 뒤집히면 .below 가 붙는다. */
+.globe .globe-name::after{
+  content:'';position:absolute;top:100%;left:var(--tx,50%);
+  margin-top:-1px;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:var(--ink);
+}
+.globe .globe-name.below::after{
+  top:auto;bottom:100%;margin:0 0 -1px;
+  border-top-color:transparent;border-bottom-color:var(--ink);
+}
+/* 아무것도 안 골랐으면 지시선만 남아 허공에 뜬다 */
+.globe .globe-name:empty::after{display:none}
+
+/* 안내는 이제 캔버스 바로 아래다 — 이름표가 흐름에서 빠지면서 그 자리를 물려받았다.
+   앞선 판의 2px 은 이름표 한 줄 뒤에 붙던 값이라 지금은 캔버스에 닿는다. */
 .globe-hint{
-  margin:2px 0 0;font-size:12px;line-height:1.5;color:var(--ink-3);
+  margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--ink-3);
 }
 /* 안내는 두 벌이 마크업에 있고 제 모습의 것만 남는다 — 휠과 두 손가락은
    서로 못 하는 일이라 한 문장으로 합칠 수 없다. */
@@ -443,55 +492,15 @@ details.year[open] > summary::before{content:'▾ '}
     border:1px solid var(--rule);border-radius:6px;background:none;
     font:inherit;font-size:13px;color:var(--ink);cursor:pointer;
   }
-  /* position:relative 가 아래 이름표의 기준점이다. globe.js 가 캔버스 좌표로
-     자리를 재므로, 기준이 이 상자가 아니면 이름표가 엉뚱한 데로 날아간다. */
+  /* position:relative 가 이름표의 기준점이다. 넓은 화면은 position:absolute 로
+     이미 기준이지만 이쪽은 흐름 안에 있으므로 여기서 세워 준다 — 기준이 이 상자가
+     아니면 globe.js 가 캔버스 좌표로 재 둔 자리가 엉뚱한 데를 가리킨다. */
   .globe.touch.on{
     display:block;position:relative;margin:14px auto 6px;width:100%;max-width:320px;
   }
   .globe.touch canvas{
     display:block;width:100%;height:auto;touch-action:none;
   }
-  /* 이름표는 **누른 점 옆에**, 지구본 위에 뜬다. 캔버스 아래 글줄에 적던 자리인데
-     거기서는 못 보고 지나가는 사람이 있었다 — 손가락은 방금 누른 점을 보고 있으니
-     답도 그 자리에 있어야 한다. 자리는 globe.js 가 픽셀로 재서 transform 으로
-     옮긴다: transform 은 흐름을 안 건드리므로 옮긴 뒤에도 재 둔 폭이 그대로다.
-
-     display:flex 는 멋이 아니다. 블록에 인라인블록을 담으면 글줄의 밑선 아래로
-     내림 공간이 남고, 그만큼 지시선이 이름표에서 떨어져 뜬다.
-
-     칠해서 세운다. 앞선 판은 파란 글자에 얇은 테두리였는데 격자와 해안선 위에
-     겹치면 그대로 묻혔다 — 문제는 색조가 아니라 무게였다. --ink 바탕에 --paper
-     글자면 두 테마에서 이 팔레트로 낼 수 있는 가장 센 대비이고, 새 색을 들이지
-     않는다: 이 사이트의 따뜻한 색은 --today 하나뿐이고 --link · --soon · --local
-     은 저마다 다른 뜻을 지고 있다(base.css 머리말). */
-  .globe.touch .globe-name{
-    position:absolute;left:0;top:0;z-index:1;
-    display:flex;margin:0;max-width:100%;min-height:0;
-    pointer-events:none;                /* 빈 자리는 캔버스가 받아야 지구가 돈다 */
-  }
-  .globe.touch .globe-name a{
-    pointer-events:auto;
-    display:inline-block;max-width:100%;padding:7px 12px;
-    border-radius:7px;
-    background:var(--ink);color:var(--paper);
-    box-shadow:0 3px 12px rgba(0,0,0,.24);
-    font-size:15px;font-weight:600;line-height:1.35;text-align:center;
-    text-decoration:none;
-  }
-  /* 점을 가리키는 지시선. 점이 몰린 데서 「이 이름이 저 점」 이라고 말하는 것이
-     이것이다. 이름표가 창틀에 밀려도 제자리를 지킨다 — globe.js 가 밀린 만큼을
-     --tx 로 되돌려 준다. 위가 좁아 아래로 뒤집히면 .below 가 붙는다. */
-  .globe.touch .globe-name::after{
-    content:'';position:absolute;top:100%;left:var(--tx,50%);
-    margin-top:-1px;transform:translateX(-50%);
-    border:6px solid transparent;border-top-color:var(--ink);
-  }
-  .globe.touch .globe-name.below::after{
-    top:auto;bottom:100%;margin:0 0 -1px;
-    border-top-color:transparent;border-bottom-color:var(--ink);
-  }
-  /* 아무것도 안 골랐으면 지시선만 남아 허공에 뜬다 */
-  .globe.touch .globe-name:empty::after{display:none}
 }
 /* 버튼은 globe.js 가 좁은 화면에서만 hidden 을 떼지만, 그 뒤 창을 넓히면
    미디어 밖으로 나가므로 여기서 한 번 더 닫는다. */

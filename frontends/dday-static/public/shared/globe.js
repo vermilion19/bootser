@@ -397,6 +397,9 @@
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.stroke();
+        /* 이름표는 캔버스 밖의 물건이지만 가리키는 것은 이 안의 점이다.
+           같은 칸에서 함께 옮겨야 지시선이 점에 붙어 있다. */
+        place();
     }
 
     /* 손을 대지 않으면 그리지 않는다. 옛 판은 멈춘 지구본을 초당 60번 다시
@@ -416,6 +419,24 @@
         return [e.clientX - b.left - cx, e.clientY - b.top - cy];
     }
 
+    /* 이름표 크기. 글이 달라질 때만 다시 잡는다 — 재는 것은 배치를 부르는 일이라,
+       도는 지구를 따라 칸마다 재면 그 값이 곧 초당 60번의 배치가 된다. */
+    var pinW = 0, pinH = 0;
+
+    /**
+     * 이름표를 hot 점 옆으로 옮긴다. 지구가 돌면 점도 움직이므로 draw() 가 칸마다
+     * 다시 부른다 — 한 번만 놓으면 자전 5도/초에 지시선이 점에서 떨어져 나간다.
+     * transform 을 적는 것은 배치를 부르지 않으므로 칸마다 불러도 값이 안 든다.
+     */
+    function place() {
+        if (hot < 0 || !pts || !pts[hot]) return;
+        var v = project(pts[hot][1], pts[hot][2], l0, p0);
+        var to = pin(cx + v.x * R(), cy - v.y * R(), pinW, pinH, box.clientWidth || 0);
+        out.classList.toggle('below', to.below);
+        out.style.transform = 'translate(' + Math.round(to.x) + 'px,' + Math.round(to.y) + 'px)';
+        out.style.setProperty('--tx', Math.round(to.tx) + 'px');
+    }
+
     function say(i) {
         if (hot === i) return;
         hot = i;
@@ -424,22 +445,20 @@
         out.textContent = '';
         cv.style.cursor = m ? 'pointer' : 'grab';
         if (!m) return;
-        if (wide) { out.textContent = m.name; return; }
-        /* 손가락에는 두 번째 걸음이 필요하다. 이름 자체를 링크로 세워 누를 자리를
-           만든다 — aria-hidden 안이라 탭 순서에서는 뺀다. */
+        /* 이름 자체를 링크로 세운다. 두 모습이 같은 것을 쓰지만 누를 자리는 하나다 —
+           넓은 화면에서는 CSS 가 pointer-events 를 꺼서 점을 직접 누르게 두고(한 걸음),
+           손가락에서는 이 링크가 두 번째 걸음이 된다. aria-hidden 안이라 어느 쪽도
+           탭 순서에는 없다. */
         var a = document.createElement('a');
         a.setAttribute('href', m.href);
         a.setAttribute('tabindex', '-1');
         a.textContent = m.name;
         out.appendChild(a);
         /* 글을 넣은 **뒤에** 재야 폭이 나온다. 자리는 CSS 가 아니라 여기서 정한다 —
-           까닭은 dday.css 의 .globe.touch .globe-name 머리말에 적었다. */
-        var v = project(pts[i][1], pts[i][2], l0, p0);
-        var at = pin(cx + v.x * R(), cy - v.y * R(),
-            out.offsetWidth || 0, out.offsetHeight || 0, box.clientWidth || 0);
-        out.classList.toggle('below', at.below);
-        out.style.transform = 'translate(' + Math.round(at.x) + 'px,' + Math.round(at.y) + 'px)';
-        out.style.setProperty('--tx', Math.round(at.tx) + 'px');
+           까닭은 dday.css 의 .globe .globe-name 머리말에 적었다. */
+        pinW = out.offsetWidth || 0;
+        pinH = out.offsetHeight || 0;
+        place();
     }
 
     /** 눌려 있는 두 손가락 사이 거리. 두 개가 아니면 0. */

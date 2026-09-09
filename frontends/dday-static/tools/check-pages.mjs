@@ -2956,17 +2956,29 @@ for (const [file, lang, needle] of [
         const at = css.indexOf(sel + '{');
         return at < 0 ? '' : css.slice(at + sel.length + 1, css.indexOf('}', at));
     };
-    if (!/position:absolute/.test(rule('.globe.touch .globe-name'))) {
-        bad('shared/dday.css', '.globe.touch .globe-name 이 position:absolute 가 아니다'
+    if (!/position:absolute/.test(rule('.globe .globe-name'))) {
+        bad('shared/dday.css', '.globe .globe-name 이 position:absolute 가 아니다'
             + ' — globe.js 의 transform 이 헛돌고 이름표가 캔버스 아래로 내려간다');
     }
     if (!/position:relative/.test(rule('.globe.touch.on'))) {
         bad('shared/dday.css', '.globe.touch.on 에 position:relative 가 없다'
             + ' — 이름표의 기준점이 상자를 벗어나 엉뚱한 자리에 뜬다');
     }
-    if (!/background:var\(--/.test(rule('.globe.touch .globe-name a'))) {
+    if (!/background:var\(--/.test(rule('.globe .globe-name a'))) {
         bad('shared/dday.css', '이름표에 바탕색이 없다 — 격자와 해안선 위에 겹치면'
             + ' 얇은 글자는 그대로 묻힌다. 칠해서 세우기로 했다');
+    }
+    /* 이름표가 두 모습 공용이 되면서 생긴 계약. 넓은 화면에서 이름표가 포인터를
+       받으면 커서가 얹히는 순간 캔버스가 pointerleave 를 받아 이름표가 사라지고,
+       커서가 다시 캔버스에 놓여 이름표가 돌아온다 — 그 자리에서 깜빡인다.
+       그래서 기본은 끄고, 누를 자리가 필요한 손가락만 되켠다. */
+    if (!/pointer-events:none/.test(rule('.globe .globe-name'))) {
+        bad('shared/dday.css', '.globe .globe-name 에 pointer-events:none 이 없다'
+            + ' — 넓은 화면에서 커서가 이름표에 얹히면 이름표가 깜빡인다');
+    }
+    if (!/pointer-events:auto/.test(rule('.globe.touch .globe-name a'))) {
+        bad('shared/dday.css', '.globe.touch .globe-name a 에 pointer-events:auto 가 없다'
+            + ' — 손가락의 두 번째 걸음이 눌리지 않는다');
     }
 
     /* 3. 자리 — 홈 두 장에만 있어야 한다 */
@@ -3523,10 +3535,46 @@ for (const [file, lang, needle] of [
         }
 
         /* 12-4. 마우스는 한 걸음이다. hover 로 이름을 이미 봤으므로 두 걸음을
-              시킬 까닭이 없다 — 넓은 화면의 동작이 그대로인지 여기서 지킨다. */
+              시킬 까닭이 없다 — 넓은 화면의 동작이 그대로인지 여기서 지킨다.
+
+              hover 로 뜨는 이름표도 손가락과 **같은 것**이 되었다(옛 판은 넓은
+              화면만 캔버스 아래 글줄에 적었다). 그래서 누르기 전에 셋을 먼저 본다 —
+              가리키기만 해도 이름표가 뜨는가, 점 옆에 뜨는가, 지구가 돌면 따라오는가.
+              마지막 것이 없으면 자전 5도/초에 지시선이 점에서 떨어져 나간다. */
         const w2 = boot('', { media: (q) => /min-width:\s*1400px/.test(q) });
         await new Promise((res) => setImmediate(res));
-        const wcv = w2.doc.getElementById('globe').querySelector('canvas');
+        const wbox2 = w2.doc.getElementById('globe');
+        const wcv = wbox2.querySelector('canvas');
+        const wname = wbox2.querySelector('.globe-name');
+        const KRW = spot('KR', G.DOT_WIDE);
+
+        /* 누르지 않고 지나간다 — 마우스만 할 수 있는 일이다 */
+        wcv.fire('pointermove', { pointerId: 1, pointerType: 'mouse', clientX: KRW.x, clientY: KRW.y });
+        const hover = wname.children[wname.children.length - 1];
+        if (!hover) bad(L, '넓은 화면에서 점을 가리켰는데 이름표가 비어 있다');
+        else if (hover.getAttribute('href') !== '/kr/') {
+            bad(L, `가리킨 이름표가 ${hover.getAttribute('href')} 를 가리킨다 — /kr/ 여야 한다`);
+        }
+        const at1 = where(wname);
+        if (!at1) bad(L, '넓은 화면의 이름표에 transform 이 없다 — 캔버스 아래 글줄로 되돌아갔다');
+        else {
+            if (Math.abs(at1.x - KRW.x) > 1) {
+                bad(L, `넓은 화면의 이름표가 x=${at1.x} — KR 점은 x=${Math.round(KRW.x)} 다`);
+            }
+            if (at1.y >= KRW.y) bad(L, '넓은 화면의 이름표가 점 아래에 섰다');
+        }
+
+        /* 지구가 도는 동안 따라오는가. 1초면 5도, r=115 에서 10px 남짓이라
+           반올림 뒤에도 값이 달라진다. 안 따라오면 지시선만 점에서 떨어진다. */
+        /* 첫 칸은 시각을 심는 걸음이다 — frame() 이 last 를 아직 안 잡았으면
+           지구를 돌리지 않는다. 그래서 0 이 아닌 두 시각으로 부른다. */
+        w2.win._frame(16);
+        w2.win._frame(1016);
+        const at2 = where(wname);
+        if (at1 && at2 && at1.x === at2.x && at1.y === at2.y) {
+            bad(L, '지구를 1초 돌렸는데 이름표가 제자리다 — draw() 가 자리를 다시 안 잡는다');
+        }
+
         tap(wcv, spot('KR', G.DOT_WIDE), 'mouse');
         if (!/\/kr\/$/.test(w2.win.location.href)) {
             bad(L, `마우스로 KR 을 눌렀는데 ${w2.win.location.href} 다 — /kr/ 로 옮겨야 한다`);
@@ -3597,7 +3645,7 @@ for (const [file, lang, needle] of [
         }
 
         wireInfo = '배선 — 손가락 두 걸음 · 끌기 · 확대 걸쇠 · 마우스 한 걸음'
-            + ' · 이름표 점 옆 · 창틀에서 밀림 · 위에서 뒤집힘';
+            + ' · 이름표 점 옆 · 창틀에서 밀림 · 위에서 뒤집힘 · hover · 자전 추적';
     }
 
     if (fail.length === before) {
