@@ -60,7 +60,8 @@
   <aside class="globe" id="globe" aria-hidden="true">
     <canvas width="240" height="240"></canvas>
     <p class="globe-name"></p>
-    <p class="globe-hint">지구본을 돌려 나라를 고릅니다 · 휠로 확대, 두 번 눌러 처음으로</p>
+    <p class="globe-hint w">지구본을 돌려 나라를 고릅니다 · 휠로 확대, 두 번 눌러 처음으로</p>
+    <p class="globe-hint t">점을 눌러 나라를 고릅니다 · 이름을 눌러 이동, 두 손가락으로 확대</p>
   </aside>
 
   <div class="now" id="home" hidden></div>
@@ -83,6 +84,7 @@
     <span class="cap">국가 204개</span>
     <h2>국가별 공휴일</h2>
     <input type="search" class="find" id="csearch" placeholder="국가 검색 — 한글·영어·코드" aria-label="국가 검색" autocomplete="off">
+    <button type="button" class="globe-open" id="globeopen" data-open="지구본으로 고르기" data-close="지구본 접기" aria-hidden="true" tabindex="-1" hidden>지구본으로 고르기</button>
     <ul class="countries" id="clist">
       <li data-cc="GH" data-key="가나 ghana gh"><a href="/gh/"><img class="flag" src="/flags/gh.svg" width="20" height="15" alt="" loading="lazy" decoding="async"><span class="cn">가나</span><span class="cc">GH</span></a></li>
       <li data-cc="GA" data-key="가봉 gabon ga"><a href="/ga/"><img class="flag" src="/flags/ga.svg" width="20" height="15" alt="" loading="lazy" decoding="async"><span class="cn">가봉</span><span class="cc">GA</span></a></li>

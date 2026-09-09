@@ -60,7 +60,8 @@
   <aside class="globe" id="globe" aria-hidden="true">
     <canvas width="240" height="240"></canvas>
     <p class="globe-name"></p>
-    <p class="globe-hint">Spin to pick a country · scroll to zoom, double-click to reset</p>
+    <p class="globe-hint w">Spin to pick a country · scroll to zoom, double-click to reset</p>
+    <p class="globe-hint t">Tap a dot to pick a country · tap the name to open, pinch to zoom</p>
   </aside>
 
   <div class="now" id="home" hidden></div>
@@ -83,6 +84,7 @@
     <span class="cap">204 countries</span>
     <h2>Holidays by country</h2>
     <input type="search" class="find" id="csearch" placeholder="Search — name or code" aria-label="Search countries" autocomplete="off">
+    <button type="button" class="globe-open" id="globeopen" data-open="Pick on a globe" data-close="Hide the globe" aria-hidden="true" tabindex="-1" hidden>Pick on a globe</button>
     <ul class="countries" id="clist">
       <li data-cc="AX" data-key="올란드 제도 åland islands ax"><a href="/en/ax/"><img class="flag" src="/flags/ax.svg" width="20" height="15" alt="" loading="lazy" decoding="async"><span class="cn">Åland Islands</span><span class="cc">AX</span></a></li>
       <li data-cc="AL" data-key="알바니아 albania al"><a href="/en/al/"><img class="flag" src="/flags/al.svg" width="20" height="15" alt="" loading="lazy" decoding="async"><span class="cn">Albania</span><span class="cc">AL</span></a></li>

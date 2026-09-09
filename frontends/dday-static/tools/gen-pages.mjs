@@ -116,6 +116,11 @@ const L = {
         /* 머리말의 축 탭. 자리가 좁으므로 짧게 — 긴 이름은 좁은 화면에서 밀린다. */
         axes: { country: '국가', rank: '순위', weekday: '분포', name: '공휴일 이름', sky: '하늘' },
         globeHint: '지구본을 돌려 나라를 고릅니다 · 휠로 확대, 두 번 눌러 처음으로',
+        /* 지구본이 손가락 모습으로 들어갔을 때. 휠은 없고 hover 도 없으니
+           할 수 있는 일을 다시 적는다 — 마우스 안내를 그대로 보여 줄 수 없다. */
+        globeHintTouch: '점을 눌러 나라를 고릅니다 · 이름을 눌러 이동, 두 손가락으로 확대',
+        globeOpen: '지구본으로 고르기',
+        globeClose: '지구본 접기',
         title: (c, y) => `${y}년 ${c.ko} 공휴일 — 날짜와 D-day`,
         /* 뒷문장이 204개 페이지에서 똑같으면 구글이 무시하고 본문에서 스니펫을
            자체 생성한다 — CTR 통제권을 잃는다. 나라마다 실제로 다른 사실을 넣는다. */
@@ -413,6 +418,9 @@ const L = {
         pickerLabel: 'Country',
         axes: { country: 'Countries', rank: 'Rankings', weekday: 'By weekday', name: 'By name', sky: 'The sky' },
         globeHint: 'Spin to pick a country · scroll to zoom, double-click to reset',
+        globeHintTouch: 'Tap a dot to pick a country · tap the name to open, pinch to zoom',
+        globeOpen: 'Pick on a globe',
+        globeClose: 'Hide the globe',
         title: (c, y) => `${c.name} Public Holidays ${y}`,
         /* fit 을 사슬로 건다 — 국가명이 44자인 곳(SH)이 있어서 한 벌로 쓰면 넘친다.
            덜 중요한 절이 먼저 빠지고, 나라가 하나 늘어도 다시 재지 않아도 된다. */
@@ -2212,7 +2220,8 @@ ${top(t, { slug: '', home: true, axis: 'country', label: esc(t.pickerLabel) })}
   <aside class="globe" id="globe" aria-hidden="true">
     <canvas width="240" height="240"></canvas>
     <p class="globe-name"></p>
-    <p class="globe-hint">${esc(t.globeHint)}</p>
+    <p class="globe-hint w">${esc(t.globeHint)}</p>
+    <p class="globe-hint t">${esc(t.globeHintTouch)}</p>
   </aside>
 
   <div class="now" id="home" hidden></div>
@@ -2235,6 +2244,7 @@ ${top(t, { slug: '', home: true, axis: 'country', label: esc(t.pickerLabel) })}
     <span class="cap">${esc(t.countriesCap(n))}</span>
     <h2>${esc(t.countriesH2)}</h2>
     <input type="search" class="find" id="csearch" placeholder="${esc(t.searchHint)}" aria-label="${esc(t.searchLabel)}" autocomplete="off">
+    <button type="button" class="globe-open" id="globeopen" data-open="${esc(t.globeOpen)}" data-close="${esc(t.globeClose)}" aria-hidden="true" tabindex="-1" hidden>${esc(t.globeOpen)}</button>
     <ul class="countries" id="clist">
 ${links}
     </ul>

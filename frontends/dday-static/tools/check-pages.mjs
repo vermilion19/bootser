@@ -2907,27 +2907,43 @@ for (const [file, lang, needle] of [
    여기서 그 함수를 직접 때린다. 그리기는 검사하지 않는다 — 대신 그리기가 쓰는
    값이 전부 이 함수들에서 나오도록 globe.js 쪽을 얇게 두었다.
 
-   문턱 짝이 이 칸의 값어치다. CSS 의 min-width 와 globe.js 의 SHOW 가 갈라지면
-   모바일이 자료 3.9KB 를 받고 안 보여 주거나, 넓은 화면에서 자리만 잡고 빈다.
-   두 값을 서로 견주는 것 말고는 그걸 잡을 방법이 없다. */
+   문턱 짝이 이 칸의 값어치다. 지구본은 모습이 둘이고(넓은 화면은 오른쪽
+   여백에 걸치고, 좁은 화면은 국가 목록 위에 접혀 있다) 그 갈림길이 globe.js 의
+   WIDE 와 dday.css 의 min-width · max-width 세 곳에 적힐 수밖에 없다. 갈라지면
+   모바일이 자료를 gzip 13.5KB 받고 안 보여 주거나, 넓은 화면이 자리만 잡고
+   말게 된다. 세 값을 서로 견주는 것 말고는 그걸 잡을 방법이 없다.
+
+   게이트 그 자신도 밟아 본다 — boot 에 media 를 주어, 넓은 화면은 바로
+   받고 좁은 화면은 버튼을 눌러야 받는지를 직접 살흔다. */
 {
     const before = fail.length;
     const L = 'shared/globe.js';
     const js = readFileSync(join(PUB, 'shared', 'globe.js'), 'utf8');
     const css = readFileSync(join(PUB, 'shared', 'dday.css'), 'utf8');
 
-    /* 1. 문턱 짝 */
-    const inJs = (js.match(/var SHOW = '\(min-width:\s*(\d+)px\)'/) || [])[1];
+    /* 1. 문턱 세 곳 */
+    const inJs = (js.match(/var WIDE = '\(min-width:\s*(\d+)px\)'/) || [])[1];
     const inCss = (css.match(/@media \(min-width:(\d+)px\)\{\s*main\.wrap\{position:relative\}/) || [])[1];
-    if (!inJs) bad(L, 'SHOW 문턱을 못 읽었다 — 모양이 바뀌면 이 검사가 잠든다');
-    else if (!inCss) bad('shared/dday.css', '지구본 문턱을 못 읽었다 — @media 모양이 바뀌었다');
+    const narrow = (css.match(/@media \(max-width:(\d+)px\)\{\s*\/\* 펼치기 버튼/) || [])[1];
+    if (!inJs) bad(L, 'WIDE 문턱을 못 읽었다 — 모양이 바뀌면 이 검사가 잔들다');
+    else if (!inCss) bad('shared/dday.css', '넓은 화면 문턱을 못 읽었다 — @media 모양이 바뀌었다');
+    else if (!narrow) bad('shared/dday.css', '좁은 화면 문턱을 못 읽었다 — @media 모양이 바뀌었다');
     else if (inJs !== inCss) {
         bad(L, `문턱이 갈라졌다 — globe.js 는 ${inJs}px, dday.css 는 ${inCss}px`);
+    } else if (Number(narrow) !== Number(inJs) - 1) {
+        /* 닿지 않으면 그 사이 한 퇱은 어느 모습도 아니다 — globe.js 는
+           .touch 를 붙이는듯 있지만 CSS 가 그 모습을 안 들으므로 지구본이 안 보인다. */
+        bad('shared/dday.css',
+            `좁은 화면 문턱이 ${narrow}px — ${Number(inJs) - 1}px 이어야 닿는다`);
     }
 
-    /* 2. 기본이 감춰져 있어야 한다. 여기가 뚫리면 좁은 화면에 캔버스가 뜬다. */
+    /* 2. 기본이 가려지 있어야 한다. 여기가 뚫리면 접혀 있어야 할 지구본이
+          누를 생각도 없는 사람 한테도 자리를 만들어 버린다. */
     if (!/\.globe\{display:none\}/.test(css)) {
-        bad('shared/dday.css', '.globe{display:none} 이 없다 — 좁은 화면에서 지구본이 뜬다');
+        bad('shared/dday.css', '.globe{display:none} 이 없다 — 접혀 둘 수가 없다');
+    }
+    if (!/\.globe-open\{display:none\}/.test(css)) {
+        bad('shared/dday.css', '.globe-open{display:none} 이 없다 — 넓은 화면에 버튼이 남는다');
     }
 
     /* 3. 자리 — 홈 두 장에만 있어야 한다 */
@@ -3159,10 +3175,273 @@ for (const [file, lang, needle] of [
         zoomInfo = `확대 ×1~×${MX} · 카리브 겹침 ${at1.length}→${at8.length}`;
     }
 
+    /* 9. 손가락 쪽. 마우스에는 없는 것이 셋이다 — 넓은 문턱, 두 손가락 확대,
+          두 번 눌러 처음으로. 다 순수 함수로 내놓았으니 다 밟아 본다. */
+    let touchInfo = '손가락 없음';
+    if (!G || !G.pinch || !G.retap || !G.SLOP_T) {
+        bad(L, 'window.GLOBE 에 pinch · retap · SLOP_T 가 없다 — 손가락 판정이 순수 함수가 아니다');
+    } else {
+        const MX = G.MAX_ZOOM;
+
+        /* 9-1. 문턱. 손가락은 가만히 눌러도 움직이므로 마우스 문턱을 그대로 쓰면
+              누른 것이 죄다 회전으로 넘어가 아무것도 안 골라진다. */
+        if (!(G.SLOP_T > G.SLOP)) bad(L, `SLOP_T 가 ${G.SLOP_T} — 마우스 문턱 ${G.SLOP} 보다 넉넉해야 한다`);
+        if (!G.clickable(G.SLOP + 1, 5, 5, G.SLOP_T)) {
+            bad(L, '마우스 문턱만 넘은 눌림이 손가락에서도 회전으로 넘어간다');
+        }
+        if (G.clickable(G.SLOP_T + 1, 5, 5, G.SLOP_T)) {
+            bad(L, '손가락 문턱을 넘게 끌었는데도 눌린 것이 된다');
+        }
+        /* 문턱이 넉넉해도 「어느 점이냐」는 그대로 본다 */
+        if (G.clickable(0, 5, 7, G.SLOP_T)) bad(L, '손가락은 다른 점에서 놓아도 눌린 것이 된다');
+        if (G.clickable(0, -1, -1, G.SLOP_T)) bad(L, '손가락은 빈 자리를 눌러도 눌린 것이 된다');
+
+        /* 9-2. 두 손가락 확대. 거리의 비만큼 배율이 되고, 범위를 넘지 않고,
+              손가락을 처음 거리로 되돌리면 배율도 되돌아와야 한다. */
+        const pinches = [
+            [[1, 100, 200], 2, '두 배 벌렸으면 ×2'],
+            [[2, 100, 50], 1, '반의 반으로 모았으면 ×1'],
+            [[3, 100, 100], 3, '안 벌렸으면 그대로다'],
+            [[1, 100, 1e6], MX, '아무리 벌려도 천장은 있다'],
+            [[MX, 100, 1], 1, '아무리 모아도 ×1 아래로는 안 간다'],
+            [[3, 0, 100], 3, '집은 순간의 거리가 0 이면 손대지 않는다'],
+            [[3, 100, 0], 3, '지금 거리가 0 이면 손대지 않는다'],
+        ];
+        for (const [args, want, why] of pinches) {
+            const got = G.pinch(args[0], args[1], args[2]);
+            if (Math.abs(got - want) > 1e-9) {
+                bad(L, `pinch(${args.join(', ')}) 가 ${got} — ${want} 여야 한다 (${why})`);
+            }
+        }
+
+        /* 9-3. 두 번 눌러 처음으로. dblclick 이 안 오는 기기가 있어 직접 잡는다 —
+              확대해 놓고 길을 잃었을 때 유일한 출구다. */
+        const taps = [
+            [[0, 0, 0], true, '제자리에서 바로 다시 눌렀으면 두 번이다'],
+            [[G.TAP_MS, G.TAP_PX, G.TAP_PX], true, '문턱까지는 두 번이다'],
+            [[G.TAP_MS + 1, 0, 0], false, '너무 늦게 눌렀으면 개별이다'],
+            [[0, G.TAP_PX + 1, 0], false, '엉뚱한 자리를 눌렀으면 개별이다'],
+            [[0, 0, G.TAP_PX + 1], false, '아래로 엉뚱한 자리도 개별이다'],
+            [[-1, 0, 0], false, '시간이 거꾸로 가면 두 번이 아니다'],
+        ];
+        for (const [args, want, why] of taps) {
+            if (G.retap(args[0], args[1], args[2]) !== want) {
+                bad(L, `retap(${args.join(', ')}) 가 ${!want} — ${why}`);
+            }
+        }
+        touchInfo = `손가락 문턱 ${G.SLOP_T}px · 두 손가락 · 다시 눌러 ${G.TAP_MS}ms/${G.TAP_PX}px`;
+    }
+
+    /* 10. 게이트 두 갈래. 이 칸이 이 절에서 가장 재발하기 쉬운 것을 막는다 —
+          좁은 화면이 접혀 있는 지구본을 위해 gzip 13.5KB 를 미리 받는 상황이다.
+          CSS 로 가리기만 하면 바로 그것이 되므로, 받는지를 둥글지 밟아 본다. */
+    {
+        const hit = (r) => r.fetched.filter((u) => String(u).indexOf('globe.json') >= 0).length;
+
+        const w = boot('', { media: (q) => /min-width:\s*1400px/.test(q) });
+        if (!hit(w)) bad(L, '넓은 화면인데 globe.json 을 안 받는다');
+        const wbox = w.doc.getElementById('globe');
+        if (!wbox.classList.contains('wide')) bad(L, '넓은 화면인데 .wide 가 안 붙는다 — CSS 가 여백 자리를 안 들어준다');
+        if (!wbox.classList.contains('on')) bad(L, '넓은 화면인데 .on 이 안 붙는다');
+
+        const n = boot('');
+        if (hit(n)) {
+            bad(L, '좁은 화면인데 globe.json 을 미리 받는다 — 접혀 있는 것을 위해 gzip 13.5KB 를 쓴다');
+        }
+        const nbox = n.doc.getElementById('globe');
+        if (!nbox.classList.contains('touch')) bad(L, '좁은 화면인데 .touch 가 안 붙는다');
+        if (nbox.classList.contains('on')) bad(L, '좁은 화면인데 누르기 전부터 펼쳐졌다');
+
+        const btn = n.doc.getElementById('globeopen');
+        if (btn.hasAttribute('hidden')) {
+            bad(L, '좁은 화면인데 펼치기 버튼이 감춰진 자리다 — 지구본을 여는 길이 없다');
+        }
+        /* 눌러 본다. 하니스는 그리기를 못 보지만 「이 지점에 받는다」 는 본다. */
+        btn.fire('click');
+        if (!hit(n)) bad(L, '버튼을 눌렀는데 globe.json 을 안 받는다');
+        if (!nbox.classList.contains('on')) bad(L, '버튼을 눌렀는데 .on 이 안 붙는다');
+        if (btn.textContent !== btn.getAttribute('data-close')) {
+            bad(L, `펼친 뒤 버튼이 「${btn.textContent}」 — 접는 말로 바뀌어야 한다`);
+        }
+        /* 다시 눌러 접힌다. 자료를 또 받지 않는 것까지 본다. */
+        const once = hit(n);
+        btn.fire('click');
+        if (nbox.classList.contains('on')) bad(L, '다시 눌렀는데 접힐 수가 없다');
+        if (btn.textContent !== btn.getAttribute('data-open')) bad(L, '접은 뒤 버튼이 펼치는 말로 안 돌아갔다');
+        btn.fire('click');
+        if (hit(n) !== once) bad(L, '다시 펼치니 globe.json 을 또 받는다');
+
+        /* 크기 재기가 정말 돌았나. 캔버스가 안 커지면 지구본이 0px 로 뜬다. */
+        const cv = nbox.querySelector('canvas');
+        if (cv.width !== nbox.clientWidth) {
+            bad(L, `펼쳤는데 캔버스가 ${cv.width}px — 상자 폭 ${nbox.clientWidth}px 와 같아야 한다`);
+        }
+
+        /* 접은 채 화면을 돌린다. 접히면 폭이 0 이고, 그대로 다시 재면 반지름이
+           음수가 되어 다음 프레임의 ctx.arc 가 던진다 — 스텁의 arc 가 브라우저와
+           같이 깐깐하므로 여기서 걸린다. */
+        btn.fire('click');                       /* 접는다 */
+        nbox.clientWidth = 0;
+        n.win._fire('resize');
+        try {
+            n.win._frame(16);
+            n.win._frame(32);
+        } catch (e) {
+            bad(L, `접은 채 화면을 돌리니 그리다가 던진다 — ${e.message}`);
+        }
+    }
+
+    /* 11. 버튼과 안내가 마크업에 있는가. 문장을 globe.js 가 지고 있지 않기로
+          정했기 때문이다 — 그러지 않으면 영어 화면이 한국말로 열린다. */
+    for (const page of ['', 'en']) {
+        const P = '/' + (page ? page + '/' : '');
+        const h = readFileSync(join(PUB, page, 'index.html'), 'utf8');
+        const b = (h.match(/<button[^>]*class="globe-open"[^>]*>([^<]*)<\/button>/) || []);
+        if (!b[0]) { bad(P, '펼치기 버튼이 없다 — 좁은 화면에서 지구본을 여는 길이 없다'); continue; }
+        for (const need of ['id="globeopen"', 'hidden', 'aria-hidden="true"', 'tabindex="-1"']) {
+            if (b[0].indexOf(need) < 0) bad(P, `펼치기 버튼에 ${need} 이 없다`);
+        }
+        const open = (b[0].match(/data-open="([^"]*)"/) || [])[1];
+        const close = (b[0].match(/data-close="([^"]*)"/) || [])[1];
+        if (!open || !close) bad(P, '버튼에 data-open · data-close 가 다 있어야 한다');
+        else if (open === close) bad(P, `펼치는 말과 접는 말이 둘 다 「${open}」 이다`);
+        if (b[1].trim() !== (open || '').trim()) {
+            bad(P, '버튼에 쓰여 있는 말이 data-open 과 다르다 — 접었다 펼친 뒤 말이 어긋난다');
+        }
+        /* 안내는 두 벌이다. 휠과 두 손가락은 서로 못 하는 일이라 합칠 수 없다. */
+        for (const cls of ['w', 't']) {
+            if (!new RegExp(`<p class="globe-hint ${cls}">[^<]+</p>`).test(h)) {
+                bad(P, `globe-hint.${cls} 가 없다 — 한 모습의 안내가 비어 있다`);
+            }
+        }
+    }
+
+    /* 12. 포인터 배선. 위에서 순수 함수를 다 밟았지만 그것들이 실제로 이어져
+          있는지는 다른 문제다. 하니스가 리스너를 받아 두므로 손가락과 마우스를
+          흉내 내 본다 — 캔버스는 여전히 못 보지만, 「무엇이 골라졌나」 와
+          「어디로 옮겨졌나」 는 이름 칸과 location 에 남는다.
+
+          이 칸이 무는 것 넷 — 손가락으로 한 번 누르면 이름만 뜨고 옮기지는
+          않는가(hover 없는 화면의 두 걸음), 마우스는 한 번에 옮기는가,
+          끌기가 실제로 지구를 돌리는가(e.movementX 를 쓰던 자리다. 손가락 쪽에서
+          0 으로 오는 브라우저가 있어 아예 안 돌았다), 벌린 뒤 떼는 것이
+          누른 것으로 읽히지 않는가. */
+    let wireInfo = '배선 없음';
+    if (G && G.radius) {
+        /* 첫 화면이 처음 보는 방향. globe.js 의 l0 · p0 초기값과 같아야 한다 —
+           프레임을 안 돌리므로 자전은 없다. */
+        const L0 = 127, P0 = 18, W = 240;
+
+        /** 나라 코드의 화면 좌표(캔버스 왼쪽 위 기준). 화면과 같은 식을 쓴다. */
+        const spot = (code, dot, zoom = 1) => {
+            const r = G.radius(W, dot) * zoom;
+            const pt = globe.p.find((q) => q[0] === code);
+            const v = G.project(pt[1], pt[2], L0, P0);
+            return { x: W / 2 + v.x * r, y: W / 2 - v.y * r, front: v.z > 0 };
+        };
+        /* 앞면에 있고 이웃이 멀어야 흉내가 흔들리지 않는다. KR 은 첫 화면이
+           보는 방향 한가운데라 둘 다 맞는다. */
+        const KR = spot('KR', G.DOT_TOUCH);
+        if (!KR.front) bad(L, 'KR 이 첫 화면 방향의 뒷면이다 — 이 검사의 전제가 깨졌다');
+
+        const tap = (cv, at, type, id = 1) => {
+            cv.fire('pointerdown', { pointerId: id, pointerType: type, clientX: at.x, clientY: at.y });
+            cv.fire('pointerup', { pointerId: id, pointerType: type, clientX: at.x, clientY: at.y });
+        };
+
+        /* 12-1. 손가락 — 한 번 누르면 이름만 뜬다 */
+        const n = boot('');
+        n.doc.getElementById('globeopen').fire('click');
+        await new Promise((res) => setImmediate(res));
+        const nbox = n.doc.getElementById('globe');
+        const ncv = nbox.querySelector('canvas');
+        const nname = nbox.querySelector('.globe-name');
+        const was = n.win.location.href;
+
+        tap(ncv, KR, 'touch');
+        if (n.win.location.href !== was) {
+            bad(L, `손가락으로 한 번 눌렀는데 ${n.win.location.href} 로 옮겼다 — 이름을 눌러야 옮긴다`);
+        }
+        const link = nname.children[nname.children.length - 1];
+        if (!link) bad(L, '손가락으로 점을 눌렀는데 이름 칸이 비어 있다 — 두 번째 걸음이 없다');
+        else {
+            if (link.getAttribute('href') !== '/kr/') {
+                bad(L, `손가락으로 KR 을 눌렀는데 이름 칸이 ${link.getAttribute('href')} 를 가리킨다`);
+            }
+            if (link.getAttribute('tabindex') !== '-1') {
+                bad(L, '이름 링크에 tabindex="-1" 이 없다 — aria-hidden 안이라 탭 순서에서 빠져야 한다');
+            }
+            if (!/대한민국/.test(link.textContent)) {
+                bad(L, `이름 링크가 「${link.textContent}」 — 국가 목록에서 읽은 이름이어야 한다`);
+            }
+        }
+
+        /* 12-2. 끌기가 지구를 돌리는가. 돌았으면 같은 자리에 KR 이 더는 없다.
+              돌지 않으면(옛 e.movementX 고장) 같은 자리가 그대로 KR 이다. */
+        ncv.fire('pointerdown', { pointerId: 2, pointerType: 'touch', clientX: KR.x, clientY: KR.y });
+        ncv.fire('pointermove', { pointerId: 2, pointerType: 'touch', clientX: KR.x + 60, clientY: KR.y });
+        ncv.fire('pointerup', { pointerId: 2, pointerType: 'touch', clientX: KR.x + 60, clientY: KR.y });
+        if (n.win.location.href !== was) bad(L, '끌었을 뿐인데 나라로 옮겼다');
+        nname.textContent = '';
+        tap(ncv, KR, 'touch', 3);
+        const after = nname.children[nname.children.length - 1];
+        if (after && after.getAttribute('href') === '/kr/') {
+            bad(L, '60px 끌었는데 같은 자리가 그대로 KR 이다 — 끌기가 지구를 안 돌린다');
+        }
+
+        /* 12-3. 벌린 뒤 떼는 것은 누른 것이 아니다. **배율로 봐야 잡힌다** —
+              처음엔 「나라가 골라지나」로 짰는데, 확대가 시작될 때 잡아 둔 점을
+              이미 놓으므로(downAt = -1) 걸쇠가 없어도 아무것도 안 골라진다.
+              걸쇠가 실제로 지키는 것은 배율이다: 걸쇠가 없으면 두 손가락을
+              차례로 떼는 것이 「두 번 누르기」로 읽혀 방금 맞춘 배율이 ×1 로
+              되돌아간다. 그래서 확대한 자리에 나라가 그대로 있는지로 잰다. */
+        const m = boot('');
+        m.doc.getElementById('globeopen').fire('click');
+        await new Promise((res) => setImmediate(res));
+        const mbox = m.doc.getElementById('globe');
+        const mcv = mbox.querySelector('canvas');
+        const mname = mbox.querySelector('.globe-name');
+        const mwas = m.win.location.href;
+
+        /* 두 손가락을 40px 로 놓고 80px 로 벌린다 — 거리의 비가 배율이라 ×2 다 */
+        const mid = W / 2;
+        mcv.fire('pointerdown', { pointerId: 1, pointerType: 'touch', clientX: mid - 20, clientY: mid });
+        mcv.fire('pointerdown', { pointerId: 2, pointerType: 'touch', clientX: mid + 20, clientY: mid });
+        mcv.fire('pointermove', { pointerId: 2, pointerType: 'touch', clientX: mid + 60, clientY: mid });
+        /* 두 손가락을 거의 같은 자리에서 잇달아 뗀다. 실제로 손을 떼면 이렇게 되고,
+           걸쇠가 없으면 이 둘이 서로 「두 번 누르기」가 된다. */
+        mcv.fire('pointerup', { pointerId: 1, pointerType: 'touch', clientX: mid, clientY: mid });
+        mcv.fire('pointerup', { pointerId: 2, pointerType: 'touch', clientX: mid + 2, clientY: mid });
+        if (m.win.location.href !== mwas) bad(L, '두 손가락으로 벌린 뒤 떼었더니 나라로 옮겼다');
+        if (mname.children.length) bad(L, '두 손가락으로 벌린 뒤 떼었더니 나라가 골라졌다');
+
+        /* ×2 라면 KR 이 중심에서 두 배 멀리 있다. 그 자리를 누른다 —
+           배율이 ×1 로 되돌아갔으면 거기에는 아무것도 없다. */
+        const KR2 = spot('KR', G.DOT_TOUCH, 2);
+        tap(mcv, KR2, 'touch', 5);
+        const zoomed = mname.children[mname.children.length - 1];
+        if (!zoomed || zoomed.getAttribute('href') !== '/kr/') {
+            bad(L, '벌린 뒤 손을 떼니 배율이 ×1 로 되돌아갔다 — 확대 걸쇠가 안 걸렸다');
+        }
+
+        /* 12-4. 마우스는 한 걸음이다. hover 로 이름을 이미 봤으므로 두 걸음을
+              시킬 까닭이 없다 — 넓은 화면의 동작이 그대로인지 여기서 지킨다. */
+        const w2 = boot('', { media: (q) => /min-width:\s*1400px/.test(q) });
+        await new Promise((res) => setImmediate(res));
+        const wcv = w2.doc.getElementById('globe').querySelector('canvas');
+        tap(wcv, spot('KR', G.DOT_WIDE), 'mouse');
+        if (!/\/kr\/$/.test(w2.win.location.href)) {
+            bad(L, `마우스로 KR 을 눌렀는데 ${w2.win.location.href} 다 — /kr/ 로 옮겨야 한다`);
+        }
+
+        wireInfo = '배선 — 손가락 두 걸음 · 끌기 · 확대 걸쇠 · 마우스 한 걸음';
+    }
+
     if (fail.length === before) {
         console.log(`지구본 — 점 ${globe.p.length}개 · 문턱 ${inJs}px 양쪽 일치`
             + ` · 왕복 ${round}개 · project·unproject·pick·clickable 통과`
-            + ` · ${landInfo} · ${zoomInfo}`);
+            + ` · ${landInfo} · ${zoomInfo} · ${touchInfo}`
+            + ` · ${wireInfo}`);
     }
 }
 

@@ -32,7 +32,13 @@ export function makeEl(tag = 'div', { attrs: init = {}, kids = {} } = {}) {
     const attrs = { ...init };
     const el = {
         tagName: String(tag).toUpperCase(),
-        innerHTML: '', outerHTML: '', textContent: '', value: '',
+        innerHTML: '', outerHTML: '', value: '',
+        /* textContent 는 넣으면 자식을 지운다 — 진짜 DOM 이 그렇다. 지구본이
+           이름 칸을 비우고 링크를 새로 다는데, 안 지우면 링크가 쌓여 무엇이
+           지금 뜬 것인지 알 수 없다. */
+        _text: '',
+        get textContent() { return this._text; },
+        set textContent(v) { this._text = String(v); this.children = []; },
         className: '', id: '', hidden: false,
         style: {}, dataset: {}, children: [], parentNode: null,
         classList: {
@@ -64,8 +70,32 @@ export function makeEl(tag = 'div', { attrs: init = {}, kids = {} } = {}) {
         },
         contains() { return false; },
         closest() { return null; },
-        addEventListener() { }, removeEventListener() { }, dispatchEvent() { return true; },
+        /* 리스너를 버리지 않고 받아 둔다 — 버튼을 눌렀을 때만 버어지는 질을
+           (지구본이 그러하다) 하니스가 밟아 보려면 이것이 있어야 한다. */
+        listeners: {},
+        addEventListener(type, fn) {
+            (this.listeners[type] = this.listeners[type] || []).push(fn);
+        },
+        removeEventListener(type, fn) {
+            const a = this.listeners[type];
+            if (a) this.listeners[type] = a.filter((f) => f !== fn);
+        },
+        /** 걸린 리스너를 부른다. 진짜 DOM 에는 없는 것이라 이름이 다르다. */
+        fire(type, ev = {}) {
+            for (const fn of this.listeners[type] || []) fn({ type, target: el, ...ev });
+        },
+        dispatchEvent() { return true; },
         focus() { }, blur() { }, scrollIntoView() { },
+        /* 지구본은 clientWidth 로 카노버스 크기를 재고 getBoundingClientRect 로
+           눌린 자리를 율다. 스텅은 배열이 없지만, 없어서 토하는 일은 없어야 한다. */
+        clientWidth: 0, clientHeight: 0,
+        getBoundingClientRect() { return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }; },
+        insertBefore(c, ref) {
+            const at = this.children.indexOf(ref);
+            if (at < 0) this.children.push(c); else this.children.splice(at, 0, c);
+            if (c) c.parentNode = this;
+            return c;
+        },
         querySelector(sel) {
             const k = kids[sel];
             return Array.isArray(k) ? (k[0] || null) : (k || null);
@@ -88,12 +118,18 @@ function attrsFrom(html) {
     for (const tag of html.matchAll(/<([a-zA-Z][\w-]*)\s([^>]*\bid="[^"]+"[^>]*)>/g)) {
         const attrs = {};
         for (const at of tag[2].matchAll(/([a-zA-Z_:][\w:.-]*)="([^"]*)"/g)) attrs[at[1]] = at[2];
+        /* 값 없는 속성도 속성이다 — hidden 가 그것이고, 그것을 떼는 일이
+           화면을 바뀤다(지구본 펼치기 버튼). 따오지 않으면 hasAttribute 가
+           생김으로 되어 그 변화를 볼 수 없다. 값을 지우고 남은 이름만 쒸는다. */
+        for (const at of tag[2].replace(/[a-zA-Z_:][\w:.-]*="[^"]*"/g, ' ').matchAll(/[a-zA-Z_:][\w:.-]*/g)) {
+            if (!(at[0] in attrs)) attrs[at[0]] = '';
+        }
         if (attrs.id && !out.has(attrs.id)) out.set(attrs.id, attrs);
     }
     return out;
 }
 
-function makeDoc(bodyAttrs, { rows, breaks, sky, ids, lang, contacts, attrsById }) {
+function makeDoc(bodyAttrs, { rows, breaks, sky, ids, lang, contacts, attrsById, countryLis = [] }) {
     const cache = new Map();
     const body = makeEl('body', { attrs: bodyAttrs });
     /* <html lang> 은 dday.js 가 말을 고르는 유일한 근거다. 안 옮기면 영어 페이지가
@@ -116,6 +152,36 @@ function makeDoc(bodyAttrs, { rows, breaks, sky, ids, lang, contacts, attrsById 
         kids: { '.asof': makeEl('div'), '.verdict': makeEl('div') },
     }));
 
+    /* 지구본도 안쪽까지 엮어 둔다. 그린 그림은 못 보지만, 「좁은 화면에서는
+       누를 때까지 globe.json 을 받지 않는다」 는 이 스텅이 없으면 검사할 수 없다 —
+       globe.js 가 canvas.getContext 를 못 찾으면 그 앞에서 조용히 돌아서버린다.
+       2D 백말이 부를 수단은 다 받아만 놓는다. 그리기 결과를 보려는 것이
+       아니니, 계산은 window.GLOBE 로 나와 있고 거기를 따로 때린다. */
+    const ctx2d = new Proxy({
+        /* arc 만은 진짜처럼 깐깐하다. 브라우저는 음수 반지름에 IndexSizeError 를
+           던지는데, 접힌 지구본(폭 0)을 다시 재면 반지름이 음수가 된다 —
+           그 고장을 하니스가 보려면 이 한 줄이 있어야 한다. */
+        arc(x, y, r) {
+            if (!(r >= 0)) throw new Error(`IndexSizeError: arc 반지름이 ${r}`);
+        },
+    }, {
+        get(box, k) {
+            if (!(k in box)) box[k] = () => { };
+            return box[k];
+        },
+        set(box, k, v) { box[k] = v; return true; },
+    });
+    const canvas = makeEl('canvas');
+    canvas.getContext = () => ctx2d;
+    /* 폭을 0 이 아닌 값으로 둔다 — 지구본이 이걸 재서 캔버스 크기를 정하므로,
+       0 이면 크기 재기가 통째로 건너뛰어져 검사가 그 코드를 못 밟는다. */
+    const globeBox = makeEl('aside', {
+        attrs: { class: 'globe', 'aria-hidden': 'true' },
+        kids: { canvas, '.globe-name': makeEl('p') },
+    });
+    globeBox.clientWidth = 240;
+    cache.set('#globe', globeBox);
+
     const doc = {
         readyState: 'complete',
         documentElement: root, head: makeEl('head'), body,
@@ -134,6 +200,7 @@ function makeDoc(bodyAttrs, { rows, breaks, sky, ids, lang, contacts, attrsById 
             if (sel === 'tr[data-s]') return breaks;
             if (sel === 'tr[data-sky]') return sky;
             if (sel === '[data-contact]') return contacts;
+            if (sel === '#countries li[data-cc]') return countryLis;
             /* 선택기 항목은 dday.js 가 innerHTML 로 넣는다. 스텁은 트리를 만들지
                않으니 여기서 되읽을 수 없고, 채워진 결과는 check-pages.mjs 가
                pickerList.innerHTML 로 본다. */
@@ -239,6 +306,23 @@ function parseSky(html) {
     return rows;
 }
 
+/* 첫 화면의 국가 목록. 지구본은 나라 이름과 주소를 자료로 받지 않고
+   **이 목록을 읽는다** — 셀렉터 대부분이 빈 배열인 이 스텁에서 이것만은 엮어
+   주는 까닭이다. 없으면 지구본이 점을 하나도 안 단다(목록에 없는 나라는
+   버리므로), 그러면 누르기를 흉내 내는 검사가 전부 조용히 지나간다. */
+function parseCountryLis(html) {
+    const out = [];
+    for (const m of html.matchAll(/<li data-cc="([A-Z]{2})"[^>]*>([\s\S]*?)<\/li>/g)) {
+        const href = (m[2].match(/<a href="([^"]*)"/) || [])[1];
+        const cn = (m[2].match(/<span class="cn">([^<]*)<\/span>/) || [])[1];
+        const a = makeEl('a', { attrs: { href: href || '' } });
+        const n = makeEl('span');
+        n.textContent = unesc(cn || '');
+        out.push(makeEl('li', { attrs: { 'data-cc': m[1] }, kids: { a, '.cn': n } }));
+    }
+    return out;
+}
+
 /* 연락처 조각. HTML 에는 뒤집힌 두 토막만 있고 완성된 주소가 없다 —
    contact.js 가 합치는 결과가 맞는지 보려면 스텁에도 그 두 토막이 있어야 한다. */
 function parseContacts(html) {
@@ -277,7 +361,7 @@ function makeFetch(seen) {
 }
 
 /** 페이지 하나를 구동한다. page 는 '' (첫 화면) 또는 'kr' 같은 슬러그. */
-export function boot(page, { languages = ['ko-KR'], storage = {} } = {}) {
+export function boot(page, { languages = ['ko-KR'], storage = {}, media = () => false } = {}) {
     const file = join(PUB, page, 'index.html');
     if (!existsSync(file)) throw new Error(`없는 페이지: ${page}`);
     const html = readFileSync(file, 'utf8');
@@ -298,8 +382,10 @@ export function boot(page, { languages = ['ko-KR'], storage = {} } = {}) {
         attrsById: attrsFrom(html),
         lang: (html.match(/<html lang="([a-z]{2})">/) || [])[1] || 'ko',
         contacts: parseContacts(html),
+        countryLis: parseCountryLis(html),
     });
     const fetched = [];
+    const winOn = {};
     const win = {};
     Object.assign(win, {
         window: win, self: win, document: doc,
@@ -310,9 +396,28 @@ export function boot(page, { languages = ['ko-KR'], storage = {} } = {}) {
         },
         localStorage: memStore(storage), sessionStorage: memStore(),
         setTimeout: () => 1, clearTimeout() { },
+        /* window 리스너(resize)도 받아 둔다. _fire 로 부르면 화면을 돌린 것이 된다 —
+           접은 채 돌리는 것이 실제로 고장이던 자리다. */
+        addEventListener(type, fn) { (winOn[type] = winOn[type] || []).push(fn); },
+        removeEventListener(type, fn) {
+            if (winOn[type]) winOn[type] = winOn[type].filter((f) => f !== fn);
+        },
+        _fire(type, ev = {}) { for (const fn of winOn[type] || []) fn({ type, ...ev }); },
+        /* 기본은 달 안 맞는 것이다. media 를 주면 그 함수가 정한다 —
+           지구본은 화면 폭으로 넘은 화면과 좁은 화면을 가르므로, 그 둘을 다
+           밟아 봐야 한다. */
         matchMedia: (q) => ({
-            matches: false, media: q, addEventListener() { }, removeEventListener() { },
+            matches: !!media(q), media: q, addEventListener() { }, removeEventListener() { },
         }),
+        /* 그리기는 한 프레임도 돌리지 않는다 — 부를 리스트가 무한하기 때문이기도
+           하고, 이 하니스가 보는 것은 그림이 아니기 도 하다. */
+        /* 프레임은 저절로 돌지 않는다 — 부를 리스트가 무한하기 때문이다.
+           대신 마지막으로 걸린 콜백을 붙들어 두므로 _frame(t) 로 한 걸음씩
+           돌려 볼 수 있다. 그리기 자체를 보는 것이 아니라, 그리다가 던지는지를 본다. */
+        requestAnimationFrame(fn) { win._frame = fn; return 1; },
+        cancelAnimationFrame() { },
+        devicePixelRatio: 1,
+        getComputedStyle: () => ({ getPropertyValue: () => '' }),
         fetch: makeFetch(fetched),
         Intl, Promise, JSON, Math, Date, String, Number, Array, Object, RegExp, Error,
         console,
