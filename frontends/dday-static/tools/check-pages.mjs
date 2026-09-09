@@ -285,12 +285,15 @@ check('favicon.svg', (file) => {
    `tools/gen-fonts.mjs` 가 조각을 받아 public/fonts/ 에 커밋해 두고, 여기서는
    그것이 성립하는지만 본다 — 네트워크 없이. Cloudflare 빌드가 이 파일을 돌린다.
 
-   무는 것 여섯.
+   무는 것 일곱.
      · 렌더 경로에 남의 오리진이 다시 들어오지 않았나 (이 항목이 되돌려지는 유일한 길)
      · 페이지가 /fonts/fonts.css 를 걸고 있나
      · fonts.css 가 가리키는 파일이 다 있고, 이름의 해시가 내용과 맞나
      · 모든 면에 font-display:swap 이 있나 (없으면 최대 3초 빈 글자다)
      · base.css 가 첫 자리에 적은 글꼴 셋을 우리가 실제로 나르나
+     · **나르지 않는 무게를 부르지 않나** — 이름이 맞아도 무게가 없으면 브라우저가
+       있는 무게를 억지로 굵혀 그린다. 화면으로는 「글꼴이 좀 두껍네」 정도로만
+       보여서 원인을 짚기 어렵다.
      · **버린 조각이 이제 필요해지지 않았나** — 이게 가지치기의 유일한 위험이다.
        나라가 하나 늘어 새 한글 음절이 들어오면 그 글자만 대체 글꼴로 나오는데
        화면으로도 잘 안 보인다. fonts-lock.json 에 적어 둔 버린 범위로 잡는다. */
@@ -350,6 +353,64 @@ check('favicon.svg', (file) => {
                 bad(P, `base.css 의 --${tok} 은 '${first}' 를 먼저 부르는데 우리는 안 나른다`);
         }
 
+        /* 3-5. 우리가 나르지 않는 **무게**를 부르지 않나. 이름만 맞아도 무게가
+           없으면 브라우저가 있는 무게를 억지로 굵혀 그린다(synthetic bold) —
+           그 가짜 볼드는 진짜보다 늘 지저분하고, 화면으로는 「글꼴이 좀 두껍네」
+           정도로만 보여서 원인을 짚기 어렵다. 지구본 이름표를 600 으로 두었다가
+           그렇게 됐다(Pretendard 는 400·500 만 나른다).
+
+           700 처럼 한 글꼴만 내놓는 무게는 그 글꼴을 함께 부르는지도 본다 —
+           Gowun Batang 만 700 을 나르므로, serif 를 안 부르는 자리의 700 은
+           그대로 가짜 볼드다. 기대값은 여기 적지 않는다: fonts.css 가 진짜다. */
+        const tokenOf = new Map();
+        for (const tok of ['serif', 'sans', 'mono']) {
+            const stack = (new RegExp(`--${tok}:([^;]+);`).exec(base) || [])[1] || '';
+            const m = /^\s*(?:'([^']+)'|([A-Za-z][\w-]*))/.exec(stack) || [];
+            if (m[1] || m[2]) tokenOf.set(m[1] || m[2], tok);
+        }
+        /* 무게 → 그 무게를 나르는 글꼴들 */
+        const byWeight = new Map();
+        for (const f of faces) {
+            for (const w of String(f.weight).trim().split(/\s+/)) {
+                if (!byWeight.has(w)) byWeight.set(w, new Set());
+                byWeight.get(w).add(f.family);
+            }
+        }
+
+        /** offset 을 감싸는 가장 안쪽 {...} 의 속내. @media 처럼 겹친 것도 안쪽을 집는다. */
+        const enclosing = (text, i) => {
+            let depth = 0, open = -1;
+            for (let k = i; k >= 0; k--) {
+                if (text[k] === '}') depth++;
+                else if (text[k] === '{') { if (!depth) { open = k; break; } depth--; }
+            }
+            const close = text.indexOf('}', i);
+            return open < 0 || close < 0 ? '' : text.slice(open + 1, close);
+        };
+
+        for (const name of ['base.css', 'dday.css']) {
+            const sheet = name === 'base.css' ? base : readFileSync(join(PUB, 'shared', name), 'utf8');
+            for (const m of sheet.matchAll(/font-weight:\s*(\d+)/g)) {
+                const w = m[1];
+                const carries = byWeight.get(w);
+                if (!carries || !carries.size) {
+                    bad(`shared/${name}`, `font-weight:${w} 을 부르는데 그 무게를 나르지 않는다`
+                        + ` (나르는 것: ${[...byWeight.keys()].sort().join(' · ')})`
+                        + ' — 브라우저가 있는 무게를 억지로 굵혀 그린다');
+                    continue;
+                }
+                if (carries.size > 1) continue;         /* 여러 글꼴이 내놓으면 따질 것이 없다 */
+                const only = [...carries][0];
+                const tok = tokenOf.get(only);
+                if (!tok) continue;                     /* base.css 가 안 부르는 글꼴이면 넘긴다 */
+                const rule = enclosing(sheet, m.index);
+                if (rule.indexOf(`font-family:var(--${tok})`) < 0) {
+                    bad(`shared/${name}`, `font-weight:${w} 은 ${only} 만 나르는데`
+                        + ` 그 자리가 font-family:var(--${tok}) 를 안 부른다 — 가짜 볼드가 된다`);
+                }
+            }
+        }
+
         /* 3-5. 버린 조각이 이제 필요해졌나 */
         const lockFile = join(HERE, 'fonts-lock.json');
         if (!existsSync(lockFile)) bad('tools/fonts-lock.json', '없다 — node tools/gen-fonts.mjs');
@@ -406,7 +467,7 @@ check('favicon.svg', (file) => {
         if (/@import/.test(css)) bad(`shared/${name}`, '@import 가 있다 — 렌더를 한 번 더 막는다');
         for (const m of css.matchAll(/url\((['"]?)(https?:)?\/\//g)) bad(`shared/${name}`, `url() 이 밖을 본다: ${m[0]}`);
     }
-    console.log(`글꼴 — 우리 오리진만 · HTML ${checked}개 확인`);
+    console.log(`글꼴 — 우리 오리진만 · HTML ${checked}개 확인 · 부르는 무게 전부 나른다`);
 }
 
 /* --------------------------------------------------------------- 날짜 검사

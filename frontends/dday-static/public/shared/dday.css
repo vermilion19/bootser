@@ -433,7 +433,12 @@ details.year[open] > summary::before{content:'▾ '}
    「떠 있는 것」 에 쓰는 짝을 그대로 가져왔다 — 바탕 한 단계, --rule 테두리
    한 줄, 그림자. --paper 가 아니라 --paper-2 인 까닭은 다크 모드다: --paper 로
    두면 이름표가 바로 아래 종이와 같은 색이 되어, 지구본 밖으로 걸친 쪽에서
-   테두리 한 줄에만 의지하게 된다. 한 단계 올려 두면 두 테마에서 스스로 갈린다. */
+   테두리 한 줄에만 의지하게 된다. 한 단계 올려 두면 두 테마에서 스스로 갈린다.
+
+   ⚠ 무게는 500 이 천장이다. 한동안 600 으로 두었는데 글자가 두껍고 뭉개져
+   보였다 — Pretendard 를 400·500 두 무게만 나르기 때문이다(tools/fonts.mjs 의
+   SOURCES). 없는 무게를 부르면 브라우저가 500 을 억지로 굵혀 그리고, 그 가짜
+   볼드는 진짜 볼드보다 늘 지저분하다. check-pages 15-5 가 이제 이것을 문다. */
 .globe .globe-name{
   position:absolute;left:0;top:0;z-index:1;
   display:flex;margin:0;max-width:100%;
@@ -444,7 +449,7 @@ details.year[open] > summary::before{content:'▾ '}
   border:1px solid var(--rule);border-radius:7px;
   background:var(--paper-2);color:var(--ink);
   box-shadow:0 3px 12px rgba(0,0,0,.18);
-  font-size:15px;font-weight:600;line-height:1.35;text-align:center;
+  font-size:15px;font-weight:500;line-height:1.35;text-align:center;
   text-decoration:none;
 }
 /* 이름표를 누르는 것은 손가락뿐이다. 마우스는 점을 직접 눌러 한 걸음에 옮기므로
