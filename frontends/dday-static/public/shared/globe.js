@@ -430,7 +430,7 @@
         var a = document.createElement('a');
         a.setAttribute('href', m.href);
         a.setAttribute('tabindex', '-1');
-        a.textContent = m.name + ' →';
+        a.textContent = m.name;
         out.appendChild(a);
         /* 글을 넣은 **뒤에** 재야 폭이 나온다. 자리는 CSS 가 아니라 여기서 정한다 —
            까닭은 dday.css 의 .globe.touch .globe-name 머리말에 적었다. */
