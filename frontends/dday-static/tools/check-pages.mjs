@@ -3321,11 +3321,15 @@ for (const [file, lang, needle] of [
           흉내 내 본다 — 캔버스는 여전히 못 보지만, 「무엇이 골라졌나」 와
           「어디로 옮겨졌나」 는 이름 칸과 location 에 남는다.
 
-          이 칸이 무는 것 넷 — 손가락으로 한 번 누르면 이름만 뜨고 옮기지는
-          않는가(hover 없는 화면의 두 걸음), 마우스는 한 번에 옮기는가,
-          끌기가 실제로 지구를 돌리는가(e.movementX 를 쓰던 자리다. 손가락 쪽에서
-          0 으로 오는 브라우저가 있어 아예 안 돌았다), 벌린 뒤 떼는 것이
-          누른 것으로 읽히지 않는가. */
+          이 칸이 무는 것 — 손가락으로 한 번 누르면 이름만 뜨고 옮기지는
+          않는가(hover 없는 화면의 두 걸음), 그 이름이 손을 뗀 뒤에도 남아
+          있는가(pointerleave 가 지우던 자리다. up() 의 머리말에 적었다),
+          마우스는 한 번에 옮기는가, 끌기가 실제로 지구를 돌리는가(e.movementX 를
+          쓰던 자리다. 손가락 쪽에서 0 으로 오는 브라우저가 있어 아예 안 돌았다),
+          벌린 뒤 떼는 것이 누른 것으로 읽히지 않는가.
+
+          흉내는 실제 기기가 보내는 것을 **다 보내야** 뜻이 있다. 여기서 빠진
+          한 줄이 곧 검사되지 않는 한 줄이다. */
     let wireInfo = '배선 없음';
     if (G && G.radius) {
         /* 첫 화면이 처음 보는 방향. globe.js 의 l0 · p0 초기값과 같아야 한다 —
@@ -3344,9 +3348,20 @@ for (const [file, lang, needle] of [
         const KR = spot('KR', G.DOT_TOUCH);
         if (!KR.front) bad(L, 'KR 이 첫 화면 방향의 뒷면이다 — 이 검사의 전제가 깨졌다');
 
+        /* 손을 떼는 것. **손가락은 pointerup 뒤에 pointerout · pointerleave 가
+           따라온다** — 떼는 순간 포인터 자체가 없어지므로 규격이 그렇게 정해
+           두었다. 옛 흉내는 pointerup 에서 멈췄고, 그래서 pointerleave 가
+           방금 띄운 이름을 지우는 것을 이 칸이 통째로 못 봤다. 실제 기기에서는
+           점을 눌러도 아무 일이 안 났는데 여기는 통과했다. 마우스는 캔버스
+           밖으로 나가야 leave 가 오므로 그대로 둔다. */
+        const up = (cv, at, type, id = 1) => {
+            const ev = { pointerId: id, pointerType: type, clientX: at.x, clientY: at.y };
+            cv.fire('pointerup', ev);
+            if (type !== 'mouse') { cv.fire('pointerout', ev); cv.fire('pointerleave', ev); }
+        };
         const tap = (cv, at, type, id = 1) => {
             cv.fire('pointerdown', { pointerId: id, pointerType: type, clientX: at.x, clientY: at.y });
-            cv.fire('pointerup', { pointerId: id, pointerType: type, clientX: at.x, clientY: at.y });
+            up(cv, at, type, id);
         };
 
         /* 12-1. 손가락 — 한 번 누르면 이름만 뜬다 */
@@ -3380,7 +3395,7 @@ for (const [file, lang, needle] of [
               돌지 않으면(옛 e.movementX 고장) 같은 자리가 그대로 KR 이다. */
         ncv.fire('pointerdown', { pointerId: 2, pointerType: 'touch', clientX: KR.x, clientY: KR.y });
         ncv.fire('pointermove', { pointerId: 2, pointerType: 'touch', clientX: KR.x + 60, clientY: KR.y });
-        ncv.fire('pointerup', { pointerId: 2, pointerType: 'touch', clientX: KR.x + 60, clientY: KR.y });
+        up(ncv, { x: KR.x + 60, y: KR.y }, 'touch', 2);
         if (n.win.location.href !== was) bad(L, '끌었을 뿐인데 나라로 옮겼다');
         nname.textContent = '';
         tap(ncv, KR, 'touch', 3);
@@ -3410,8 +3425,8 @@ for (const [file, lang, needle] of [
         mcv.fire('pointermove', { pointerId: 2, pointerType: 'touch', clientX: mid + 60, clientY: mid });
         /* 두 손가락을 거의 같은 자리에서 잇달아 뗀다. 실제로 손을 떼면 이렇게 되고,
            걸쇠가 없으면 이 둘이 서로 「두 번 누르기」가 된다. */
-        mcv.fire('pointerup', { pointerId: 1, pointerType: 'touch', clientX: mid, clientY: mid });
-        mcv.fire('pointerup', { pointerId: 2, pointerType: 'touch', clientX: mid + 2, clientY: mid });
+        up(mcv, { x: mid, y: mid }, 'touch', 1);
+        up(mcv, { x: mid + 2, y: mid }, 'touch', 2);
         if (m.win.location.href !== mwas) bad(L, '두 손가락으로 벌린 뒤 떼었더니 나라로 옮겼다');
         if (mname.children.length) bad(L, '두 손가락으로 벌린 뒤 떼었더니 나라가 골라졌다');
 

@@ -502,7 +502,13 @@
 
         var p = at(e);
         var upAt = pick(p[0], p[1], pts, l0, p0, R(), grabFor(e));
-        if (!clickable(moved, from, upAt, touch ? SLOP_T : SLOP)) return;
+        if (!clickable(moved, from, upAt, touch ? SLOP_T : SLOP)) {
+            /* 빈 자리를 눌렀으면 앞서 띄운 이름을 접는다. 손가락 쪽은 아래에서
+               pointerleave 를 안 듣기로 했으므로 지우는 자리가 여기뿐이다.
+               끌린 경우는 pointermove 가 이미 지웠다. */
+            if (touch && from < 0 && upAt < 0) say(-1);
+            return;
+        }
         if (!meta[pts[from][0]]) return;
         /* 마우스는 한 걸음, 손가락은 두 걸음이다 — 까닭은 머리말에 적었다. */
         if (touch) say(from);
@@ -523,7 +529,12 @@
     /* 되돌리기. 손가락 쪽은 lift() 가 직접 잡는다. */
     cv.addEventListener('dblclick', function () { zoom = 1; say(-1); dirty = true; });
 
-    cv.addEventListener('pointerleave', function () { say(-1); });
+    /* 손가락은 pointerup 뒤에 pointerout · pointerleave 가 따라온다 — 떼는 순간
+       포인터 자체가 없어지므로 규격이 그렇게 정해 두었다. 그것을 그대로 받으면
+       lift() 가 방금 띄운 이름이 같은 걸음에서 지워져, 두 걸음의 두 번째 걸음이
+       사라진다. 모바일에서 「점을 눌러도 아무 일도 안 난다」 던 것이 이것이다.
+       hover 가 있는 마우스만 이 문을 지난다. */
+    cv.addEventListener('pointerleave', function (e) { if (!byTouch(e)) say(-1); });
     window.addEventListener('resize', size);
 
     var started = false;
