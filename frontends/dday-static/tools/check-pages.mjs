@@ -36,6 +36,9 @@
     16. 페이지마다 웹 앱 선언(manifest)이 있고, start_url 이 그 페이지 자신이며
         scope 가 사이트 전체인가 — 그리고 상태 표시줄 색이 base.css 의 --paper 와 같나
         (「홈 화면에 추가」로 뽑아 둔 창의 계약이다. 화면으로는 거의 안 갈린다)
+    17. 날짜가 바뀌었을 때 다시 칠하고, 그 두 번째 칠이 첫 칠의 자국을 지우나 —
+        그리고 다시 칠할 계기(visibilitychange · pageshow)가 실제로 걸려 있나
+        (홈 화면 앱은 몇 주씩 살아 있다. 탭이었을 때는 없던 갈림길이다)
 
    실패가 하나라도 있으면 종료 코드 1 이다.
    ============================================================ */
@@ -4019,6 +4022,110 @@ for (const [file, lang, needle] of [
     if (fail.length === before) {
         console.log(`홈 화면 앱 — 선언 ${seenId.size}장 (페이지마다 하나 · start_url 이 그 페이지)`
             + ` · scope '/' · 상태 표시줄 ${paperLight}/${paperDark} = base.css --paper`);
+    }
+}
+
+/* --------------------------------------------------- 17. 다시 칠하기
+   홈 화면에 뽑아 둔 창은 몇 주씩 살아 있고 백그라운드에서 돌아올 때 스크립트를
+   다시 돌리지 않는다. 그래서 dday.js 가 날짜가 바뀐 것을 스스로 알아채고 다시
+   칠한다 — 그 두 번째 칠이 **첫 칠의 자국을 지우는지**가 이 항목이다.
+   지우지 않으면 어제 줄과 오늘 줄이 둘 다 강조된 채로 남는다.
+
+   화면으로 잡을 수 없는 고장이다. 자정을 넘겨 앱을 다시 열어야 보이고,
+   그때 보이는 것도 "줄 하나가 더 붉다" 뿐이다. */
+{
+    const before = fail.length;
+    const P = 'shared/dday.js';
+    const r = boot('kr');
+    const D = r.win.DDAY;
+
+    if (!D || !D.repaint) bad(P, 'window.DDAY.repaint 가 없다 — 날이 바뀌어도 다시 안 칠한다');
+    else {
+        const rows = r.doc.rows;
+        const at = (tr) => tr.getAttribute('data-d');
+        const has = (tr, c) => tr.classList.contains(c);
+
+        /* 표에서 실제로 있는 날짜 둘을 고른다. 손으로 적으면 자료가 움직일 때
+           검사가 조용히 헛돈다. */
+        const dates = [...new Set(rows.map(at))].sort();
+        const A = dates[3], B = dates[dates.length - 4];
+
+        /* 한 번 칠한 뒤의 상태가 그 날짜에 대해 앞뒤가 맞나 */
+        const verify = (iso, when) => {
+            const today = rows.filter((tr) => has(tr, 'is-today')).map(at);
+            const wantToday = rows.filter((tr) => at(tr) === iso).map(at);
+            if (today.join() !== wantToday.join()) {
+                bad(P, `${when} — is-today 가 [${[...new Set(today)]}] 다 (기대 ${iso})`);
+            }
+            for (const tr of rows) {
+                const past = has(tr, 'is-past');
+                if (past !== (at(tr) < iso)) {
+                    bad(P, `${when} — ${at(tr)} 의 is-past 가 ${past} 다 (오늘은 ${iso})`);
+                    break;
+                }
+            }
+        };
+
+        D.repaint(A); verify(A, '첫 칠');
+        /* 여기가 요점이다. A 의 자국이 남으면 B 로 칠해도 A 가 is-today 로 남는다. */
+        D.repaint(B); verify(B, 'A → B 다시 칠');
+        D.repaint(A); verify(A, 'B → A 되돌려 칠');
+
+        /* 같은 날짜면 아무 일도 안 한다 — 앱을 하루에 스무 번 열어도 자료를
+           다시 받지 않는다는 계약이다. */
+        if (D.repaint(A) !== false) bad(P, '같은 날짜인데 다시 칠했다 — 열 때마다 자료를 다시 받는다');
+
+        /* 손잡이는 한 번만 걸려야 한다. 다시 칠하기가 bind() 까지 다시 부르면
+           선택기 리스너가 겹쳐 붙어 한 번 눌러 두 번 열린다. */
+        const picker = r.doc.querySelector('#picker');
+        const bound = ((picker && picker.listeners.toggle) || []).length;
+        if (bound !== 1) bad(P, `선택기 toggle 리스너가 ${bound}개다 — 다시 칠하기가 배선까지 다시 했다`);
+
+        /* 히트맵의 오늘 칸도 따라 움직이고, 표지 연도를 벗어나면 감춰야 한다.
+           감추지 않으면 해가 바뀐 뒤 어제 칸이 그대로 남는다. */
+        const cal = r.doc.querySelector('#today');
+        const coverYear = +r.doc.querySelector('#cal').getAttribute('data-y');
+        const inYear = dates.find((d) => d.startsWith(String(coverYear)));
+        const outYear = dates.find((d) => !d.startsWith(String(coverYear)));
+        D.repaint(inYear);
+        if (!D.calendarToday) bad(P, `${inYear} 은 표지 연도인데 오늘 칸을 안 놓았다`);
+        if (cal.hidden) bad(P, `${inYear} 인데 오늘 칸이 감춰져 있다`);
+        if (outYear) {
+            D.repaint(outYear);
+            if (D.calendarToday !== null) bad(P, `${outYear} 은 표지 연도 밖인데 오늘 칸을 놓았다`);
+            if (!cal.hidden) bad(P, `${outYear} 인데 오늘 칸이 남아 있다 — 어제 자리에 그대로다`);
+        }
+
+        /* --- 배선. 다시 칠할 줄 알아도 부르는 데가 없으면 아무 일도 없다. --- */
+        const today = D.todayIso();
+
+        /* 감춰진 채로 오는 신호는 무시한다 (앱을 백그라운드로 보낼 때도 온다) */
+        D.repaint('2020-01-01');
+        r.doc.hidden = true;
+        r.doc.fire('visibilitychange');
+        if (D.repaint('2020-01-01') !== false) bad(P, '감춰질 때 온 visibilitychange 에도 다시 칠했다');
+
+        /* 돌아왔다 — 이제 오늘로 칠해져 있어야 한다 */
+        r.doc.hidden = false;
+        r.doc.fire('visibilitychange');
+        if (D.repaint(today) !== false) {
+            bad(P, 'visibilitychange 로 돌아왔는데 다시 안 칠했다 — 홈 화면 앱이 어제 D-day 를 이고 있게 된다');
+        }
+
+        /* 뒤로 가기 캐시에서 돌아온 길 */
+        D.repaint('2020-01-01');
+        r.win._fire('pageshow', { persisted: true });
+        if (D.repaint(today) !== false) bad(P, 'pageshow(persisted) 로 돌아왔는데 다시 안 칠했다');
+
+        /* 캐시에서 온 것이 아니면(첫 적재) 이미 칠해져 있으므로 건드리지 않는다 */
+        D.repaint('2020-01-01');
+        r.win._fire('pageshow', { persisted: false });
+        if (D.repaint('2020-01-01') !== false) bad(P, '첫 적재 pageshow 에도 다시 칠했다');
+    }
+
+    if (fail.length === before) {
+        console.log('다시 칠하기 — A→B→A 세 번 · 자국 지움(is-today · is-past · 오늘 칸)'
+            + ' · 같은 날짜는 건너뜀 · 배선 visibilitychange(감춤/돌아옴) · pageshow(캐시/첫 적재)');
     }
 }
 

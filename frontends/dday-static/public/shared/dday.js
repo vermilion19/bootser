@@ -266,6 +266,11 @@
             var tr = m.item.tr;
             var mark = $('.mark', tr);
 
+            /* 붙이기 전에 지운다. 두 번째 칠은 홈 화면 앱에서만 일어난다 —
+               자정을 넘겨 복귀했을 때다. 지우지 않으면 어제 줄이 is-today 를
+               쥔 채로 남아 오늘 줄과 둘이 강조된다. */
+            tr.classList.remove('is-today', 'is-past');
+
             if (m.diff === 0) {
                 tr.classList.add('is-today');
                 if (mark) mark.innerHTML = '<span class="now">' + T.today + '</span>';
@@ -293,9 +298,10 @@
         var svg = $('#cal'), mark = $('#today');
         if (!svg || !mark) return null;
 
+        /* 자리를 못 잡으면 **감춘다**. 그냥 돌아가면 앞서 놓아 둔 칸이 그대로
+           남는다 — 표지 연도를 지나 해가 바뀐 홈 화면 앱에서 실제로 그렇다. */
         var p = parts(today);
-        if (!p) return null;
-        if (p.y !== +svg.getAttribute('data-y')) return null;
+        if (!p || p.y !== +svg.getAttribute('data-y')) { mark.hidden = true; return null; }
 
         var cell = +svg.getAttribute('data-cell');
         var gap = +svg.getAttribute('data-gap');
@@ -339,6 +345,8 @@
         got.marked.forEach(function (m) {
             var tr = m.item.tr;
             var mark = $('.mark', tr);
+
+            tr.classList.remove('is-today', 'is-past');
 
             if (m.phase === 'now') {
                 tr.classList.add('is-today');
@@ -871,15 +879,33 @@
         });
     }
 
-    /* ---------------------------------------------------------------- 시동 */
-    function start() {
+    /* ---------------------------------------------------------------- 시동
+
+       한 번만 하는 것(손잡이 배선)과 **날짜에 매달린 것**을 가른다.
+
+       탭이었을 때는 가를 이유가 없었다. 탭은 닫히니까 DOMContentLoaded 한 번이면
+       충분했다. 홈 화면에 뽑아 둔 창은 다르다 — 몇 주씩 살아 있고, 백그라운드에서
+       돌아올 때 스크립트를 다시 돌리지 않는다. 자정을 넘기면 D-16 이 그대로
+       D-16 이고 오늘 줄 강조도 어제에 머문다. 주소창이 없어서 새로고침할 방법도
+       마땅치 않다(당겨서 새로고침이 그 창에서는 안 먹는다).
+
+       그래서 날짜가 바뀐 것을 우리가 알아채고 다시 칠한다. 계기는 셋이다 —
+         · visibilitychange   앱으로 돌아왔다 (홈 화면 앱의 주된 길)
+         · pageshow(persisted) 뒤로 가기 캐시에서 돌아왔다
+         · 자정 타이머          창을 열어 둔 채로 날이 바뀌었다
+       셋 다 같은 문(repaint)으로 들어가고, 날짜가 그대로면 아무 일도 안 한다. */
+
+    function bind() {
         initPicker();
         initFind();
+    }
+
+    /* 날짜 하나를 받아 화면 전체를 그 날짜로 칠한다. **몇 번을 불러도 같아야
+       한다** — 자국을 지우는 일은 markRows · paintBreaks · paintCalendar 안에 있다. */
+    function paint(today) {
         initToday();
 
-        var page = document.body.getAttribute('data-cc');
-        if (page) {
-            var today = todayIso();
+        if (document.body.getAttribute('data-cc')) {
             paintNow(today, paintTables(today), paintBreaks(today));
             window.DDAY.calendarToday = paintCalendar(today);
         }
@@ -889,6 +915,41 @@
         initHome();
     }
 
+    /* 지금 화면에 칠해져 있는 날짜. 같으면 다시 칠하지 않는다 — 앱을 하루에
+       스무 번 열었다 닫아도 자료를 다시 받지 않는다. */
+    var painted = null;
+
+    /* iso 를 주면 그 날짜로 (검사기가 쓴다). 안 주면 이 기기의 오늘. */
+    function repaint(iso) {
+        var t = iso || todayIso();
+        if (t === painted) return false;
+        painted = t;
+        paint(t);
+        return true;
+    }
+
+    /* 자정. 타이머는 백그라운드에서 멈추거나 밀리므로 이것만 믿지 않는다 —
+       위의 복귀 신호 둘이 뒷받침이고, 이건 창을 켜 둔 채 날이 바뀌는 자리를 맡는다.
+       2초를 더 두는 것은 기기 시계가 딱 자정에 걸릴 때를 피하기 위해서다. */
+    function armMidnight() {
+        var n = new Date();
+        var next = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 2);
+        setTimeout(function () { repaint(); armMidnight(); }, next - n);
+    }
+
+    function start() {
+        bind();
+        repaint();
+        armMidnight();
+
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) repaint();
+        });
+        window.addEventListener('pageshow', function (e) {
+            if (e && e.persisted) repaint();
+        });
+    }
+
     /* 하니스 손잡이 — tools/check-pages.mjs 가 배포되는 이 코드 그대로를 돌려
        날짜 계산을 검사한다. 브라우저 동작에는 쓰이지 않는다. */
     window.DDAY = {
@@ -896,7 +957,10 @@
         epochDay: epochDay, todayIso: todayIso, human: human, shortHuman: shortHuman,
         flag: flag, skyIcon: skyIcon, classify: classify, classifyBreaks: classifyBreaks,
         verdictOf: verdictOf, detect: detect, searchKey: searchKey,
-        paintCalendar: paintCalendar
+        paintCalendar: paintCalendar,
+        /* 날짜를 받아 화면 전체를 다시 칠한다. 브라우저는 인자 없이 부르고,
+           검사기는 날짜를 넣어 「두 번째 칠이 첫 칠의 자국을 지우나」를 본다. */
+        repaint: repaint
     };
 
     /* 하늘 페이지가 첫 화면·국가 페이지와 다른 갈래라는 사실을 검사기가 알아야 한다 */

@@ -219,7 +219,17 @@ function makeDoc(bodyAttrs, { rows, breaks, sky, ids, lang, contacts, attrsById,
         getElementById(id) { return doc.querySelector('#' + id); },
         createElement: (t) => makeEl(t),
         createTextNode(t) { const e = makeEl('#text'); e.textContent = String(t); return e; },
-        addEventListener() { }, removeEventListener() { },
+        /* 리스너를 버리지 않고 받아 둔다. 홈 화면 앱의 복귀 신호
+           (visibilitychange)를 밟아 보려면 이것이 있어야 한다 — 그 신호가
+           dday.js 를 다시 칠하게 만드는 유일한 길이다. */
+        hidden: false,
+        listeners: {},
+        addEventListener(type, fn) { (doc.listeners[type] = doc.listeners[type] || []).push(fn); },
+        removeEventListener(type, fn) {
+            if (doc.listeners[type]) doc.listeners[type] = doc.listeners[type].filter((f) => f !== fn);
+        },
+        /** 걸린 리스너를 부른다. 진짜 DOM 에는 없는 이름이다 (요소 스텁의 fire 와 짝). */
+        fire(type, ev = {}) { for (const fn of (doc.listeners[type] || [])) fn({ type, ...ev }); },
         cache, pickerList, rows, breaks, sky, contacts,
     };
     return doc;
