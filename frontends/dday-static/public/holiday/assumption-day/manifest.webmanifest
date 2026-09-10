@@ -1,0 +1,30 @@
+{
+  "id": "/holiday/assumption-day/",
+  "name": "2026년 성모 승천 대축일 — 어느 나라가 쉬나",
+  "short_name": "성모 승천 대축일",
+  "description": "2026년 성모 승천 대축일(Assumption Day)에 쉬는 나라는 40개국입니다. 모두 8월 15일에 쉽니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/holiday/assumption-day/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/presidents-day/",
+  "name": "Presidents' Day 2026 — Which Countries Take It Off",
+  "short_name": "Presidents' Day",
+  "description": "9 countries observe Presidents' Day in 2026. The date differs by country — 7 of them.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/presidents-day/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

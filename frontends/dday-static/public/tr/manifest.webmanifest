@@ -1,0 +1,30 @@
+{
+  "id": "/tr/",
+  "name": "2026년 튀르키예 공휴일 — 날짜와 D-day",
+  "short_name": "튀르키예",
+  "description": "2026년 튀르키예(Türkiye)의 공휴일 14일. 가장 긴 연휴는 Kurban Bayramı 1. Gün 5일입니다. 사흘 이상 쉬는 구간은 7번입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/tr/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

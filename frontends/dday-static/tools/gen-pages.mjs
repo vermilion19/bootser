@@ -32,6 +32,38 @@ import { CALS, NY_CALS, ERA_CALS, CAL_BY_ID, yearOf, noonOf } from './calendars.
 const SITE = 'this is the day';
 const MID = YEARS()[1];                                   /* 표지로 삼을 해 = 올해 */
 
+/* ------------------------------------------------------------------ 홈 화면 앱
+
+   아이폰의 「홈 화면에 추가」 · 안드로이드의 「앱 설치」는 이 사이트를 주소창 없는
+   창으로 띄운다. 그러려면 웹 앱 선언(manifest)이 있어야 하는데, 여기서는
+   사이트에 하나가 아니라 **페이지마다 하나**를 둔다.
+
+   선언이 하나면 `start_url` 도 하나다 — /kr/ 를 뽑아 둔 사람이 아이콘을 눌렀을 때
+   첫 화면이 열린다. 이 사이트에서 뽑아 둘 만한 것은 「내 나라 한 장」이거나
+   「절기 한 장」이라, 그건 뽑기의 뜻을 정반대로 뒤집는 것이다. 선언은 418개가
+   되지만 한 장에 500바이트 남짓이고 페이지와 같은 자리에 놓이므로 값이 싸다.
+
+   `scope` 만은 전부 '/' 다. 뽑아 둔 창 안에서 다른 나라로 넘어가도 창 밖(사파리)으로
+   튕기지 않게 하는 값이다 — 여기를 제 페이지로 좁히면 링크를 누를 때마다 창이 갈린다.
+
+   `display: standalone` 이 주소창을 없앤다. 아이폰은 16.4 부터 이 값을 읽고,
+   그 아래 판은 `apple-mobile-web-app-capable` 만 본다 — 그래서 둘 다 적는다.
+
+   바탕색 둘은 `shared/base.css` 의 `--paper` 와 같아야 한다. 뽑아 둔 창의 상태
+   표시줄이 이 색으로 칠해지므로 어긋나면 화면 맨 위에 다른 색 띠가 생긴다.
+   두 벌을 들고 있는 자리라 check-pages 가 base.css 를 진짜로 놓고 견준다.
+
+   서비스 워커는 두지 않는다. 아이폰의 홈 화면 추가에는 필요 없고(안드로이드도
+   지금은 없이 설치된다), 자료가 달마다 바뀌는 사이트에 캐시를 하나 더 얹으면
+   「낡은 D-day 를 자신 있게 띄우는 앱」 이라는 가장 나쁜 고장이 열린다.
+   오프라인은 이 항목의 몫이 아니다. */
+const THEME = { light: '#fcfdfe', dark: '#0d1117' };
+
+/* 페이지 경로 → 그 페이지의 웹 앱 선언. head() 가 채우고 맨 끝에서 한꺼번에 쓴다.
+   머리에 박는 값(제목 · 설명 · 앱 이름)과 선언에 담는 값이 같은 자리에서 나와야
+   둘이 갈라질 수 없다. */
+const APPS = new Map();
+
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -115,6 +147,15 @@ const L = {
         pickerLabel: '국가 선택',
         /* 머리말의 축 탭. 자리가 좁으므로 짧게 — 긴 이름은 좁은 화면에서 밀린다. */
         axes: { country: '국가', rank: '순위', weekday: '분포', name: '공휴일 이름', sky: '하늘' },
+        /* 홈 화면에 뽑아 뒀을 때 아이콘 밑에 적히는 이름. 축 탭과 따로 두는 까닭은
+           자리의 성질이 다르기 때문이다 — 탭은 옆에 다른 탭이 있어서 '분포' 로 읽히지만,
+           홈 화면에서는 혼자 놓이므로 '요일 분포' 라야 무엇인지 안다.
+           국가 · 이름 낱장은 그 나라 이름 · 그 공휴일 이름을 그대로 쓴다. */
+        appHome: '오늘 무슨 날',
+        appName: '공휴일 이름',
+        appRank: '나라 순위',
+        appWeekday: '요일 분포',
+        appSky: '하늘',
         globeHint: '지구본을 돌려 나라를 고릅니다 · 휠로 확대, 두 번 눌러 처음으로',
         /* 지구본이 손가락 모습으로 들어갔을 때. 휠은 없고 hover 도 없으니
            할 수 있는 일을 다시 적는다 — 마우스 안내를 그대로 보여 줄 수 없다. */
@@ -417,6 +458,13 @@ const L = {
         noCountry: 'No country matches.',
         pickerLabel: 'Country',
         axes: { country: 'Countries', rank: 'Rankings', weekday: 'By weekday', name: 'By name', sky: 'The sky' },
+        /* 홈 화면 이름 — 위 ko 쪽 주석 참고. 상표를 그대로 쓰지 않는다:
+           'this is the day' 는 아이폰 홈 화면에서 'this is th…' 로 잘린다. */
+        appHome: 'the day',
+        appName: 'Holiday names',
+        appRank: 'Rankings',
+        appWeekday: 'By weekday',
+        appSky: 'The sky',
         globeHint: 'Spin to pick a country · scroll to zoom, double-click to reset',
         globeHintTouch: 'Tap a dot to pick a country · tap the name to open, pinch to zoom',
         globeOpen: 'Pick on a globe',
@@ -689,6 +737,40 @@ const L = {
 /* 두 언어가 서로를 가리키는 주소. 셋 다 양쪽 페이지에 똑같이 들어가야 한다. */
 const url = (lang, slug) => `${BASE}${L[lang].dir}/${slug}`;
 
+/* 상태 표시줄 색. 밝은·어두운 두 줄을 다 적는다 — 한 줄만 두면 어두운 테마에서
+   창 맨 위에 흰 띠가 남는다. media 속성은 사파리 15 부터 읽힌다. */
+const themeColor = () =>
+    `  <meta name="theme-color" content="${THEME.light}" media="(prefers-color-scheme: light)">\n`
+    + `  <meta name="theme-color" content="${THEME.dark}" media="(prefers-color-scheme: dark)">`;
+
+/* 페이지 한 장의 웹 앱 선언.
+     id · start_url  이 페이지 자신 — 뽑아 둔 아이콘이 이 장으로 돌아온다
+     scope           사이트 전체 — 창 안에서 다른 장으로 넘어가도 사파리로 안 튄다
+     name            페이지 제목 그대로. 설치 화면과 안드로이드 실행 화면에 뜬다
+     short_name      아이콘 밑에 적히는 이름. 아이폰은 12자쯤에서 자른다
+   아이콘은 셋을 적는다 — 안드로이드가 192·512 를, SVG 는 크기 없는 자리(데스크톱
+   설치)를 받는다. 아이폰은 이 목록을 보지 않고 apple-touch-icon 을 본다. */
+function webManifest(t, { at, title, desc, app }) {
+    return JSON.stringify({
+        id: at,
+        name: title,
+        short_name: app,
+        description: desc,
+        lang: t.lang,
+        dir: 'ltr',
+        start_url: at,
+        scope: '/',
+        display: 'standalone',
+        background_color: THEME.light,
+        theme_color: THEME.light,
+        icons: [
+            { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+            { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+            { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
+        ],
+    }, null, 2) + '\n';
+}
+
 /* ------------------------------------------------------------------ 머리
 
    글꼴은 `/fonts/fonts.css` 한 줄이다. 예전에는 남의 오리진 셋(googleapis ·
@@ -703,7 +785,12 @@ const url = (lang, slug) => `${BASE}${L[lang].dir}/${slug}`;
    생성기 둘이 서로를 물어 처음 한 번을 돌릴 수 없게 된다. 남의 오리진 셋을 없애는
    것이 이 항목의 몫이고 preload 는 그 뒤에 잴 것이다. */
 
-function head(t, { title, desc, slug, card, alt }) {
+function head(t, { title, desc, slug, card, alt, app }) {
+    /* 이 페이지가 놓이는 자리. '/' · '/kr/' · '/en/sky/moon/' */
+    const at = `${t.dir}/${slug}`;
+    if (!app) throw new Error(`${at} — 홈 화면 앱 이름(app)이 없다`);
+    APPS.set(at, webManifest(t, { at, title, desc, app }));
+
     return `<!DOCTYPE html>
 <html lang="${t.lang}">
 <head>
@@ -713,6 +800,12 @@ function head(t, { title, desc, slug, card, alt }) {
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="${at}manifest.webmanifest">
+${themeColor()}
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="${esc(app)}">
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}">
   <link rel="canonical" href="${url(t.lang, slug)}">
@@ -1092,6 +1185,7 @@ ${body}
         slug,
         card: data.code.toLowerCase(),
         alt: `${t.crumbCountry(data)} — ${SITE}`,
+        app: t.name(data),
     })}
 <body data-cc="${data.code}">
 
@@ -1347,7 +1441,8 @@ function skyHubPage(t, sky) {
             `<span class="cc">${esc(t.skyCount(sky[topic.key].length))}</span></a></li>`;
     }).join('\n');
 
-    return `${head(t, { title: t.skyTitle(MID), desc: t.skyDesc(MID), slug, card: 'sky', alt: `${t.skyCrumb} — ${SITE}` })}
+    return `${head(t, { title: t.skyTitle(MID), desc: t.skyDesc(MID), slug, card: 'sky',
+        alt: `${t.skyCrumb} — ${SITE}`, app: t.appSky })}
 <body data-sky-hub="1">
 
 ${top(t, { slug, axis: 'sky', label: esc(t.pickerLabel) })}
@@ -1407,7 +1502,8 @@ function skyTopicPage(t, sky, topic) {
     const pairs = topic.card.map(([label, id]) =>
         `      <dt>${esc(t[label])}</dt><dd id="${id}"><em>${esc(t.computing)}</em></dd>`).join('\n');
 
-    return `${head(t, { title: s.title(MID), desc: s.desc(MID), slug, card: `sky-${topic.slug}`, alt: `${s.crumb} — ${SITE}` })}
+    return `${head(t, { title: s.title(MID), desc: s.desc(MID), slug, card: `sky-${topic.slug}`,
+        alt: `${s.crumb} — ${SITE}`, app: s.hub })}
 <body data-sky="1">
 
 ${top(t, { slug, axis: 'sky', label: esc(t.pickerLabel) })}
@@ -1680,6 +1776,7 @@ ${table}
         slug,
         card: `${NAME_ROOT}-${entry.slug}`,
         alt: `${t.nameH1(entry)} — ${SITE}`,
+        app: t.nameH1(entry),
     })}
 <body data-list="name">
 
@@ -1755,7 +1852,7 @@ function nameHubPage(t, names, together, main, generated) {
     return `${head(t, {
         title: t.nameHubTitle(names.length),
         desc: t.nameHubDesc(names.length, main, TOGETHER_MIN),
-        slug, card: NAME_ROOT, alt: `${t.nameHubCrumb} — ${SITE}`,
+        slug, card: NAME_ROOT, alt: `${t.nameHubCrumb} — ${SITE}`, app: t.appName,
     })}
 <body data-list="hub">
 
@@ -2046,7 +2143,7 @@ function weekdayPage(t, wk, main, generated) {
 
     return head(t, {
         title: t.wkTitle(main), desc: t.wkDesc(main, f), slug,
-        card: 'weekday', alt: t.wkCrumb + ' — ' + SITE,
+        card: 'weekday', alt: t.wkCrumb + ' — ' + SITE, app: t.appWeekday,
     }) + `
 <body data-list="weekday">
 
@@ -2147,7 +2244,7 @@ function rankPage(t, rank, main, generated) {
 
     return `${head(t, {
         title: t.rankTitle(main), desc: t.rankDesc(main, f), slug,
-        card: 'rank', alt: `${t.rankCrumb} — ${SITE}`,
+        card: 'rank', alt: `${t.rankCrumb} — ${SITE}`, app: t.appRank,
     })}
 <body data-list="rank">
 
@@ -2207,7 +2304,8 @@ function homePage(t, index, generated) {
         `      <li data-cc="${c.code}" data-key="${esc(searchKey(c))}"><a href="${t.dir}/${c.code.toLowerCase()}/">${flag(c.code)}<span class="cn">${esc(t.name(c))}</span><span class="cc">${c.code}</span></a></li>`
     ).join('\n');
 
-    return `${head(t, { title: t.homeTitle(n), desc: t.homeDesc(n), slug: '', card: 'home', alt: SITE })}
+    return `${head(t, { title: t.homeTitle(n), desc: t.homeDesc(n), slug: '', card: 'home',
+        alt: SITE, app: t.appHome })}
 <body>
 
 ${top(t, { slug: '', home: true, axis: 'country', label: esc(t.pickerLabel) })}
@@ -2277,6 +2375,7 @@ function notFoundPage(t) {
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+${themeColor()}
   <title>${esc(t.nfTitle)}</title>
   <meta name="robots" content="noindex">
   <link rel="stylesheet" href="/fonts/fonts.css">
@@ -2426,6 +2525,15 @@ for (const lang of ['ko', 'en']) {
     count++;
 }
 
+/* 웹 앱 선언. head() 가 페이지를 지으면서 채워 둔 것을 한꺼번에 쓴다.
+   페이지와 같은 디렉터리에 놓이므로 위의 청소(두 글자 디렉터리 · EXTRA)에 함께
+   쓸려 나간다 — 나라가 빠져도 선언만 남는 유령이 생기지 않는다.
+   루트의 두 장(/ 과 /en/)은 청소 대상이 아니지만 매번 다시 쓰인다. */
+for (const [at, json] of APPS) {
+    writeFileSync(join(PUB, at.slice(1), 'manifest.webmanifest'), json);
+}
+
 console.log(`페이지 ${count}개 (한국어·영어 각 ${count / 2}개) — 표지 연도 ${coverYear}`);
+console.log(`  홈 화면 앱 선언 ${APPS.size}개 (페이지마다 한 장 — start_url 이 그 페이지다)`);
 console.log(`  국가 ${all.length} · 이름 축 ${names.length} (문턱 ${MIN}개국)`
     + ` · 함께 쉬는 날 ${together.length}일 (${TOGETHER_MIN}개국 이상) · 하늘 ${SKY_TOPICS.length}갈래`);

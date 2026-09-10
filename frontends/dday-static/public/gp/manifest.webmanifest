@@ -1,0 +1,30 @@
+{
+  "id": "/gp/",
+  "name": "2026년 과들루프 공휴일 — 날짜와 D-day",
+  "short_name": "과들루프",
+  "description": "2026년 과들루프(Guadeloupe)의 공휴일 12일. 가장 긴 연휴는 Lundi de Pentecôte 5일입니다. 사흘 이상 쉬는 구간은 8번입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/gp/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

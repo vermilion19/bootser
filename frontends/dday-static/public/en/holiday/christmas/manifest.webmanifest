@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/christmas/",
+  "name": "Christmas Day 2026 — Which Countries Take It Off",
+  "short_name": "Christmas Day",
+  "description": "178 countries observe Christmas Day in 2026. The date differs by country — 5 of them.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/christmas/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

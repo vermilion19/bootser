@@ -1,0 +1,30 @@
+{
+  "id": "/sky/calendar/",
+  "name": "2026년 다른 달력의 새해 — 히즈라 · 히브리 · 노루즈",
+  "short_name": "다른 달력",
+  "description": "2026년에 히즈라 새해와 로쉬 하샤나, 노루즈와 설날이 양력 며칟날인지. 그 달력으로 몇 년인지와 한 해가 며칠인지도 함께 봅니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/sky/calendar/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

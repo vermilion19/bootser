@@ -1,0 +1,30 @@
+{
+  "id": "/en/sky/lunar/",
+  "name": "The Lunisolar Calendar 2026 — New Moons and Leap Months",
+  "short_name": "Lunisolar calendar",
+  "description": "Every lunar month of 2026: the Gregorian date its first day falls on, whether it runs 29 or 30 days, and which month is the leap month. Korean Standard Time.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/sky/lunar/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

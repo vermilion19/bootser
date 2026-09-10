@@ -1,0 +1,30 @@
+{
+  "id": "/en/weekday/",
+  "name": "Public Holidays by Weekday 2026 — Why Friday Wins",
+  "short_name": "By weekday",
+  "description": "Counting the 2500 days off of 204 countries in 2026 by weekday, Fri leads with 617 and Wed trails with 161. 544 of them (21.8%) land on a weekend.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/weekday/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

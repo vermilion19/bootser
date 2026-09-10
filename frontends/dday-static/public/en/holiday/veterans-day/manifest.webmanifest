@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/veterans-day/",
+  "name": "Veterans Day 2026 — Which Countries Take It Off",
+  "short_name": "Veterans Day",
+  "description": "5 countries observe Veterans Day in 2026. All of them on 11 November.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/veterans-day/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

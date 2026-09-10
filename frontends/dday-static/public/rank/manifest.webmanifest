@@ -1,0 +1,30 @@
+{
+  "id": "/rank/",
+  "name": "2026년 공휴일 순위 — 많은 나라, 긴 연휴",
+  "short_name": "나라 순위",
+  "description": "2026년 공휴일이 가장 많은 나라는 스페인 29일, 가장 적은 나라는 지부티 3일입니다. 가장 긴 황금연휴는 엘살바도르 9일입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/rank/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

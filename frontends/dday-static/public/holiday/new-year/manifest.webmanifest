@@ -1,0 +1,30 @@
+{
+  "id": "/holiday/new-year/",
+  "name": "2026년 새해 — 어느 나라가 쉬나",
+  "short_name": "새해",
+  "description": "2026년 새해(New Year's Day)에 쉬는 나라는 194개국입니다. 날짜는 나라마다 갈려 2가지입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/holiday/new-year/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

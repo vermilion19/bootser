@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/armed-forces-day/",
+  "name": "Armed Forces Day 2026 — Which Countries Take It Off",
+  "short_name": "Armed Forces Day",
+  "description": "6 countries observe Armed Forces Day in 2026. The date differs by country — 6 of them.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/armed-forces-day/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

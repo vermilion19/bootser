@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/memorial-day/",
+  "name": "Memorial Day 2026 — Which Countries Take It Off",
+  "short_name": "Memorial Day",
+  "description": "6 countries observe Memorial Day in 2026. The date differs by country — 4 of them.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/memorial-day/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

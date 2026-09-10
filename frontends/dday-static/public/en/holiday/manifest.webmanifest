@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/",
+  "name": "60 Holiday Names — Who Shares a Day Off",
+  "short_name": "Holiday names",
+  "description": "Public holidays grouped by name across countries. 60 names, plus the 2026 dates on which 10 or more countries take the day off.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

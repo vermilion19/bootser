@@ -1,0 +1,30 @@
+{
+  "id": "/en/sky/calendar/",
+  "name": "New Year in Other Calendars 2026 — Hijri, Hebrew, Nowruz",
+  "short_name": "Other calendars",
+  "description": "The Gregorian dates of the Islamic new year, Rosh Hashanah, Nowruz and Korean New Year in 2026, with each calendar's year number and year length.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/sky/calendar/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

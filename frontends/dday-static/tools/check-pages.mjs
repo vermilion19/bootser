@@ -33,6 +33,9 @@
     13. data/month/*.json 이 국가별 파일과 한 건도 어긋나지 않나
     14. robots.txt · CSS 계약 · 404 가 언어 칸마다 있고 noindex 인가
     15. 글꼴이 전부 우리 오리진이고, 커밋한 조각이 사이트가 쓰는 글자를 다 덮나
+    16. 페이지마다 웹 앱 선언(manifest)이 있고, start_url 이 그 페이지 자신이며
+        scope 가 사이트 전체인가 — 그리고 상태 표시줄 색이 base.css 의 --paper 와 같나
+        (「홈 화면에 추가」로 뽑아 둔 창의 계약이다. 화면으로는 거의 안 갈린다)
 
    실패가 하나라도 있으면 종료 코드 1 이다.
    ============================================================ */
@@ -122,6 +125,13 @@ for (const name of ['icon-192.png', 'apple-touch-icon.png']) check(name, (file) 
     const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
     if (w !== h) throw new Error(`정사각이 아니다 (${w}×${h})`);
     if (w % 48) throw new Error(`한 변이 48 의 배수가 아니다 — ${w}px (구글이 안 쓴다)`);
+});
+/* 512 는 위 셋과 조건이 다르다. 구글 검색결과 아이콘이 아니라 웹 앱 선언이
+   요구하는 자리이고, 48 의 배수가 아니다 — 그래서 따로 본다. */
+check('icon-512.png', (file) => {
+    const b = readFileSync(file);
+    const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
+    if (w !== 512 || h !== 512) throw new Error(`512×512 가 아니다 (${w}×${h})`);
 });
 check('favicon.ico', (file) => {
     const b = readFileSync(file);
@@ -3875,6 +3885,140 @@ for (const [file, lang, needle] of [
     if (fail.length === before) {
         console.log(`히트맵 — ${pages}개 페이지 · 칸 ${cells}개 (${year}년 ${want}일)`
             + ' · 공휴일·징검다리·주말 양방향 대조 · 오늘 칸');
+    }
+}
+
+/* ------------------------------------------------------- 16. 홈 화면 앱
+   「홈 화면에 추가」로 뽑아 둔 창은 브라우저 창이 아니다 — 주소창도 뒤로 가기도
+   없고, 잘못 만들어 두면 아이콘만 생기고 사파리가 그냥 열린다. 그 차이는 화면을
+   봐도 잘 안 갈리고 (아이콘은 어느 쪽이든 생긴다) 아이폰이 있어야 볼 수 있다.
+   그래서 계약을 여기에 박는다.
+
+   보는 것 넷 —
+     · 머리에 선언 링크와 아이폰용 표시 넷이 다 있나
+     · 선언이 실제로 있고 JSON 으로 읽히나
+     · start_url · id 가 **그 페이지 자신**인가 (하나로 몰려 있으면 /kr/ 를
+       뽑아 둔 사람이 첫 화면으로 떨어진다 — 이 항목의 요점이다)
+     · scope 가 '/' 인가 (제 페이지로 좁아져 있으면 링크마다 창 밖으로 튄다)
+
+   그리고 상태 표시줄 색을 base.css 와 견준다. 두 벌을 들고 있는 자리다 —
+   gen-pages 의 THEME 를 가져다 쓰면 둘이 같이 틀려도 통과한다. */
+{
+    const before = fail.length;
+
+    /* 기대값은 진짜 CSS 에서 읽는다. :root 의 첫 --paper 가 밝은 쪽,
+       prefers-color-scheme: dark 블록 안의 것이 어두운 쪽이다. */
+    const css = readFileSync(join(PUB, 'shared', 'base.css'), 'utf8');
+    const darkBlock = (css.match(/@media \(prefers-color-scheme: dark\)\{([\s\S]*?)\n\}/) || [])[1] || '';
+    const paperLight = (css.replace(darkBlock, '').match(/--paper:\s*(#[0-9a-f]{3,8})/i) || [])[1];
+    const paperDark = (darkBlock.match(/--paper:\s*(#[0-9a-f]{3,8})/i) || [])[1];
+    if (!paperLight || !paperDark) {
+        bad('shared/base.css', '--paper 를 밝은·어두운 두 벌로 읽지 못했다 — 상태 표시줄 색을 견줄 수 없다');
+    }
+
+    /* 선언의 값은 날것이고 머리의 값은 esc() 를 거친 것이다. 같은지 보려면
+       기대값 쪽을 감싸야 한다. 감싸는 규칙은 여기 다시 적는다. */
+    const esc2 = (v) => String(v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const ICONS = [
+        ['/icon-192.png', 192],
+        ['/icon-512.png', 512],
+    ];
+
+    const seenId = new Map();
+    const seenFile = new Set();
+
+    for (const { page, label, lang } of ALL) {
+        const html = readFileSync(join(PUB, page, 'index.html'), 'utf8');
+
+        /* --- 머리 --- */
+        for (const need of [
+            `<link rel="manifest" href="${label}manifest.webmanifest">`,
+            `<meta name="theme-color" content="${paperLight}" media="(prefers-color-scheme: light)">`,
+            `<meta name="theme-color" content="${paperDark}" media="(prefers-color-scheme: dark)">`,
+            /* 사파리 16.4 아래는 선언의 display 를 안 본다 — 이 줄이 없으면
+               그 판에서는 주소창이 그대로 남는다. 아래 줄은 그 표준 이름이다. */
+            '<meta name="apple-mobile-web-app-capable" content="yes">',
+            '<meta name="mobile-web-app-capable" content="yes">',
+            '<meta name="apple-mobile-web-app-status-bar-style" content="default">',
+        ]) {
+            if (!html.includes(need)) bad(label, `빠짐: ${need}`);
+        }
+
+        const appTitle = (html.match(/name="apple-mobile-web-app-title" content="([^"]*)"/) || [])[1];
+        if (!appTitle) bad(label, 'apple-mobile-web-app-title 이 비었다 — 홈 화면에 이름 없는 아이콘이 생긴다');
+
+        /* --- 선언 --- */
+        const file = join(PUB, page, 'manifest.webmanifest');
+        if (!existsSync(file)) { bad(label, 'manifest.webmanifest 가 없다'); continue; }
+        seenFile.add(file);
+
+        let m;
+        try { m = JSON.parse(readFileSync(file, 'utf8')); }
+        catch (e) { bad(label, `manifest.webmanifest 를 못 읽는다 — ${e.message}`); continue; }
+
+        if (m.start_url !== label) bad(label, `선언의 start_url 이 "${m.start_url}" 다 — 뽑아 둔 아이콘이 이 페이지로 안 온다`);
+        if (m.id !== label) bad(label, `선언의 id 가 "${m.id}" 다 — 페이지마다 달라야 따로 뽑힌다`);
+        if (m.scope !== '/') bad(label, `선언의 scope 가 "${m.scope}" 다 — '/' 여야 창 안에서 다른 장으로 넘어간다`);
+        if (m.display !== 'standalone') bad(label, `선언의 display 가 "${m.display}" 다 — 주소창이 남는다`);
+        if (m.lang !== lang) bad(label, `선언의 lang 이 "${m.lang}" 다 (페이지는 ${lang})`);
+        if (m.theme_color !== paperLight) bad(label, `선언의 theme_color 가 "${m.theme_color}" 다 — base.css 의 --paper 는 ${paperLight}`);
+        if (m.background_color !== paperLight) bad(label, `선언의 background_color 가 "${m.background_color}" 다 — base.css 의 --paper 는 ${paperLight}`);
+
+        /* 머리와 선언이 갈라지지 않았나. 같은 값이 두 자리에 적히는 곳이다. */
+        const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || '';
+        if (esc2(m.name) !== title) bad(label, `선언의 name 이 <title> 과 다르다 — "${m.name}"`);
+        const desc = (html.match(/name="description" content="([^"]*)"/) || [])[1] || '';
+        if (esc2(m.description) !== desc) bad(label, '선언의 description 이 머리의 description 과 다르다');
+        if (esc2(m.short_name) !== appTitle) bad(label, `선언의 short_name("${m.short_name}") 이 apple-mobile-web-app-title("${appTitle}") 과 다르다`);
+        if (!m.short_name) bad(label, '선언의 short_name 이 비었다');
+
+        /* 아이콘. 없는 파일을 가리키면 안드로이드가 설치를 통째로 거절한다. */
+        for (const [src, size] of ICONS) {
+            const icon = (m.icons || []).find((i) => i.src === src);
+            if (!icon) { bad(label, `선언에 ${src} 이 없다`); continue; }
+            if (icon.sizes !== `${size}x${size}`) bad(label, `선언의 ${src} 이 ${icon.sizes} 라고 적혀 있다`);
+            const got = pngSize(readFileSync(join(PUB, src.slice(1))));
+            if (!got || got.width !== size || got.height !== size) {
+                bad(label, `${src} 이 실제로는 ${got ? `${got.width}×${got.height}` : 'PNG 가 아니다'}`);
+            }
+        }
+
+        const was = seenId.get(m.id);
+        if (was) bad(label, `선언의 id 가 ${was} 와 겹친다`);
+        seenId.set(m.id, label);
+    }
+
+    /* 남은 선언. 나라가 Nager 목록에서 빠지면 gen-pages 가 디렉터리째 지우지만,
+       루트의 두 장은 청소 대상이 아니라서 여기서 한 번 훑는다. */
+    const strays = [];
+    const walk = (dir) => {
+        for (const name of readdirSync(dir, { withFileTypes: true })) {
+            if (name.isDirectory()) { walk(join(dir, name.name)); continue; }
+            if (!name.name.endsWith('.webmanifest')) continue;
+            const f = join(dir, name.name);
+            if (!seenFile.has(f)) strays.push('/' + f.slice(PUB.length + 1).split(sep).join('/'));
+        }
+    };
+    walk(PUB);
+    for (const f of strays) bad(f, '페이지가 없는 웹 앱 선언이다 — node tools/gen-pages.mjs');
+
+    /* 404 는 뽑아 둘 쪽이 아니다(noindex 다). 다만 뽑아 둔 창 안에서 오타를 치면
+       이 장이 그 창에 뜨므로 상태 표시줄 색은 있어야 한다. */
+    for (const nf of ['404.html', join('en', '404.html')]) {
+        const at = '/' + nf.split(sep).join('/');
+        const html = readFileSync(join(PUB, nf), 'utf8');
+        if (!html.includes(`content="${paperLight}" media="(prefers-color-scheme: light)"`)) {
+            bad(at, 'theme-color 가 없다 — 뽑아 둔 창에서 맨 위에 다른 색 띠가 생긴다');
+        }
+        if (html.includes('rel="manifest"')) bad(at, '404 에 웹 앱 선언이 걸려 있다 — 뽑아 둘 쪽이 아니다');
+    }
+
+    if (fail.length === before) {
+        console.log(`홈 화면 앱 — 선언 ${seenId.size}장 (페이지마다 하나 · start_url 이 그 페이지)`
+            + ` · scope '/' · 상태 표시줄 ${paperLight}/${paperDark} = base.css --paper`);
     }
 }
 

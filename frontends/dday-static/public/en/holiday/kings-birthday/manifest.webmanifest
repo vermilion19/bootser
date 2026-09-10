@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/kings-birthday/",
+  "name": "King's Birthday 2026 — Which Countries Take It Off",
+  "short_name": "King's Birthday",
+  "description": "11 countries observe King's Birthday in 2026. The date differs by country — 11 of them.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/kings-birthday/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 /**
- * 파비콘 생성기 — favicon.svg / favicon.ico / icon-192.png / apple-touch-icon.png
+ * 파비콘 생성기 — favicon.svg / favicon.ico / icon-192.png / icon-512.png / apple-touch-icon.png
  *
  * 원화는 `favicon-art.mjs` 의 16×16 픽셀맵 하나뿐이고, 여기서는 그것을 정수배로
- * 키워 네 파일을 만든다. 축에 정렬된 사각형뿐이라 래스터라이저 없이 픽셀을 직접
+ * 키워 다섯 파일을 만든다. 축에 정렬된 사각형뿐이라 래스터라이저 없이 픽셀을 직접
  * 찍고 PNG · ICO 를 손으로 인코딩한다 — 이 디렉터리의 무의존성 규칙을 지킨다.
  *
  *   node tools/gen-favicon.mjs
@@ -121,6 +121,12 @@ const out = [
   ['favicon.svg',           Buffer.from(svg(), 'utf8')],
   ['favicon.ico',           ico([16, 32, 48])],
   ['icon-192.png',          png(192)],
+  /* 웹 앱 선언(manifest)이 요구하는 큰 아이콘. 안드로이드가 실행 화면과 작업
+     전환기에 쓰는 자리라 192 로는 흐리다. 아이폰은 여기를 안 보고
+     apple-touch-icon 을 본다 — 그래서 셋을 다 둔다.
+     512 는 48 의 배수가 아니다(구글 검색결과 아이콘 조건). 그 조건은 파비콘
+     쪽 이야기라 여기엔 걸리지 않고, check-pages 도 둘을 갈라서 본다. */
+  ['icon-512.png',          png(512)],
   ['apple-touch-icon.png',  png(192)],
 ];
 

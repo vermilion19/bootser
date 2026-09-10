@@ -1,0 +1,30 @@
+{
+  "id": "/sky/meteor/",
+  "name": "2026년 유성우 — 극대기 날짜와 D-day",
+  "short_name": "유성우",
+  "description": "2026년 유성우 극대기를 날짜와 시각까지 날짜순으로. 페르세우스자리·쌍둥이자리 유성우가 언제인지, 다음까지 며칠 남았는지 봅니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/sky/meteor/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

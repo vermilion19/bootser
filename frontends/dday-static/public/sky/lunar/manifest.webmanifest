@@ -1,0 +1,30 @@
+{
+  "id": "/sky/lunar/",
+  "name": "2026년 음력 달력 — 초하루와 윤달",
+  "short_name": "음력 달력",
+  "description": "2026년 음력 달의 초하루가 양력 며칟날인지, 그 달이 29일인지 30일인지. 윤달도 함께 봅니다. 한국 표준시 기준.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/sky/lunar/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

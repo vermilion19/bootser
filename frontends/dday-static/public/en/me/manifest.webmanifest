@@ -1,0 +1,30 @@
+{
+  "id": "/en/me/",
+  "name": "Montenegro Public Holidays 2026",
+  "short_name": "Montenegro",
+  "description": "8 public holidays in Montenegro for 2026. Longest break: 4 days around New Year's Day. 4 long weekends of three days or more.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/me/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": "/al/",
+  "name": "2026년 알바니아 공휴일 — 날짜와 D-day",
+  "short_name": "알바니아",
+  "description": "2026년 알바니아(Albania)의 공휴일 14일. 가장 긴 연휴는 Viti i Ri 4일입니다. 사흘 이상 쉬는 구간은 10번입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/al/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

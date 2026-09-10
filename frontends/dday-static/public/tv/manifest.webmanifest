@@ -1,0 +1,30 @@
+{
+  "id": "/tv/",
+  "name": "2026년 투발루 공휴일 — 날짜와 D-day",
+  "short_name": "투발루",
+  "description": "2026년 투발루(Tuvalu)의 공휴일 11일. 가장 긴 연휴는 Tausaga Fou 4일입니다. 사흘 이상 쉬는 구간은 7번입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/tv/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

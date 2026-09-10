@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/new-years-eve/",
+  "name": "New Year's Eve 2026 — Which Countries Take It Off",
+  "short_name": "New Year's Eve",
+  "description": "13 countries observe New Year's Eve in 2026. All of them on 31 December.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/new-years-eve/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

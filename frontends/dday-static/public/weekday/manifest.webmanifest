@@ -1,0 +1,30 @@
+{
+  "id": "/weekday/",
+  "name": "2026년 공휴일 요일 분포 — 금요일에 몰리는 이유",
+  "short_name": "요일 분포",
+  "description": "2026년 204개국의 쉬는 날짜 2500건을 요일로 세면 금요일이 617건으로 가장 많고 수요일이 161건으로 가장 적습니다. 주말에 떨어진 것은 544건(21.8%)입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/weekday/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

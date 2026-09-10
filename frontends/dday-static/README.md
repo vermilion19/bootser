@@ -44,7 +44,7 @@ tools/                     전부 node 내장 모듈만 쓴다 (npm install 없�
 ├── gen-fonts.mjs          남의 오리진 셋 → public/fonts/ (손으로 돌리는 유일한 폰트 단계)
 ├── fonts.mjs              어디서 받고 무엇을 남기나 (gen-fonts · check-pages 가 함께 쓴다)
 ├── fonts-lock.json        생성물 — 버린 조각의 unicode-range 기록
-├── gen-favicon.mjs        favicon-art.mjs → ico · svg · png 넷
+├── gen-favicon.mjs        favicon-art.mjs → ico · svg · png 넷 (192 · 512 · apple-touch)
 ├── favicon-art.mjs        16×16 픽셀맵 (모든 크기의 원화)
 ├── gen-card.mjs           card-art.mjs → public/card/*.png (공유 카드 272개)
 ├── card-art.mjs           5×7 픽셀 대문자 글꼴 · 카드 규격 (원화)
@@ -67,7 +67,7 @@ public/
 ├── fonts/                 생성물 — woff2 조각 92개 + fonts.css + LICENSE.txt
 ├── flags/                생성물 — 국기 SVG 204개 + LICENSE.txt (flag-icons, MIT)
 ├── sky-icons/             생성물 — 하늘 아이콘 SVG 29개 (우리가 그린 것, 7 KB)
-├── _headers               Cloudflare 응답 머리 (글꼴 immutable · 카드 하루)
+├── _headers               Cloudflare 응답 머리 (글꼴 immutable · 카드 하루 · 선언 타입)
 ├── en/{cc}/index.html     생성물 — 영어 국가 페이지
 ├── 404.html · en/404.html 생성물 — 언어 칸마다 하나씩
 ├── card/*.png             생성물 — og:image 공유 카드 (1200×630, 언어 무관 한 벌)
@@ -79,8 +79,9 @@ public/
 ├── shared/dday.css        손으로 쓴 것
 ├── shared/dday.js         손으로 쓴 것 — 두 언어가 같은 파일을 쓴다
 ├── shared/contact.js      backend-internals 에서 가져온 것 (연락처 조립)
+├── {…}/manifest.webmanifest 생성물 — 페이지마다 하나 (홈 화면에 뽑아 두기)
 ├── robots.txt             손으로 쓴 것
-└── favicon.*              생성물
+└── favicon.* · icon-*.png 생성물
 ```
 
 생성물도 커밋한다. 그래야 (1) Nager 가 죽어도 배포할 수 있고, (2) 이번 달에 어떤
@@ -936,6 +937,72 @@ jsdom 을 쓰지 않는다 — `node:vm` + 최소 DOM·fetch 스텁이면 충분
     다 있고 이름의 해시가 내용과 맞나, 92면 전부에 `font-display:swap` 이 있나,
     `base.css` 가 첫 자리에 부르는 글꼴 셋을 우리가 실제로 나르나, 그리고
     **버린 조각이 이제 필요해지지 않았나**
+22. **홈 화면 앱** — 페이지마다 웹 앱 선언이 하나씩 있고, 그 `start_url` 과 `id` 가
+    **그 페이지 자신**이며 `scope` 는 `/` 인가, `display` 가 `standalone` 인가,
+    선언의 이름·설명이 머리의 `<title>`·description 과 갈라지지 않았나, 가리키는
+    아이콘이 실제로 있고 적어 둔 크기와 PNG 머리의 크기가 같나, 페이지 없는 선언이
+    남아 있지 않나, 그리고 **상태 표시줄 색이 `base.css` 의 `--paper` 와 같은가**
+
+## 홈 화면에 뽑아 두기
+
+아이폰의 「홈 화면에 추가」와 안드로이드의 「앱 설치」는 이 사이트를 주소창 없는 창으로
+띄운다. 그러려면 웹 앱 선언(`manifest.webmanifest`)이 있어야 하는데, 여기서는
+**사이트에 하나가 아니라 페이지마다 하나**를 둔다.
+
+### 왜 페이지마다인가
+
+선언이 하나면 `start_url` 도 하나다. `/kr/` 를 보다가 뽑아 둔 사람이 아이콘을 눌렀을 때
+첫 화면이 열린다는 뜻이고, 그건 뽑기의 뜻을 정반대로 뒤집는 것이다. 이 사이트에서
+뽑아 둘 만한 것은 「내 나라 한 장」이거나 「절기 한 장」이지 사이트 전체가 아니다.
+
+그래서 `gen-pages` 가 페이지를 지으면서 그 자리에 선언도 같이 놓는다. 548장이 되지만
+한 장이 500바이트 남짓이고, 페이지와 같은 디렉터리에 있으므로 나라가 Nager 목록에서
+빠지면 디렉터리째 함께 지워진다 — 유령이 남지 않는다.
+
+이름도 페이지에서 나온다. 아이콘 밑에 적히는 이름(`short_name`)은 그 나라 이름이거나
+그 공휴일 이름이고, 축 페이지는 `appHome` · `appRank` 처럼 따로 적어 둔 짧은 이름을
+쓴다. **축 탭 라벨을 그대로 쓰지 않는다** — 탭은 옆에 다른 탭이 있어서 「분포」로 읽히지만
+홈 화면에서는 혼자 놓이므로 「요일 분포」라야 무엇인지 안다. 영어 첫 화면만은 상표를
+그대로 쓰지 못했다: `this is the day` 는 아이폰 홈 화면에서 `this is th…` 로 잘린다
+(라벨은 12자쯤에서 끊긴다).
+
+### `scope` 만은 전부 `/` 다
+
+선언은 페이지마다지만 `scope` 는 사이트 전체다. 여기를 제 페이지로 좁히면 뽑아 둔 창
+안에서 다른 나라로 넘어갈 때마다 창 밖(사파리)으로 튕긴다 — 앱처럼 쓰라고 뽑아 둔 것이
+링크 하나에 무너진다.
+
+### 상태 표시줄 색은 두 벌을 들고 있는 자리다
+
+주소창이 없어지면 그 자리를 `theme-color` 가 칠한다. 그래서 `base.css` 의 `--paper` 와
+같아야 하고, 밝은·어두운 두 줄을 다 적어야 한다 — 한 줄만 두면 어두운 테마에서 화면
+맨 위에 흰 띠가 남는다. 값이 두 곳(`gen-pages.mjs` 의 `THEME` 와 `base.css`)에 적히므로
+`check-pages` 가 **CSS 를 진짜로 놓고** 견준다. 생성기 쪽 상수를 가져다 쓰면 둘이 같이
+틀려도 통과한다.
+
+### 서비스 워커는 두지 않았다
+
+아이폰의 홈 화면 추가에는 서비스 워커가 필요 없고, 안드로이드도 지금은 없이 설치된다.
+없는 것으로 얻는 것이 더 크다 — 자료가 달마다 바뀌는 사이트에 캐시를 하나 더 얹으면
+「낡은 D-day 를 자신 있게 띄우는 앱」이라는, 이 사이트에서 가장 나쁜 고장이 열린다.
+오프라인으로 보이게 하는 것은 별개의 항목이고, 그때는 되돌릴 길(캐시 판번호)을 먼저
+정해야 한다.
+
+실행 화면(스플래시) 그림도 두지 않았다. 아이폰은 기기 해상도마다 다른 그림을 요구해서
+스무 장쯤 되는데, 없으면 선언의 `background_color` 로 잠깐 칠했다가 페이지가 뜬다.
+스무 장의 값이 그 한 순간보다 크지 않다.
+
+### 화면 없이 확인하는 법
+
+```bash
+node tools/serve.mjs
+curl -sI http://localhost:8000/kr/manifest.webmanifest   # application/manifest+json
+curl -s  http://localhost:8000/kr/manifest.webmanifest   # start_url 이 /kr/ 인가
+```
+
+타입이 틀리면 사파리가 선언을 통째로 무시하고 「홈 화면에 추가」가 주소창 있는
+바로가기로 **조용히** 떨어진다. 아이콘은 어느 쪽이든 생기므로 화면으로는 갈리지 않는다.
+`public/_headers` 가 배포 쪽에서 같은 타입을 못박아 둔다.
 
 ## 홈은 늘 내 지역
 

@@ -1,0 +1,30 @@
+{
+  "id": "/holiday/",
+  "name": "공휴일 이름 60가지 — 어느 나라가 함께 쉬나",
+  "short_name": "공휴일 이름",
+  "description": "같은 이름의 공휴일을 쓰는 나라를 이름별로 모았습니다. 이름 60가지와, 2026년에 10개국 이상이 함께 쉬는 날을 날짜순으로 봅니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/holiday/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

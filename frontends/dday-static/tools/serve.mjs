@@ -48,6 +48,9 @@ const MIME = {
     '.css': 'text/css; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
     '.json': 'application/json; charset=utf-8',
+    /* 웹 앱 선언. 이 타입으로 안 나가면 사파리가 무시하고, 「홈 화면에 추가」가
+       주소창 있는 바로가기로 떨어진다 — 화면으로는 잘 안 갈린다. */
+    '.webmanifest': 'application/manifest+json; charset=utf-8',
     '.xml': 'application/xml; charset=utf-8',
     '.txt': 'text/plain; charset=utf-8',
     '.svg': 'image/svg+xml',

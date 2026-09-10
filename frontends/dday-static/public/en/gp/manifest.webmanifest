@@ -1,0 +1,30 @@
+{
+  "id": "/en/gp/",
+  "name": "Guadeloupe Public Holidays 2026",
+  "short_name": "Guadeloupe",
+  "description": "12 public holidays in Guadeloupe for 2026. Longest break: 5 days around Whit Monday. 8 long weekends of three days or more.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/gp/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

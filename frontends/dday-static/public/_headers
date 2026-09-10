@@ -24,3 +24,9 @@
 # 원화를 손보면 같은 주소에 다른 그림이 온다. 국기와 같은 하루로 둔다.
 /sky-icons/*
   Cache-Control: public, max-age=86400
+
+# 웹 앱 선언. 확장자만 보고도 application/manifest+json 으로 나가지만, 이 타입이
+# 아니면 사파리가 선언을 통째로 무시하고 「홈 화면에 추가」가 주소창 있는 바로가기로
+# 조용히 떨어진다 — 값이 싸므로 못박아 둔다.
+/*.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8

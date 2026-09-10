@@ -1,0 +1,30 @@
+{
+  "id": "/en/holiday/immaculate-conception/",
+  "name": "Immaculate Conception 2026 — Which Countries Take It Off",
+  "short_name": "Immaculate Conception",
+  "description": "14 countries observe Immaculate Conception in 2026. All of them on 8 December.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/holiday/immaculate-conception/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

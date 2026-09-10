@@ -1,0 +1,30 @@
+{
+  "id": "/en/bh/",
+  "name": "Bahrain Public Holidays 2026",
+  "short_name": "Bahrain",
+  "description": "5 public holidays in Bahrain for 2026. Longest break: 4 days around National Day. 3 long weekends of three days or more.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/bh/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

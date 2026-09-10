@@ -1,0 +1,30 @@
+{
+  "id": "/holiday/statehood-day/",
+  "name": "2026년 건국 기념일 — 어느 나라가 쉬나",
+  "short_name": "건국 기념일",
+  "description": "2026년 건국 기념일(Statehood Day)에 쉬는 나라는 6개국입니다. 날짜는 나라마다 갈려 8가지입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/holiday/statehood-day/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

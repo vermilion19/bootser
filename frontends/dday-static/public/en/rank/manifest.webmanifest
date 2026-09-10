@@ -1,0 +1,30 @@
+{
+  "id": "/en/rank/",
+  "name": "Public Holidays 2026 — Most Days, Longest Breaks",
+  "short_name": "Rankings",
+  "description": "In 2026 the most public holidays are in Spain with 29, the fewest in Djibouti with 3. The longest break runs 9 days in El Salvador.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/rank/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

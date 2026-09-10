@@ -1,0 +1,30 @@
+{
+  "id": "/holiday/columbus-day/",
+  "name": "2026년 콜럼버스 데이 — 어느 나라가 쉬나",
+  "short_name": "콜럼버스 데이",
+  "description": "2026년 콜럼버스 데이(Columbus Day)에 쉬는 나라는 6개국입니다. 모두 10월 12일에 쉽니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/holiday/columbus-day/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

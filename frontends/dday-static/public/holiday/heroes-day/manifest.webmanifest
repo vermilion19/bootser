@@ -1,0 +1,30 @@
+{
+  "id": "/holiday/heroes-day/",
+  "name": "2026년 영웅의 날 — 어느 나라가 쉬나",
+  "short_name": "영웅의 날",
+  "description": "2026년 영웅의 날(Heroes' Day)에 쉬는 나라는 5개국입니다. 날짜는 나라마다 갈려 5가지입니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/holiday/heroes-day/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

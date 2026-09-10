@@ -1,0 +1,30 @@
+{
+  "id": "/en/sky/meteor/",
+  "name": "Meteor Showers 2026 — Peak Dates and D-day",
+  "short_name": "Meteor showers",
+  "description": "Every meteor shower peak in 2026 with its exact date and time — Perseids, Geminids and the rest — and the days until the next one. Times in UTC.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/sky/meteor/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

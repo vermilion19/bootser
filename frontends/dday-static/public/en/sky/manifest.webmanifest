@@ -1,0 +1,30 @@
+{
+  "id": "/en/sky/",
+  "name": "The Sky in 2026 — Terms, Moons, Meteors, Lunar Months",
+  "short_name": "The sky",
+  "description": "The 24 solar terms, new and full moons, meteor shower peaks and lunar months of 2026. Pick a kind to see three years in date order, with a countdown.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/sky/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

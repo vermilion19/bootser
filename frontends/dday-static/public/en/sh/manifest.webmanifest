@@ -1,0 +1,30 @@
+{
+  "id": "/en/sh/",
+  "name": "Saint Helena, Ascension and Tristan da Cunha Public Holidays 2026",
+  "short_name": "Saint Helena, Ascension and Tristan da Cunha",
+  "description": "11 public holidays in Saint Helena, Ascension and Tristan da Cunha for 2026. Longest break: 5 days around Saint Helena Day. Region-only days are marked.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/en/sh/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

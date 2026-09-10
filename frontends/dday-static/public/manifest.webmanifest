@@ -1,0 +1,30 @@
+{
+  "id": "/",
+  "name": "this is the day — 204개국 공휴일·황금연휴와 절기·삭망 D-day",
+  "short_name": "오늘 무슨 날",
+  "description": "오늘이 무슨 날인지, 다음까지 며칠 남았는지. 대한민국을 비롯한 204개국의 법정 공휴일과 황금연휴, 그리고 24절기·삭망·유성우를 날짜순으로 봅니다.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fcfdfe",
+  "theme_color": "#fcfdfe",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
