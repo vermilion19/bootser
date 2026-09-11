@@ -18,14 +18,13 @@ down() {
 TARGETS=("$@")
 
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  TARGETS=("dday-web" "dday-backend" "observability" "infrastructure")
+  TARGETS=("dday-backend" "observability" "infrastructure")
 fi
 
 for target in "${TARGETS[@]}"; do
   case "$target" in
     infra|infrastructure) down "infrastructure" ;;
     obs|observability)    down "observability" ;;
-    dday-web)              down "dday-web" ;;
     dday-back|dday-backend) down "dday-backend" ;;
     *)
       echo "Unknown target: $target"

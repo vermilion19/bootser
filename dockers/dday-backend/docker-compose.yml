@@ -22,8 +22,6 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
-      TMDB_API_KEY: ${TMDB_API_KEY:-dev-tmdb-key}
-      THESPORTSDB_API_KEY: ${THESPORTSDB_API_KEY:-3}
     networks:
       - booster-network
     logging:

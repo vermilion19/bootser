@@ -8,21 +8,15 @@ dependencies {
     implementation project(':libs:core-web')
     implementation project(':libs:storage-db')
     implementation project(':libs:storage-redis')
-    implementation project(':libs:core-resilience')
     implementation project(':libs:storage-kafka')
+    implementation project(':libs:core-resilience')
 
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     runtimeOnly 'com.h2database:h2'
 
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-
-    // ShedLock (스케줄러 분산 락)
-    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
-    implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.10.0'
-
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'

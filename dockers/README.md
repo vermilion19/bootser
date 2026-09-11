@@ -14,8 +14,6 @@ dockers/
 │   └── docker-compose.yml
 ├── dday-backend/            # D-Day 백엔드
 │   └── docker-compose.yml
-├── dday-web/                # D-Day 프론트엔드
-│   └── docker-compose.yml
 ├── waiting-service/         # 웨이팅 서비스 (port 8081)
 │   └── docker-compose.yml
 ├── restaurant-service/      # 식당 서비스 (port 8082)
@@ -47,10 +45,9 @@ Docker 내부에서 Gradle 빌드 → JRE 런타임 이미지 생성까지 자�
 
 ```bash
 ./dockers/up.sh infra          # infrastructure만
-./dockers/up.sh dday-web       # dday-web만
-./dockers/up.sh dday-back      # dday-backend만
 ./dockers/up.sh obs            # observability만
-./dockers/up.sh infra dday-back dday-web   # 여러 개 조합
+./dockers/up.sh dday-back      # dday-backend만
+./dockers/up.sh infra obs      # 여러 개 조합
 ```
 
 ### 중지
@@ -67,7 +64,6 @@ Docker 내부에서 Gradle 빌드 → JRE 런타임 이미지 생성까지 자�
 | Infrastructure | `infrastructure` | `infra` |
 | Observability | `observability` | `obs` |
 | D-Day Backend | `dday-backend` | `dday-back` |
-| D-Day Frontend | `dday-web` | - |
 
 ## 코드 수정 반영
 
@@ -76,7 +72,7 @@ Docker 내부에서 Gradle 빌드 → JRE 런타임 이미지 생성까지 자�
 직접 docker compose를 사용하는 경우에는 반드시 `--build`를 붙여야 한다:
 
 ```bash
-docker compose -f dockers/dday-web/docker-compose.yml up -d --build
+docker compose -f dockers/observability/docker-compose.yml up -d --build
 ```
 
 ## 서비스 목록
@@ -110,12 +106,6 @@ PostgreSQL은 컨테이너 최초 기동 시 `init-databases.sh`로 5개 DB를 �
 | D-Day Service | booster-dday-service | 8080 | Spring Boot (멀티스테이지 빌드) |
 
 Dockerfile이 프로젝트 루트를 빌드 컨텍스트로 사용하므로 별도의 JAR 빌드 없이 `docker compose up --build`만으로 빌드된다.
-
-### dday-web
-
-| 서비스 | 컨테이너 | 포트 | 설명 |
-|---|---|---|---|
-| D-Day Frontend | booster-dday-web | 3303 | Vite 빌드 + Nginx 서빙 |
 
 ### Booster 앱 서비스
 
@@ -209,8 +199,6 @@ cp dockers/infrastructure/.env.example dockers/infrastructure/.env
 | `POSTGRES_USER` | postgres | DB 사용자 |
 | `POSTGRES_PASSWORD` | postgres | DB 비밀번호 |
 | `JWT_SECRET` | (내장 기본값) | Gateway JWT 시크릿 |
-| `TMDB_API_KEY` | dev-tmdb-key | TMDB API 키 (dday-backend) |
-| `THESPORTSDB_API_KEY` | 3 | TheSportsDB API 키 (dday-backend) |
 
 ## 멀티스테이지 빌드
 
@@ -244,7 +232,6 @@ Dockerfile 내부에서 필요한 모듈(`libs/`, 해당 서비스)만 선택적
 | `apps/auth-service/Dockerfile` | 인증 서비스 | `libs/`, `apps/auth-service/` |
 | `apps/notification-service/Dockerfile` | 알림 서비스 | `libs/`, `apps/notification-service/` |
 | `apps/promotion-service/Dockerfile` | 프로모션 서비스 | `libs/`, `apps/promotion-service/` |
-| `frontends/dday-web/Dockerfile` | D-Day Frontend | 자체 디렉토리 (독립 빌드) |
 
 ## 네트워크
 

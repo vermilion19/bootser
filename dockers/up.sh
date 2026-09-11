@@ -4,7 +4,6 @@
 # 사용법: ./dockers/up.sh [서비스] [서비스] ...
 #   ./dockers/up.sh              → 전체 실행
 #   ./dockers/up.sh infra        → infrastructure만
-#   ./dockers/up.sh dday-web     → dday-web만
 #   ./dockers/up.sh obs          → observability만
 #   ./dockers/up.sh dday-back    → dday-backend만
 # ─────────────────────────────────────────────────────────────
@@ -25,18 +24,17 @@ TARGETS=("$@")
 
 # 인자 없으면 전체 실행
 if [ ${#TARGETS[@]} -eq 0 ]; then
-  TARGETS=("infrastructure" "observability" "dday-backend" "dday-web")
+  TARGETS=("infrastructure" "observability" "dday-backend")
 fi
 
 for target in "${TARGETS[@]}"; do
   case "$target" in
     infra|infrastructure) up "infrastructure" ;;
     obs|observability)    up "observability" ;;
-    dday-web)              up "dday-web" ;;
     dday-back|dday-backend) up "dday-backend" ;;
     *)
       echo "Unknown target: $target"
-      echo "Available: infrastructure (infra), observability (obs), dday-web, dday-backend (dday-back)"
+      echo "Available: infrastructure (infra), observability (obs), dday-backend (dday-back)"
       exit 1
       ;;
   esac
