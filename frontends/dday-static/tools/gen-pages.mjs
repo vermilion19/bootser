@@ -127,6 +127,7 @@ const L = {
     ko: {
         lang: 'ko', dir: '', other: 'en', locale: 'ko_KR',
         otherLabel: 'EN',            /* 버튼에 적히는 글자 = 눌렀을 때 가는 언어 */
+        otherName: 'English',        /* 넓은 화면에서는 코드 대신 이름을 적는다 — top() 을 볼 것 */
         dow: KO_DOW,
         /* 하늘 페이지의 기준 시간대. sky.json 의 zones 와 같은 것을 가리켜야 한다 —
            절기는 온 세계가 같은 순간을 공유하지만 날짜는 시간대마다 갈린다. */
@@ -441,6 +442,7 @@ const L = {
     en: {
         lang: 'en', dir: '/en', other: 'ko', locale: 'en_US',
         otherLabel: 'KO',            /* 버튼에 적히는 글자 = 눌렀을 때 가는 언어 */
+        otherName: '한국어',          /* 넓은 화면에서는 코드 대신 이름을 적는다 — top() 을 볼 것 */
         dow: EN_DOW,
         zone: 'utc', zoneLabel: 'UTC',
         name: (c) => c.name,
@@ -860,6 +862,42 @@ ${AXES.map((k) => {
     </nav>`;
 }
 
+/* 언어 단추의 글자 아이콘 — 「文」 과 「A」.
+
+   왜 지구본이 아닌가. 이 사이트에서 지구본은 이미 "나라 고르기" 다(#globeopen ·
+   globe.js). 머리말에 지구본을 얹으면 첫 화면의 그 지구본과 같은 것을 가리키는
+   줄 안다. 국기도 안 된다 — 바로 아래 204개 국기가 전부 "나라" 를 뜻한다.
+   두 글자꼴은 이 사이트에서 겹치는 뜻이 없고, 말을 가리키는 가장 흔한 표시다.
+
+   파일이 아니라 인라인인 까닭. (1) currentColor 를 그대로 타므로 두 테마와
+   hover 가 저절로 따라온다 — mask-image 로 우회할 일이 없다. (2) 요청이 늘지
+   않는다. (3) check-pages 가 단추 markup 을 통째로 무는데, 파일로 빼면 그 계약이
+   두 군데로 갈린다. 204개 <li> 를 인라인하지 않은 것과는 무게가 다르다 —
+   여기는 페이지당 160바이트다.
+
+   aria-hidden 인 까닭: 옆의 글자(English · 한국어)가 이미 이름이다. 아이콘까지
+   읽으면 같은 말이 두 번 나온다.
+
+   class 가 'ico' 가 아니라 'lang-ico' 인 까닭 — 하늘 표의 그림 칸이 이미
+   <td class="ico"> 다. 처음에 'ico' 로 붙였더니 "lunar 표에 그림 칸이 있다" 로
+   check-pages 가 물었다. 머리말은 모든 페이지에 있으므로 이름이 겹치면
+   페이지마다 걸린다. */
+const LANG_ICO = '<svg class="lang-ico" viewBox="0 0 16 16" width="13" height="13" fill="none"'
+    + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
+    + ' aria-hidden="true" focusable="false">'
+    + '<path d="M4.9 1.9V3.4M1.3 3.5H8.6M6.5 3.5C6.5 6.6 4.5 8.6 1.6 9.6M3.8 6.4C4.9 8.2 6.3 9.2 7.9 9.7"/>'
+    + '<path d="M8.9 14.4 11.9 7.2 14.9 14.4M10.1 11.5H13.7"/>'
+    + '</svg>';
+
+/* 언어 단추의 글자는 **가는 쪽 언어로** 적는다 — 한국어 페이지에 'English',
+   영어 페이지에 '한국어'. 지금 페이지를 못 읽는 사람도 제 언어 이름은 안다.
+   'EN' 두 글자만으로는 그것이 말에 관한 것인지조차 알 수 없었다.
+
+   이름과 코드를 둘 다 박고 CSS 가 화면 폭으로 고른다(base.css 의 .btn .lg · .sm).
+   폭 문턱이 640px 라 자바스크립트로 고를 일이 아니다.
+
+   lang 속성은 <a> 에 붙어 안쪽 둘을 함께 덮는다 — 안쪽 글자가 전부 가는 쪽
+   언어라서 맞다. 아이콘은 글자가 아니라 상관없다. */
 function top(t, { slug, home, label, axis }) {
     const o = L[t.other];
     return `<div class="top"><div class="wrap">
@@ -867,7 +905,7 @@ function top(t, { slug, home, label, axis }) {
 ${tabs(t, axis)}
   <nav class="side">
 ${picker(t, label)}
-    <a class="btn" href="${o.dir}/${slug}" hreflang="${o.lang}" lang="${o.lang}">${t.otherLabel}</a>
+    <a class="btn" href="${o.dir}/${slug}" hreflang="${o.lang}" lang="${o.lang}">${LANG_ICO}<span class="lg">${t.otherName}</span><span class="sm">${t.otherLabel}</span></a>
   </nav>
 </div></div>`;
 }

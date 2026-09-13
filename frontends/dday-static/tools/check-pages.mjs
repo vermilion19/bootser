@@ -199,6 +199,14 @@ check('favicon.svg', (file) => {
         [/\.cardinal\{/, '분점·지점 배지 스타일이 없다'],
         [/\.leap\{/, '윤달 배지 스타일이 없다 — 표에서 안 보인다'],
         [/\.tab\{/, '축 탭 스타일이 없다'],
+        /* 언어 단추. 머리말에서 색이 있는 유일한 것이라 되돌아가기 쉬운 자리다 —
+           테두리가 --rule 로 돌아가면 옆의 국가 선택과 한 덩이로 묻힌다. */
+        [/\.btn\{[^}]*border:1px solid var\(--today\)/, '언어 단추의 테두리가 --today 가 아니다 — 머리말에서 다시 묻힌다'],
+        [/\.btn\{[^}]*display:inline-flex/, '언어 단추가 플렉스가 아니다 — 아이콘과 글자 사이가 벌어지지 않는다'],
+        /* 둘은 짝이다. 한쪽만 남으면 어느 폭에서는 이름과 코드가 같이 보이거나
+           (「English EN」) 둘 다 사라져 아이콘만 남는다. */
+        [/\.btn \.sm\{display:none\}/, '좁은 화면용 코드가 넓은 화면에서 안 숨는다 — 「English EN」 이 된다'],
+        [/\.btn \.lg\{display:none\}/, '좁은 화면에서 언어 이름이 안 접힌다 — 머리말이 넘친다'],
         [/img\.flag\{/, '국기 스타일이 없다'],
         [/img\.flag\{[^}]*border/, '국기에 테두리가 없다 — 흰 국기(일본)가 바탕에 묻힌다'],
         /* 요약 카드의 국기는 22px 명조 옆에 선다. base.css 의 -2px(본문 15px 기준)이
@@ -917,14 +925,28 @@ for (const { page, lang, slug, kind, label } of ALL) {
     }
 
     /* 1.5. 언어 전환 단추 — 가는 곳과 적힌 글자가 같아야 한다.
-       href 는 반대 언어인데 글자는 현재 언어면 눌러 보기 전엔 아무도 모른다. */
+       href 는 반대 언어인데 글자는 현재 언어면 눌러 보기 전엔 아무도 모른다.
+
+       안쪽까지 통째로 무는 까닭(2026-09-14). 단추는 셋으로 이루어져 있다 —
+       글자 아이콘 · 넓은 화면용 언어 이름(.lg) · 좁은 화면용 코드(.sm). 셋 중
+       하나가 빠져도 화면에서는 "그냥 좀 밋밋한 단추" 로 보일 뿐이라 눈으로는
+       못 잡는다. 특히 .lg 가 사라지면 좁은 화면에서 쓰던 코드만 남아 고치기
+       전으로 돌아가는데, 그게 이 변경이 없애려던 바로 그 상태다.
+
+       기대값을 여기서 따로 짓는다 — gen-pages 의 L 표를 가져다 쓰면 거기서
+       'English' 를 지워도 함께 통과해 버린다. */
     {
         const other = lang === 'ko' ? 'en' : 'ko';
         const href = other === 'en' ? `/en/${slug ? slug + '/' : ''}` : `/${slug ? slug + '/' : ''}`;
-        const want = `<a class="btn" href="${href}" hreflang="${other}" lang="${other}">${other.toUpperCase()}</a>`;
-        if (!html.includes(want)) {
-            const got = (html.match(/<a class="btn"[^>]*>[^<]*<\/a>/) || ['(단추가 없다)'])[0];
-            bad(label, `언어 단추가 ${got} — ${want} 이어야 한다`);
+        const name = other === 'en' ? 'English' : '한국어';
+        const ico = '<svg class="lang-ico" viewBox="0 0 16 16" width="13" height="13" fill="none"'
+            + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
+            + ' aria-hidden="true" focusable="false">';
+        const want = `<a class="btn" href="${href}" hreflang="${other}" lang="${other}">${ico}`;
+        const tail = `<span class="lg">${name}</span><span class="sm">${other.toUpperCase()}</span></a>`;
+        if (!html.includes(want) || !html.includes(tail)) {
+            const got = (html.match(/<a class="btn"[\s\S]*?<\/a>/) || ['(단추가 없다)'])[0];
+            bad(label, `언어 단추가 ${got} — ${want}…${tail} 이어야 한다`);
         }
     }
 
@@ -2917,6 +2939,11 @@ for (const [file, lang, needle] of [
 
         /* 자료에서 오는 자리를 들어낸다 */
         const chrome = html
+            /* 언어 단추만은 한글이 **있어야** 맞다. 영어 페이지에서 한국어로
+               건너가는 손잡이라 'Korean' 이 아니라 '한국어' 라고 적는다 —
+               이 페이지를 못 읽는 사람이 알아보는 것이 그 글자다.
+               있는지는 위 1.5 가 페이지마다 따로 문다. */
+            .replace(/<span class="lg">한국어<\/span>/g, '')
             .replace(/<td class="name">[\s\S]*?<\/td>/g, '')
             .replace(/<span class="regions">[\s\S]*?<\/span>/g, '')
             .replace(/ data-ko="[^"]*"/g, '')
