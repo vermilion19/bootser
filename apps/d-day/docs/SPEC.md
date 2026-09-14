@@ -156,7 +156,7 @@
 
 > **2층 확보됨 (2026-09-14) — `docs/ASTRO-CHECKPOINTS.md`.**
 > 절기 24개 × 3해(72) · 삭망 74건은 NAOJ 暦要項 에서, 유성우 11건은 IMO 2026 달력에서
-> 받아 적었다. 값은 `d-day-service/src/test/resources/astro/checkpoints.json`.
+> 받아 적었다. 값은 `astro-core/src/test/resources/astro/checkpoints.json`.
 >
 > **확보하다 함정이 하나 나왔다.** IMO 의 황경은 `equinox 2000.0` 기준이라 절기의
 > 겉보기 황경과 **2026년 기준 약 9시간** 어긋난다(세차). 하나의 「황경 → 시각」
@@ -792,7 +792,7 @@ E-1 이 고치려던 것이 "조용히 하루 어긋남" 이었으므로, 그 �
 7. (1차 이후) 검색 색인 · 검색 캐시 키 → §7
 
 ~~**착수 전에 2층 검산점부터 확보한다**~~ → **끝남 (2026-09-14).**
-`docs/ASTRO-CHECKPOINTS.md` · `d-day-service/src/test/resources/astro/checkpoints.json`.
+`docs/ASTRO-CHECKPOINTS.md` · `astro-core/src/test/resources/astro/checkpoints.json`.
 확보하는 과정에서 나온 함정(IMO 황경의 기준계)은 §B 검산점 에 적었다.
 
 ---
