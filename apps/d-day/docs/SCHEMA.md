@@ -33,8 +33,8 @@
 | 11 | `date_change` | **유일 제약을 걸지 않는다.** 중복 제거는 Outbox 멱등키의 일이다 — 이력과 알림은 요구가 다르다 |
 | 12 | Outbox 폴링 | `(created_at) WHERE status IN ('PENDING','SENDING')` **부분 인덱스.** 적체돼도 Top-N 이다 |
 | 13 | 파티셔닝 | **1차에는 없다.** 방아쇠는 `anniversary_occurrence` 3,000만 행 |
-| 14 | DDL 의 자리 | **Flyway 를 들인다.** `d-day-service/src/main/resources/db/migration/`. 저장소 최초다 |
-| 15 | 제약과 인덱스의 이중 관리 | **정합성 제약은 엔티티에도 적고, 인덱스는 Flyway 에만 적는다** (근거 §1.5) |
+| 14 | DDL 의 자리 | **`d-day-service/src/main/resources/scripts/schema.sql`.** 마이그레이션 도구를 쓰지 않는다 (§11) |
+| 15 | 제약과 인덱스의 이중 관리 | **정합성 제약은 엔티티에도 적고, 인덱스는 `schema.sql` 에만 적는다** (근거 §1.5) |
 
 ---
 
@@ -144,7 +144,7 @@ SPEC §12.3 이 발견한 것과 같은 종류의 신호다.
    에서도 유일 제약이 생기고, "중복 공휴일이 거부되는가" 테스트가 테스트 DB 에서 실제로 의미를 갖는다.
 3. **인덱스는 엔티티에 적지 않는다.** `@Table(indexes = ...)` 에 적으면 이름과 정의가 두 군데
    살고, 부분 인덱스·`INCLUDE` 는 애초에 표현할 수 없어 **두 정의가 처음부터 다르다.**
-   인덱스는 Flyway 한 곳에만 산다.
+   인덱스는 `schema.sql` 한 곳에만 산다.
 
 ---
 
@@ -1090,26 +1090,25 @@ CREATE INDEX ix_date_change_detected ON date_change (detected_at);
   `INDEX` 를 테이블 정의 안에). PostgreSQL 에서 돌지 않는다. **본보기로 쓸 수 없다.**
 - `d-day-service/application.yml` 에 **datasource 설정 자체가 없다.**
 
-## 11.2 갈래 넷
+## 11.2 갈래 넷 — **결정이 뒤집혔다 (2026-09-14)**
 
-| | 방법 | 버린 까닭 |
+> **이 문서는 처음에 Flyway 를 권했다. 그 권고는 채택되지 않았다.**
+> 「이 서비스에서 마이그레이션 도구를 쓰지 않는다」가 결정이고, 아래는 그 결정 위에서
+> 다시 쓴 것이다. **버려진 권고를 지우지 않고 남겨 두는 까닭은 §11.1 이 적은 공백이
+> 그대로 살아 있기 때문이다** — 도구를 안 쓴다고 공백이 사라지지는 않는다.
+
+| | 방법 | 평가 |
 | --- | --- | --- |
-| 가 | `docs/` 에 DDL 을 적어 두고 사람이 `psql` 로 돌린다 | **아무도 안 돌린다.** 첫 사람이 "테이블이 없다" 를 만나면 가장 자연스러운 반사가 `ddl-auto: update` 로 바꾸는 것이고, **그 순간 부분 인덱스·`CHECK`·`INCLUDE` 가 전부 사라진다. 그리고 `validate` 는 그것을 못 잡는다** (§1.5) |
-| 나 | `schema.sql` (`spring.sql.init`) | 매 부팅마다 돌리려면 멱등해야 하고, 그러면 **`IF NOT EXISTS` 범벅**이 된다. 무엇보다 **변경 이력이 없다.** 2차 스키마 변경에서 바로 막힌다 |
-| 다 | Liquibase | XML/YAML 로 DDL 을 다시 쓰는 의식이 붙는다. 우리 DDL 은 **PostgreSQL 전용 기능(부분 인덱스·`INCLUDE`·`CHECK` 식)이 요점**이라 추상화 계층이 전부 `<sql>` 태그로 빠져나간다. **얻는 것 없이 층만 는다** |
-| **라** | **Flyway** | — |
+| **가** | **DDL 을 저장소에 두고 사람이 적용한다** | **채택.** 저장소에 전례가 있다 — `promotion-service` 의 `src/main/resources/scripts/table.sql`. 그 파일은 MySQL 문법이라 내용은 본보기가 못 되지만 **자리는 본보기가 된다** |
+| 나 | `schema.sql` (`spring.sql.init`) | 부팅마다 도는 것이라 멱등해야 하고, 그러면 `IF NOT EXISTS` 범벅이 된다. 그리고 **운영 DB 를 앱이 건드리게 된다** — `validate` 를 쓰는 까닭과 정면으로 어긋난다 |
+| 다 | Liquibase | 마이그레이션 도구를 안 쓰기로 했으므로 갈래가 아니다 |
+| 라 | Flyway | 〃 |
 
-## 11.3 Flyway 로 간다 — 저장소 최초다
+## 11.3 자리와 적용 절차
 
 ```
-apps/d-day/d-day-service/src/main/resources/db/migration/
-└── V1__baseline.sql          ← §12 의 전문
-```
-
-```gradle
-// apps/d-day/d-day-service/build.gradle
-implementation 'org.flywaydb:flyway-core'
-implementation 'org.flywaydb:flyway-database-postgresql'
+apps/d-day/d-day-service/src/main/resources/scripts/
+└── schema.sql          ← §12 의 전문
 ```
 
 ```yaml
@@ -1124,10 +1123,6 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
-  flyway:
-    enabled: true
-    baseline-on-migrate: false        # 빈 DB 에서 시작한다. 기존 스키마가 없다
-    validate-on-migrate: true
 
 # application-local.yml (H2 · 테스트)
 spring:
@@ -1139,63 +1134,71 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop
-  flyway:
-    enabled: false                    # ← H2 에서는 끈다
 ```
 
-### 왜 저장소 최초라도 지금 들이나 — 근거 넷
+적용은 사람이 한다.
 
-1. **`validate` 는 이미 누군가 스키마를 만들었다고 가정한다.** 그 "누군가" 가 저장소에 없다.
-   **공백을 메우는 것이지 새 층을 얹는 것이 아니다.**
-2. **이 문서가 정한 것의 대부분을 Hibernate 가 생성할 수 없다.** 부분 인덱스 · `INCLUDE` ·
-   식 `CHECK` · `autovacuum` 파라미터. **둘 자리가 없으면 존재할 수 없다.**
-3. **`flyway:validate` 가 §1.5 의 빈칸을 메운다.** Hibernate `validate` 가 못 보는 것을
-   Flyway 가 체크섬으로 본다. 둘이 겹치지 않고 보완한다.
-4. **d-day 가 저장소에서 스키마가 제일 복잡한 서비스다.** 18개 표 · 제약 12개 · 인덱스 25개.
-   여기서 안 하면 어디서도 안 한다.
+```bash
+psql "$SPRING_DATASOURCE_URL" -v ON_ERROR_STOP=1 -f scripts/schema.sql
+```
 
-### H2 에서 끄는 대가와 그 대가를 막는 테스트
+**`spring.sql.init` 으로 자동 적용하지 않는다.** 운영 프로필이 `validate` 인 것은
+*앱이 스키마를 건드리지 않는다*는 뜻이고, 부팅 시 SQL 을 돌리면 그 뜻이 무너진다.
 
-Flyway 를 H2 에서 끄면 **테스트 DB 는 엔티티에서, 운영 DB 는 Flyway 에서** 나온다. 둘이 갈라질
-수 있다. **이미 있는 픽스처로 막는다** — `libs/storage-db/src/testFixtures/.../PostgresTestConfig.java`
-가 Testcontainers PostgreSQL 을 `@ServiceConnection` 으로 띄운다.
+## 11.4 도구를 안 쓰는 대가 — 그대로 적어 둔다
 
-> **드리프트 테스트 하나.** Testcontainers PostgreSQL 을 띄우고 → Flyway 로 마이그레이션하고 →
-> `hibernate.hbm2ddl.auto=validate` 로 컨텍스트를 올린다. **뜨면 통과.**
-> 엔티티에 칼럼을 더하고 마이그레이션을 안 적으면 **CI 가 거기서 빨개진다.**
+**공백은 사라지지 않았다.** §1.5 가 적은 것이 그대로 유효하다 —
+`validate` 는 인덱스도 유일 제약도 `CHECK` 도 안 본다. 그러므로 누가
+`ddl-auto: update` 로 바꾸면 **부분 인덱스 · `INCLUDE` · `CHECK` 가 전부 사라지는데
+앱은 멀쩡히 뜬다.**
 
-**인덱스는 그 테스트도 못 본다** (§1.5). 그래서 하나 더.
+| 잃는 것 | 무엇으로 메우나 |
+| --- | --- |
+| **적용을 강제하는 힘** | 없다. 사람이 돌려야 한다. 배포 절차에 적는 수밖에 없다 |
+| **체크섬 검증** (적용된 것과 파일이 같은가) | 없다 |
+| **변경 이력** (2차 스키마 변경) | 없다 → §13.3 S-6 |
+| **스키마 드리프트 탐지** | **테스트가 메운다 (아래)** |
 
-> **인덱스 존재 테스트.** 같은 컨테이너에서 `pg_indexes` 를 읽어 **이 문서가 정한 인덱스
-> 이름 25개가 전부 있는지** 단언한다. 이름 목록을 테스트가 들고 있게 하면, 누가 인덱스를
-> 지우거나 이름을 바꿀 때 **그 이유를 적게 강제된다.**
+> ### 도구가 없어도 테스트는 그대로 세운다. **오히려 여기가 방어의 본체다.**
+>
+> Flyway 를 권했을 때도 실제로 고장을 잡는 것은 도구가 아니라 아래 두 테스트였다.
+> 도구가 빠지면서 **테스트가 유일한 방어가 됐으므로, 이 둘은 선택이 아니다.**
 
-테스트 둘 다 `@SpringBootTest` 라 느리므로 **태그를 붙여 별도 Gradle 태스크로 뺀다** —
+`libs/storage-db/src/testFixtures/.../PostgresTestConfig.java` 가 Testcontainers PostgreSQL 을
+`@ServiceConnection` 으로 띄운다. 그것을 쓴다.
+
+1. **드리프트 테스트.** 컨테이너를 띄우고 → `scripts/schema.sql` 을 적용하고 →
+   `hibernate.hbm2ddl.auto=validate` 로 컨텍스트를 올린다. **뜨면 통과.**
+   엔티티에 칼럼을 더하고 `schema.sql` 을 안 고치면 CI 가 거기서 빨개진다.
+2. **인덱스 존재 테스트.** 같은 컨테이너에서 `pg_indexes` 를 읽어 **이 문서가 정한 인덱스
+   이름 25개가 전부 있는지** 단언한다. `validate` 가 인덱스를 안 보므로 이것이 없으면
+   인덱스는 아무도 안 지킨다. 이름 목록을 테스트가 들고 있게 하면, 누가 인덱스를 지울 때
+   **그 이유를 적게 강제된다.**
+
+둘 다 `@SpringBootTest` 라 느리므로 **태그를 붙여 별도 Gradle 태스크로 뺀다** —
 ARCHITECTURE §1.2 가 `astro-core` 검산점에서 한 걱정과 같은 종류다.
 
-## 11.4 규칙 셋 — 앞으로 이렇게 굴린다
+## 11.5 규칙 둘
 
 | | 규칙 |
 | --- | --- |
-| R1 | **`V{n}__{설명}.sql` 은 한 번 머지되면 못 고친다.** 고치면 체크섬이 깨져 부팅이 막힌다. 잘못은 다음 번호로 고친다 |
-| R2 | **정합성 제약(`UNIQUE`·`CHECK`·`NOT NULL`)은 마이그레이션과 엔티티 양쪽에 적는다.** H2 에서도 살아야 한다 (§1.5-2) |
-| R3 | **인덱스는 마이그레이션에만 적는다.** `@Table(indexes=...)` 는 쓰지 않는다 (§1.5-3) |
+| R1 | **정합성 제약(`UNIQUE`·`CHECK`·`NOT NULL`)은 `schema.sql` 과 엔티티 양쪽에 적는다.** H2 `create-drop` 에서도 살아야 테스트가 뜻을 갖는다 (§1.5-2) |
+| R2 | **인덱스는 `schema.sql` 에만 적는다.** `@Table(indexes=...)` 는 쓰지 않는다 — 부분 인덱스와 `INCLUDE` 를 애초에 표현할 수 없어 두 정의가 처음부터 갈린다 (§1.5-3) |
 
-**운영에 자료가 찬 뒤의 인덱스 추가는 `CREATE INDEX CONCURRENTLY` 로 한다.** 다만
-`CONCURRENTLY` 는 트랜잭션 안에서 못 돌므로 그 마이그레이션 파일 머리에
-`-- flyway:executeInTransaction=false` 를 적는다. **`V1__baseline.sql` 은 빈 DB 에 도는
-것이므로 `CONCURRENTLY` 를 쓰지 않는다** — 빈 표에 락을 피할 이유가 없고,
-`CONCURRENTLY` 는 실패 시 무효 인덱스를 남긴다.
+**2차 스키마 변경은 이 문서의 범위 밖이다.** `schema.sql` 은 **빈 DB 를 세우는 스크립트**이지
+변경 이력이 아니다. 이미 자료가 찬 DB 를 고치는 절차는 §13.3 S-6 으로 남긴다.
 
----
+**운영에 자료가 찬 뒤의 인덱스 추가는 `CREATE INDEX CONCURRENTLY` 로 한다.**
+`schema.sql` 자체는 빈 DB 에 도는 것이므로 `CONCURRENTLY` 를 쓰지 않는다 — 빈 표에 락을
+피할 이유가 없고, `CONCURRENTLY` 는 실패 시 무효 인덱스를 남긴다.
 
-# 12. `V1__baseline.sql` — 전문
+# 12. `scripts/schema.sql` — 전문
 
 > PostgreSQL 15+ 문법. 순서는 FK 의존을 따른다.
 
 ```sql
 -- =============================================================
--- d-day-service baseline schema
+-- d-day-service 스키마 — 빈 DB 를 세우는 스크립트 (변경 이력이 아니다)
 -- 근거: docs/SCHEMA.md · SPEC.md §9/§11/§12 · ARCHITECTURE.md
 -- =============================================================
 
@@ -1639,7 +1642,7 @@ CREATE INDEX ix_sync_run_item_bad
 | 2 | **A-7 검산점** (§4.3 의 SQL) | 〃 | **544.** `is_global` 을 켠 쪽과 끈 쪽 둘 다 돌려서 544 가 나오는 쪽을 채택 |
 | 3 | A-5 검산점 | 〃 | 크리스마스 slug 의 국가 수 = **178**, 이름 허브 규모 ≈ **60 × 176** |
 | 4 | 자연키 충돌 | 〃 | 204국 · 5년 전수에서 `uk_holiday_natural` 위반 **0건**. 위반이 나오면 SPEC §11.3 의 45개국 표본이 부족했다는 뜻이고, **그때 다섯 번째 칼럼을 논의한다** |
-| 5 | 드리프트 테스트 · 인덱스 존재 테스트 (§11.3) | 착수 2 | CI 초록 |
+| 5 | 드리프트 테스트 · 인덱스 존재 테스트 (§11.4) | 착수 2 | CI 초록. **마이그레이션 도구가 없으므로 이 둘이 유일한 방어다** |
 
 **4번이 제일 중요하다.** SPEC §11.3 의 "0조" 는 **45개국 · 1년**의 실측이고, 우리는
 **204개국 · 5년**을 담는다. 표본이 4.5배 · 5배로 늘어난다. **여기서 위반이 나오면 스키마가
@@ -1661,6 +1664,7 @@ CREATE INDEX ix_sync_run_item_bad
 | S-3 | **`sport_event` 참가자 모델** | 홈/원정 두 칼럼은 KBO 의 모양이다. 참가자 N 인 종목을 켜는 날 자식 테이블이 필요하다 (§6.4) | 리그를 늘릴 때 |
 | S-4 | **`anniversary_occurrence` 파티셔닝** | 3,000만 행 또는 청소가 자동 청소를 못 따라갈 때 (§9.3) | 관측 후 |
 | S-5 | **유료 키가 켜졌을 때의 벌크 upsert** | §6.2 의 `ON CONFLICT ... WHERE source_hash <> ...` 경로. 칼럼은 지금 넣지만 질의는 그때 쓴다 | 유료 키 도입 시 |
+| **S-6** | **2차 스키마 변경을 어떻게 굴리나** | 마이그레이션 도구를 안 쓰기로 했으므로(§11.2) `schema.sql` 은 빈 DB 용이다. 자료가 찬 DB 를 고치는 절차 — 누가 언제 무엇을 적용했는지 — 를 정해야 한다. **첫 스키마 변경 전까지는 미룰 수 있지만 그 전에는 정해야 한다** | 2차 변경 전 |
 
 ## 13.4 ARCHITECTURE 에 되돌리는 요구 — 하나
 
