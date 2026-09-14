@@ -19,7 +19,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, '..', 'd-day-service', 'src', 'test', 'resources', 'astro', 'checkpoints.json');
+/* astro-core 에 둔다 — 이 값을 읽는 테스트가 사는 모듈이다 (ARCHITECTURE §1.2).
+   d-day-service 에 있다가 옮겼다. 옮길 때 손으로 파일을 만들지 말고 여기를 고칠 것. */
+const OUT = join(HERE, '..', 'astro-core', 'src', 'test', 'resources', 'astro', 'checkpoints.json');
 
 /* NAOJ 暦要項 이 다루는 해. 2월에 이듬해 것을 낸다 — 2028 은 아직 없다. */
 const YEARS = [2025, 2026, 2027];

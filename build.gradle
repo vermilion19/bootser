@@ -64,8 +64,16 @@ subprojects {
 
     // apps 폴더 아래에 있는 모듈만 '실행 가능한 Jar(BootJar)'로 만들고
     // libs 폴더 아래에 있는 모듈은 '일반 라이브러리 Jar'로 만듭니다.
-    if ((it.path.startsWith(':apps') && it.name != 'apps') ||
-        (it.path.startsWith(':infrastructure')&& it.name != 'infrastructure')) {
+    //
+    // pureJavaModules 는 apps 아래에 있지만 Spring 이 붙으면 안 되는 모듈이다.
+    // 여기 적힌 모듈은 actuator·micrometer 공통 주입을 받지 않으므로 main 소스셋에
+    // Spring 이 아예 없고, 그래서 계산 코드에 @Cacheable 같은 것을 붙이는 길이
+    // 컴파일 에러가 된다 — apps/d-day/docs/ARCHITECTURE.md §1.2
+    def pureJavaModules = [':apps:d-day:astro-core']
+
+    if (((it.path.startsWith(':apps') && it.name != 'apps') ||
+         (it.path.startsWith(':infrastructure') && it.name != 'infrastructure'))
+            && !pureJavaModules.contains(it.path)) {
         bootJar { enabled = true }
         jar { enabled = false }
 

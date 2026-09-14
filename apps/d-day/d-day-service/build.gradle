@@ -10,9 +10,21 @@ dependencies {
     implementation project(':libs:storage-redis')
     implementation project(':libs:storage-kafka')
     implementation project(':libs:core-resilience')
+    // §F-5 를 재려면 필요하다. 빠져 있었다 — ARCHITECTURE.md §8.1
+    implementation project(':libs:core-observability')
+
+    // 천문 계산 커널. Spring 을 모르는 순수 자바 모듈이고, sky 컨텍스트만 이것을
+    // 의존한다(ARCHITECTURE.md R4). 같은 집합 모듈 안의 형제라 apps/* → apps/*
+    // 금지에 걸리지 않는다 — 그 규칙이 막는 것은 서비스 사이다.
+    implementation project(':apps:d-day:astro-core')
 
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // 스케줄러 분산 락. 스케줄 작업이 일곱이고(ARCHITECTURE.md §5.6) 수동 트리거와
+    // 같은 락 이름을 잡아야 하므로 LockProvider 를 직접 주입해 쓴다.
+    implementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
+    implementation 'net.javacrumbs.shedlock:shedlock-provider-redis-spring:5.10.0'
 
     runtimeOnly 'com.h2database:h2'
 

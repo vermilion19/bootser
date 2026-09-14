@@ -1,0 +1,53 @@
+bootJar { enabled = false }
+jar { enabled = true }
+
+description = 'd-day 천문 계산 커널 — 절기 · 삭망 · 음력 · 유성우'
+
+/*
+ * Spring 을 의존하지 않는다. 이것이 이 모듈의 존재 이유다.
+ *
+ * 루트 build.gradle 의 pureJavaModules 에 적혀 있어 actuator·micrometer 공통 주입을
+ * 받지 않는다. 그래서 main 소스셋에 spring-context 가 없고, 계산 커널에 @Cacheable
+ * 이나 @Transactional 을 붙이려 하면 컴파일 에러가 난다.
+ *
+ * 캐시는 sky 컨텍스트의 일이지 계산의 일이 아니다 — ARCHITECTURE.md §1.2 · §6.1.
+ * 여기에 의존성을 더할 일이 생기면 그 전에 §1.2 를 다시 읽을 것.
+ *
+ * 검산점 테스트가 수백 건이라(절기 72 · 삭망 74 · 유성우 11) @SpringBootTest 를
+ * 태우면 CI 가 못 버틴다. 이 모듈의 테스트는 전부 순수 단위 테스트다.
+ */
+dependencies {
+    // 픽스처(checkpoints.json)를 읽는 데만 쓴다. main 에는 없다.
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+}
+
+/*
+ * 위의 주석은 지켜지지 않는다. 이것은 지켜진다.
+ *
+ * "Spring 을 의존하지 않는다" 가 이 모듈의 설계 전부인데, 그것을 지키는 것이 지금은
+ * 루트의 pureJavaModules 목록 한 줄뿐이다. 누가 여기에 starter 를 하나 더하거나
+ * 루트의 그 줄을 지우면 @Cacheable 이 조용히 컴파일된다 — 그리고 그것이 컴파일되는
+ * 순간 이 모듈은 존재 이유를 잃는다. 빌드가 그 자리에서 깨지게 둔다.
+ *
+ * compileJava 의 doFirst 로 달지 않는다 — main 소스가 없으면 그 태스크가 NO-SOURCE 로
+ * 건너뛰어서 검사도 같이 사라진다. 실제로 처음에 그렇게 붙였다가 조용히 통과했다.
+ */
+tasks.register('verifyNoSpring') {
+    description = 'astro-core 의 컴파일 클래스패스에 Spring 이 없는지 본다'
+    group = 'verification'
+    doLast {
+        def spring = configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts
+                .findAll { it.moduleVersion.id.group.startsWith('org.springframework') }
+        if (!spring.isEmpty()) {
+            throw new GradleException(
+                    "astro-core 의 컴파일 클래스패스에 Spring 이 들어왔다: "
+                            + spring.collect { it.moduleVersion.id.name }
+                            + " — 계산 커널은 Spring 을 몰라야 한다. "
+                            + "apps/d-day/docs/ARCHITECTURE.md §1.2 를 읽고 나서 이 검사를 지울 것")
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'verifyNoSpring'
+}
