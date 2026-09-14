@@ -1,0 +1,994 @@
+{
+  "note": "2층 검산점 — SPEC.md §B 검산점. 손으로 고치지 않는다. tools/fetch-astro-checkpoints.mjs 가 다시 만든다.",
+  "acquired": "2026-09-14",
+  "sources": {
+    "solarTerms": "NAOJ 暦計算室 暦要項 (https://eco.mtk.nao.ac.jp/koyomi/yoko/) — 中央標準時, 분 단위",
+    "moonPhases": "NAOJ 暦計算室 暦要項 — 中央標準時, 분 단위",
+    "meteorShowers": "IMO Meteor Shower Calendar 2026 (https://www.imo.net/files/meteor-shower/cal2026.pdf) — UT"
+  },
+  "tolerance": {
+    "solarTermMinutes": 1,
+    "moonPhaseMinutes": 1,
+    "note": "원천이 분 단위로 반올림돼 있으므로 계산이 완벽해도 최대 1분이 벌어진다. 유성우는 갈래마다 precision 이 다르다."
+  },
+  "solarTerms": [
+    {
+      "year": 2025,
+      "name": "Shoukan",
+      "ko": "소한",
+      "longitude": 285,
+      "utc": "2025-01-05T02:33Z"
+    },
+    {
+      "year": 2025,
+      "name": "Daikan",
+      "ko": "대한",
+      "longitude": 300,
+      "utc": "2025-01-19T20:00Z"
+    },
+    {
+      "year": 2025,
+      "name": "Risshun",
+      "ko": "입춘",
+      "longitude": 315,
+      "utc": "2025-02-03T14:10Z"
+    },
+    {
+      "year": 2025,
+      "name": "Usui",
+      "ko": "우수",
+      "longitude": 330,
+      "utc": "2025-02-18T10:07Z"
+    },
+    {
+      "year": 2025,
+      "name": "Keichitsu",
+      "ko": "경칩",
+      "longitude": 345,
+      "utc": "2025-03-05T08:07Z"
+    },
+    {
+      "year": 2025,
+      "name": "Shunbun",
+      "ko": "춘분",
+      "longitude": 0,
+      "utc": "2025-03-20T09:01Z"
+    },
+    {
+      "year": 2025,
+      "name": "Seimei",
+      "ko": "청명",
+      "longitude": 15,
+      "utc": "2025-04-04T12:49Z"
+    },
+    {
+      "year": 2025,
+      "name": "Kokuu",
+      "ko": "곡우",
+      "longitude": 30,
+      "utc": "2025-04-19T19:56Z"
+    },
+    {
+      "year": 2025,
+      "name": "Rikka",
+      "ko": "입하",
+      "longitude": 45,
+      "utc": "2025-05-05T05:57Z"
+    },
+    {
+      "year": 2025,
+      "name": "Shouman",
+      "ko": "소만",
+      "longitude": 60,
+      "utc": "2025-05-20T18:55Z"
+    },
+    {
+      "year": 2025,
+      "name": "Boushu",
+      "ko": "망종",
+      "longitude": 75,
+      "utc": "2025-06-05T09:57Z"
+    },
+    {
+      "year": 2025,
+      "name": "Geshi",
+      "ko": "하지",
+      "longitude": 90,
+      "utc": "2025-06-21T02:42Z"
+    },
+    {
+      "year": 2025,
+      "name": "Shousho",
+      "ko": "소서",
+      "longitude": 105,
+      "utc": "2025-07-06T20:05Z"
+    },
+    {
+      "year": 2025,
+      "name": "Taisho",
+      "ko": "대서",
+      "longitude": 120,
+      "utc": "2025-07-22T13:29Z"
+    },
+    {
+      "year": 2025,
+      "name": "Risshuu",
+      "ko": "입추",
+      "longitude": 135,
+      "utc": "2025-08-07T05:52Z"
+    },
+    {
+      "year": 2025,
+      "name": "Shosho",
+      "ko": "처서",
+      "longitude": 150,
+      "utc": "2025-08-22T20:34Z"
+    },
+    {
+      "year": 2025,
+      "name": "Hakuro",
+      "ko": "백로",
+      "longitude": 165,
+      "utc": "2025-09-07T08:52Z"
+    },
+    {
+      "year": 2025,
+      "name": "Shuubun",
+      "ko": "추분",
+      "longitude": 180,
+      "utc": "2025-09-22T18:19Z"
+    },
+    {
+      "year": 2025,
+      "name": "Kanro",
+      "ko": "한로",
+      "longitude": 195,
+      "utc": "2025-10-08T00:41Z"
+    },
+    {
+      "year": 2025,
+      "name": "Soukou",
+      "ko": "상강",
+      "longitude": 210,
+      "utc": "2025-10-23T03:51Z"
+    },
+    {
+      "year": 2025,
+      "name": "Rittou",
+      "ko": "입동",
+      "longitude": 225,
+      "utc": "2025-11-07T04:04Z"
+    },
+    {
+      "year": 2025,
+      "name": "Shousetsu",
+      "ko": "소설",
+      "longitude": 240,
+      "utc": "2025-11-22T01:36Z"
+    },
+    {
+      "year": 2025,
+      "name": "Taisetsu",
+      "ko": "대설",
+      "longitude": 255,
+      "utc": "2025-12-06T21:05Z"
+    },
+    {
+      "year": 2025,
+      "name": "Touji",
+      "ko": "동지",
+      "longitude": 270,
+      "utc": "2025-12-21T15:03Z"
+    },
+    {
+      "year": 2026,
+      "name": "Shoukan",
+      "ko": "소한",
+      "longitude": 285,
+      "utc": "2026-01-05T08:23Z"
+    },
+    {
+      "year": 2026,
+      "name": "Daikan",
+      "ko": "대한",
+      "longitude": 300,
+      "utc": "2026-01-20T01:45Z"
+    },
+    {
+      "year": 2026,
+      "name": "Risshun",
+      "ko": "입춘",
+      "longitude": 315,
+      "utc": "2026-02-03T20:02Z"
+    },
+    {
+      "year": 2026,
+      "name": "Usui",
+      "ko": "우수",
+      "longitude": 330,
+      "utc": "2026-02-18T15:52Z"
+    },
+    {
+      "year": 2026,
+      "name": "Keichitsu",
+      "ko": "경칩",
+      "longitude": 345,
+      "utc": "2026-03-05T13:59Z"
+    },
+    {
+      "year": 2026,
+      "name": "Shunbun",
+      "ko": "춘분",
+      "longitude": 0,
+      "utc": "2026-03-20T14:46Z"
+    },
+    {
+      "year": 2026,
+      "name": "Seimei",
+      "ko": "청명",
+      "longitude": 15,
+      "utc": "2026-04-04T18:40Z"
+    },
+    {
+      "year": 2026,
+      "name": "Kokuu",
+      "ko": "곡우",
+      "longitude": 30,
+      "utc": "2026-04-20T01:39Z"
+    },
+    {
+      "year": 2026,
+      "name": "Rikka",
+      "ko": "입하",
+      "longitude": 45,
+      "utc": "2026-05-05T11:49Z"
+    },
+    {
+      "year": 2026,
+      "name": "Shouman",
+      "ko": "소만",
+      "longitude": 60,
+      "utc": "2026-05-21T00:37Z"
+    },
+    {
+      "year": 2026,
+      "name": "Boushu",
+      "ko": "망종",
+      "longitude": 75,
+      "utc": "2026-06-05T15:48Z"
+    },
+    {
+      "year": 2026,
+      "name": "Geshi",
+      "ko": "하지",
+      "longitude": 90,
+      "utc": "2026-06-21T08:25Z"
+    },
+    {
+      "year": 2026,
+      "name": "Shousho",
+      "ko": "소서",
+      "longitude": 105,
+      "utc": "2026-07-07T01:57Z"
+    },
+    {
+      "year": 2026,
+      "name": "Taisho",
+      "ko": "대서",
+      "longitude": 120,
+      "utc": "2026-07-22T19:13Z"
+    },
+    {
+      "year": 2026,
+      "name": "Risshuu",
+      "ko": "입추",
+      "longitude": 135,
+      "utc": "2026-08-07T11:43Z"
+    },
+    {
+      "year": 2026,
+      "name": "Shosho",
+      "ko": "처서",
+      "longitude": 150,
+      "utc": "2026-08-23T02:19Z"
+    },
+    {
+      "year": 2026,
+      "name": "Hakuro",
+      "ko": "백로",
+      "longitude": 165,
+      "utc": "2026-09-07T14:41Z"
+    },
+    {
+      "year": 2026,
+      "name": "Shuubun",
+      "ko": "추분",
+      "longitude": 180,
+      "utc": "2026-09-23T00:05Z"
+    },
+    {
+      "year": 2026,
+      "name": "Kanro",
+      "ko": "한로",
+      "longitude": 195,
+      "utc": "2026-10-08T06:29Z"
+    },
+    {
+      "year": 2026,
+      "name": "Soukou",
+      "ko": "상강",
+      "longitude": 210,
+      "utc": "2026-10-23T09:38Z"
+    },
+    {
+      "year": 2026,
+      "name": "Rittou",
+      "ko": "입동",
+      "longitude": 225,
+      "utc": "2026-11-07T09:52Z"
+    },
+    {
+      "year": 2026,
+      "name": "Shousetsu",
+      "ko": "소설",
+      "longitude": 240,
+      "utc": "2026-11-22T07:23Z"
+    },
+    {
+      "year": 2026,
+      "name": "Taisetsu",
+      "ko": "대설",
+      "longitude": 255,
+      "utc": "2026-12-07T02:53Z"
+    },
+    {
+      "year": 2026,
+      "name": "Touji",
+      "ko": "동지",
+      "longitude": 270,
+      "utc": "2026-12-21T20:50Z"
+    },
+    {
+      "year": 2027,
+      "name": "Shoukan",
+      "ko": "소한",
+      "longitude": 285,
+      "utc": "2027-01-05T14:10Z"
+    },
+    {
+      "year": 2027,
+      "name": "Daikan",
+      "ko": "대한",
+      "longitude": 300,
+      "utc": "2027-01-20T07:30Z"
+    },
+    {
+      "year": 2027,
+      "name": "Risshun",
+      "ko": "입춘",
+      "longitude": 315,
+      "utc": "2027-02-04T01:46Z"
+    },
+    {
+      "year": 2027,
+      "name": "Usui",
+      "ko": "우수",
+      "longitude": 330,
+      "utc": "2027-02-18T21:33Z"
+    },
+    {
+      "year": 2027,
+      "name": "Keichitsu",
+      "ko": "경칩",
+      "longitude": 345,
+      "utc": "2027-03-05T19:40Z"
+    },
+    {
+      "year": 2027,
+      "name": "Shunbun",
+      "ko": "춘분",
+      "longitude": 0,
+      "utc": "2027-03-20T20:25Z"
+    },
+    {
+      "year": 2027,
+      "name": "Seimei",
+      "ko": "청명",
+      "longitude": 15,
+      "utc": "2027-04-05T00:17Z"
+    },
+    {
+      "year": 2027,
+      "name": "Kokuu",
+      "ko": "곡우",
+      "longitude": 30,
+      "utc": "2027-04-20T07:18Z"
+    },
+    {
+      "year": 2027,
+      "name": "Rikka",
+      "ko": "입하",
+      "longitude": 45,
+      "utc": "2027-05-05T17:25Z"
+    },
+    {
+      "year": 2027,
+      "name": "Shouman",
+      "ko": "소만",
+      "longitude": 60,
+      "utc": "2027-05-21T06:18Z"
+    },
+    {
+      "year": 2027,
+      "name": "Boushu",
+      "ko": "망종",
+      "longitude": 75,
+      "utc": "2027-06-05T21:26Z"
+    },
+    {
+      "year": 2027,
+      "name": "Geshi",
+      "ko": "하지",
+      "longitude": 90,
+      "utc": "2027-06-21T14:11Z"
+    },
+    {
+      "year": 2027,
+      "name": "Shousho",
+      "ko": "소서",
+      "longitude": 105,
+      "utc": "2027-07-07T07:37Z"
+    },
+    {
+      "year": 2027,
+      "name": "Taisho",
+      "ko": "대서",
+      "longitude": 120,
+      "utc": "2027-07-23T01:05Z"
+    },
+    {
+      "year": 2027,
+      "name": "Risshuu",
+      "ko": "입추",
+      "longitude": 135,
+      "utc": "2027-08-07T17:27Z"
+    },
+    {
+      "year": 2027,
+      "name": "Shosho",
+      "ko": "처서",
+      "longitude": 150,
+      "utc": "2027-08-23T08:14Z"
+    },
+    {
+      "year": 2027,
+      "name": "Hakuro",
+      "ko": "백로",
+      "longitude": 165,
+      "utc": "2027-09-07T20:28Z"
+    },
+    {
+      "year": 2027,
+      "name": "Shuubun",
+      "ko": "추분",
+      "longitude": 180,
+      "utc": "2027-09-23T06:02Z"
+    },
+    {
+      "year": 2027,
+      "name": "Kanro",
+      "ko": "한로",
+      "longitude": 195,
+      "utc": "2027-10-08T12:17Z"
+    },
+    {
+      "year": 2027,
+      "name": "Soukou",
+      "ko": "상강",
+      "longitude": 210,
+      "utc": "2027-10-23T15:33Z"
+    },
+    {
+      "year": 2027,
+      "name": "Rittou",
+      "ko": "입동",
+      "longitude": 225,
+      "utc": "2027-11-07T15:39Z"
+    },
+    {
+      "year": 2027,
+      "name": "Shousetsu",
+      "ko": "소설",
+      "longitude": 240,
+      "utc": "2027-11-22T13:16Z"
+    },
+    {
+      "year": 2027,
+      "name": "Taisetsu",
+      "ko": "대설",
+      "longitude": 255,
+      "utc": "2027-12-07T08:38Z"
+    },
+    {
+      "year": 2027,
+      "name": "Touji",
+      "ko": "동지",
+      "longitude": 270,
+      "utc": "2027-12-22T02:42Z"
+    }
+  ],
+  "moonPhases": [
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-01-13T22:27Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-01-29T12:36Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-02-12T13:53Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-02-28T00:45Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-03-14T06:55Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-03-29T10:58Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-04-13T00:22Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-04-27T19:31Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-05-12T16:56Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-05-27T03:02Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-06-11T07:44Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-06-25T10:32Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-07-10T20:37Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-07-24T19:11Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-08-09T07:55Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-08-23T06:07Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-09-07T18:09Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-09-21T19:54Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-10-07T03:48Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-10-21T12:25Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-11-05T13:19Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-11-20T06:47Z"
+    },
+    {
+      "year": 2025,
+      "phase": "FULL",
+      "utc": "2025-12-04T23:14Z"
+    },
+    {
+      "year": 2025,
+      "phase": "NEW",
+      "utc": "2025-12-20T01:43Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-01-03T10:03Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-01-18T19:52Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-02-01T22:09Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-02-17T12:01Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-03-03T11:38Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-03-19T01:23Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-04-02T02:12Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-04-17T11:52Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-05-01T17:23Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-05-16T20:01Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-05-31T08:45Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-06-15T02:54Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-06-29T23:57Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-07-14T09:44Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-07-29T14:36Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-08-12T17:37Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-08-28T04:19Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-09-11T03:27Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-09-26T16:49Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-10-10T15:50Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-10-26T04:12Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-11-09T07:02Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-11-24T14:54Z"
+    },
+    {
+      "year": 2026,
+      "phase": "NEW",
+      "utc": "2026-12-09T00:52Z"
+    },
+    {
+      "year": 2026,
+      "phase": "FULL",
+      "utc": "2026-12-24T01:28Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-01-07T20:24Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-01-22T12:17Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-02-06T15:56Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-02-20T23:24Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-03-08T09:29Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-03-22T10:44Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-04-06T23:51Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-04-20T22:27Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-05-06T10:59Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-05-20T10:59Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-06-04T19:40Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-06-19T00:44Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-07-04T03:02Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-07-18T15:45Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-08-02T10:05Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-08-17T07:29Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-08-31T17:41Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-09-15T23:04Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-09-30T02:36Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-10-15T13:47Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-10-29T13:37Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-11-14T03:26Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-11-28T03:24Z"
+    },
+    {
+      "year": 2027,
+      "phase": "FULL",
+      "utc": "2027-12-13T16:09Z"
+    },
+    {
+      "year": 2027,
+      "phase": "NEW",
+      "utc": "2027-12-27T20:12Z"
+    }
+  ],
+  "meteorShowers": [
+    {
+      "code": "010QUA",
+      "name": "Quadrantids",
+      "ko": "사분의자리",
+      "utc": "2026-01-03T21:00Z",
+      "precision": "hour",
+      "solarLongitude": null,
+      "source": "peak on January 3 close to 21h UT"
+    },
+    {
+      "code": "404GUM",
+      "name": "gamma-Ursae Minorids",
+      "ko": "작은곰자리 감마",
+      "utc": "2026-01-18",
+      "precision": "date",
+      "solarLongitude": 298,
+      "source": "Maximum: around January 18 (lambda = 298)"
+    },
+    {
+      "code": "102ACE",
+      "name": "alpha-Centaurids",
+      "ko": "센타우루스자리 알파",
+      "utc": "2026-02-08",
+      "precision": "date",
+      "solarLongitude": 319.4,
+      "source": "Maximum: February 8 (lambda = 319.4)"
+    },
+    {
+      "code": "006LYR",
+      "name": "April Lyrids",
+      "ko": "거문고자리",
+      "utc": "2026-04-22T19:40Z",
+      "precision": "minute",
+      "solarLongitude": 32.32,
+      "source": "Maximum: April 22, 19h40m UT (lambda = 32.32, but may vary)"
+    },
+    {
+      "code": "145ELY",
+      "name": "eta-Lyrids",
+      "ko": "거문고자리 에타",
+      "utc": "2026-05-10",
+      "precision": "date",
+      "solarLongitude": 50,
+      "source": "Maximum: May 10 (lambda = 50)"
+    },
+    {
+      "code": "007PER",
+      "name": "Perseids",
+      "ko": "페르세우스자리",
+      "utc": "2026-08-13T02:00Z",
+      "utcEnd": "2026-08-13T04:00Z",
+      "precision": "range",
+      "solarLongitude": 140,
+      "source": "Maximum: August 13, 02h to 04h UT (node at lambda = 140.0-140.1)"
+    },
+    {
+      "code": "281OCT",
+      "name": "October Camelopardalids",
+      "ko": "기린자리",
+      "utc": "2026-10-06T04:40Z",
+      "precision": "minute",
+      "solarLongitude": 192.58,
+      "source": "Maximum: October 6, 04h40m (lambda = 192.58)"
+    },
+    {
+      "code": "008ORI",
+      "name": "Orionids",
+      "ko": "오리온자리",
+      "utc": "2026-10-21",
+      "precision": "date",
+      "solarLongitude": 208,
+      "source": "Maximum: October 21 (lambda = 208)"
+    },
+    {
+      "code": "013LEO",
+      "name": "Leonids",
+      "ko": "사자자리",
+      "utc": "2026-11-17T23:45Z",
+      "precision": "minute",
+      "solarLongitude": 235.27,
+      "source": "Maximum: November 17, 23h45m UT (nodal crossing at lambda = 235.27)"
+    },
+    {
+      "code": "004GEM",
+      "name": "Geminids",
+      "ko": "쌍둥이자리",
+      "utc": "2026-12-14T14:00Z",
+      "precision": "hour",
+      "solarLongitude": 262.2,
+      "source": "Maximum: December 14, 14h UT (lambda = 262.2)"
+    },
+    {
+      "code": "015URS",
+      "name": "Ursids",
+      "ko": "작은곰자리",
+      "utc": "2026-12-22T22:00Z",
+      "precision": "hour",
+      "solarLongitude": null,
+      "source": "reach their maximum on December 22, 22h UT"
+    }
+  ]
+}
