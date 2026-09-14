@@ -1,0 +1,23 @@
+# IMO Meteor Shower Calendar 2026 — 공표된 극대. 손으로 고치지 않는다.
+# tools/fetch-astro-checkpoints.mjs 가 검산점과 함께 낸다.
+# 원천: IMO Meteor Shower Calendar 2026 (https://www.imo.net/files/meteor-shower/cal2026.pdf) — UT
+# 받은 날: 2026-09-14
+#
+# ⚠ lambda 는 equinox 2000.0 기준이다. 절기의 겉보기 황경과 같은 눈금이 아니다
+#   — docs/ASTRO-CHECKPOINTS.md §4. 값이 없으면 "-" 다.
+#
+# precision 은 원천이 준 만큼이다. date 인 것을 분 단위로 견주면 우리 계산이
+# 아니라 유성우의 물리를 검산하게 된다.
+#
+# 줄 모양: code|precision|utc|utcEnd|lambda2000|한국어 이름|영어 이름
+010QUA|hour|2026-01-03T21:00Z|-|-|사분의자리|Quadrantids
+404GUM|date|2026-01-18|-|298|작은곰자리 감마|gamma-Ursae Minorids
+102ACE|date|2026-02-08|-|319.4|센타우루스자리 알파|alpha-Centaurids
+006LYR|minute|2026-04-22T19:40Z|-|32.32|거문고자리|April Lyrids
+145ELY|date|2026-05-10|-|50|거문고자리 에타|eta-Lyrids
+007PER|range|2026-08-13T02:00Z|2026-08-13T04:00Z|140|페르세우스자리|Perseids
+281OCT|minute|2026-10-06T04:40Z|-|192.58|기린자리|October Camelopardalids
+008ORI|date|2026-10-21|-|208|오리온자리|Orionids
+013LEO|minute|2026-11-17T23:45Z|-|235.27|사자자리|Leonids
+004GEM|hour|2026-12-14T14:00Z|-|262.2|쌍둥이자리|Geminids
+015URS|hour|2026-12-22T22:00Z|-|-|작은곰자리|Ursids

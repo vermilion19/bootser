@@ -1,0 +1,2 @@
+# 공표 자료가 있는 해. tools/fetch-astro-checkpoints.mjs 가 낸다.
+2026

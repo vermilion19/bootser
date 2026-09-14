@@ -161,4 +161,48 @@ const doc = {
 
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(doc, null, 2) + '\n');
+
+/* ------------------------------------------------------------------ 운영 자료
+
+   같은 표가 두 곳으로 간다 — 검산점(테스트)과 자원 파일(운영). **한 스크립트가
+   둘 다 내는 것이 중요하다.** 둘이 다른 경로로 들어오면 둘을 견주는 테스트가
+   아무것도 검산하지 않게 된다 (ARCHITECTURE.md §6.4).
+
+   자원 쪽은 JSON 이 아니라 줄 단위 글이다. astro-core 의 main 에는 JSON 파서가
+   없고, 넣을 까닭도 없다 — 그 모듈은 Spring 도 잭슨도 모르는 것이 설계다. */
+const RESOURCE = join(HERE, '..', 'astro-core', 'src', 'main', 'resources', 'meteor', 'imo-2026.txt');
+
+const resource = [
+    '# IMO Meteor Shower Calendar 2026 — 공표된 극대. 손으로 고치지 않는다.',
+    '# tools/fetch-astro-checkpoints.mjs 가 검산점과 함께 낸다.',
+    `# 원천: ${doc.sources.meteorShowers}`,
+    `# 받은 날: ${doc.acquired}`,
+    '#',
+    '# ⚠ lambda 는 equinox 2000.0 기준이다. 절기의 겉보기 황경과 같은 눈금이 아니다',
+    '#   — docs/ASTRO-CHECKPOINTS.md §4. 값이 없으면 "-" 다.',
+    '#',
+    '# precision 은 원천이 준 만큼이다. date 인 것을 분 단위로 견주면 우리 계산이',
+    '# 아니라 유성우의 물리를 검산하게 된다.',
+    '#',
+    '# 줄 모양: code|precision|utc|utcEnd|lambda2000|한국어 이름|영어 이름',
+    ...METEORS_2026.map((m) => [
+        m.code,
+        m.precision,
+        m.utc,
+        m.utcEnd ?? '-',
+        m.solarLongitude ?? '-',
+        m.ko,
+        m.name,
+    ].join('|')),
+];
+
+mkdirSync(dirname(RESOURCE), { recursive: true });
+writeFileSync(RESOURCE, resource.join('\n') + '\n');
+
+/* 어느 해가 공표돼 있는지 자바가 알 길이 있어야 한다. 해 목록을 코드에 적으면
+   IMO 가 새 달력을 낼 때마다 자바를 고쳐야 하므로 여기서 낸다. */
+writeFileSync(join(dirname(RESOURCE), 'index.txt'),
+    ['# 공표 자료가 있는 해. tools/fetch-astro-checkpoints.mjs 가 낸다.', '2026'].join('\n') + '\n');
+
 console.log(`절기 ${terms.length} · 삭망 ${moons.length} · 유성우 ${METEORS_2026.length} → ${OUT}`);
+console.log(`유성우 ${METEORS_2026.length} → ${RESOURCE}`);
