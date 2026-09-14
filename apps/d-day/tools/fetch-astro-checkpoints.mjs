@@ -135,10 +135,74 @@ async function moonPhases(year) {
     return got;
 }
 
+/* ------------------------------------------------------------------ 1층
+
+   음력 변환의 검산점이다. 2층과 성격이 다르다 — 시각이 아니라 **날짜**를 준다.
+
+   초하루가 언제인지 · 그 달이 몇 월인지 · 윤달이 어디 끼는지를 한꺼번에 검산한다.
+   셋이 다 맞아야 음력이 맞는 것이라 따로 볼 까닭이 없다. */
+const LUNAR_YEARS = { from: 2015, to: 2030 };
+
+/* 홍콩 천문대가 해마다 내는 양력-음력 대조표. 한 해 365줄 전부에 음력 날짜가 붙어
+   있고, 달이 바뀌는 줄에만 "8th Lunar Month" 처럼 번호가 적힌다. 윤달은 **같은 번호가
+   잇따라 나오는 것**으로 드러난다 (2020년에 4월이 두 번 = 윤4월).
+
+   기준 자오선이 홍콩(UTC+8)이라 한국 음력(UTC+9)과 이따금 하루 갈린다. 그래서 이
+   검산점은 `Asia/Hong_Kong` 으로 견주어야 한다 — 갈리는 것 자체가 자오선 인자가
+   하는 일이므로, 그 차이를 없애려 들면 안 된다. */
+const HKO = 'https://www.hko.gov.hk/en/gts/time/calendar/text/files';
+
+/* ⚠ 한국 공휴일(설날 · 추석)에서 음력 날짜를 뽑으려다 버렸다. 적어 둔다 — 같은 함정에
+   두 번 빠지지 않으려고.
+
+   설날 · 추석은 사흘 연휴이고 가운데가 음력 1/1 · 8/15 다. 그런데 전날이 일요일이면
+   원천이 그 날을 빼고 대체공휴일을 뒤에 붙여서, 남은 사흘이 **[당일, 다음날, 대체]** 가
+   된다. 연속 사흘이라는 겉모습은 같은데 가운데가 당일이 아니다 — 2018 추석과 2025
+   추석이 그랬고, 22건 중 딱 그 둘만 우리 계산과 어긋났다.
+
+   날짜와 요일만으로는 두 경우를 가를 수 없다. 그래서 이 유도는 버린다.
+   **우리 계산이 틀린 것이 아니라 검산점 유도가 틀렸다는 것을 먼저 확인했다** —
+   NAOJ 가 공표한 삭이 2025-09-21T19:54Z(KST 9월 22일)이므로 음력 8월 1일은 9월 22일이고
+   8월 15일은 10월 6일이다. 10월 7일이 8/15 가 될 방법이 없다. */
+
+async function lunarMonthStarts() {
+    const all = [];
+
+    for (let year = LUNAR_YEARS.from; year <= LUNAR_YEARS.to; year++) {
+        const res = await fetch(`${HKO}/T${year}e.txt`);
+        if (!res.ok) throw new Error(`HKO ${year} → HTTP ${res.status}`);
+        const text = await res.text();
+
+        for (const line of text.split(/\r?\n/)) {
+            const m = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d+)(?:st|nd|rd|th) Lunar Month/.exec(line);
+            if (!m) continue;
+            const [, y, mo, d, month] = m;
+            all.push({
+                solar: `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+                month: Number(month),
+            });
+        }
+    }
+    if (all.length === 0) throw new Error('달 시작을 하나도 못 읽었다 — 표 모양이 바뀌었다');
+
+    /* 앞 달과 번호가 같으면 윤달이다. 해 경계를 넘는 윤달도 있으므로 파일을 넘나들며 센다 */
+    let previous = null;
+    let leaps = 0;
+    for (const entry of all) {
+        entry.leapMonth = previous !== null && entry.month === previous;
+        if (entry.leapMonth) leaps++;
+        previous = entry.month;
+    }
+
+    console.log(`음력 달 시작 ${all.length}건 (${LUNAR_YEARS.from}~${LUNAR_YEARS.to}) · 그중 윤달 ${leaps}`);
+    return all;
+}
+
 const flat = (xs) => xs.flat();
-const [terms, moons] = await Promise.all([
+const [terms, moons, lunar] = await Promise.all([
     Promise.all(YEARS.map(solarTerms)).then(flat),
     Promise.all(YEARS.map(moonPhases)).then(flat),
+    lunarMonthStarts(),
 ]);
 
 const doc = {
@@ -147,6 +211,7 @@ const doc = {
     sources: {
         solarTerms: 'NAOJ 暦計算室 暦要項 (https://eco.mtk.nao.ac.jp/koyomi/yoko/) — 中央標準時, 분 단위',
         moonPhases: 'NAOJ 暦計算室 暦要項 — 中央標準時, 분 단위',
+        lunarMonthStarts: '홍콩 천문대 양력-음력 대조표 (https://www.hko.gov.hk/en/gts/time/calendar/) — 기준 자오선 UTC+8',
         meteorShowers: 'IMO Meteor Shower Calendar 2026 (https://www.imo.net/files/meteor-shower/cal2026.pdf) — UT',
     },
     tolerance: {
@@ -157,6 +222,7 @@ const doc = {
     solarTerms: terms,
     moonPhases: moons,
     meteorShowers: METEORS_2026,
+    lunarMonthStarts: lunar,
 };
 
 mkdirSync(dirname(OUT), { recursive: true });

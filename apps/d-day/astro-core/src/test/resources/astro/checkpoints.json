@@ -4,6 +4,7 @@
   "sources": {
     "solarTerms": "NAOJ 暦計算室 暦要項 (https://eco.mtk.nao.ac.jp/koyomi/yoko/) — 中央標準時, 분 단위",
     "moonPhases": "NAOJ 暦計算室 暦要項 — 中央標準時, 분 단위",
+    "lunarMonthStarts": "홍콩 천문대 양력-음력 대조표 (https://www.hko.gov.hk/en/gts/time/calendar/) — 기준 자오선 UTC+8",
     "meteorShowers": "IMO Meteor Shower Calendar 2026 (https://www.imo.net/files/meteor-shower/cal2026.pdf) — UT"
   },
   "tolerance": {
@@ -989,6 +990,998 @@
       "precision": "hour",
       "solarLongitude": null,
       "source": "reach their maximum on December 22, 22h UT"
+    }
+  ],
+  "lunarMonthStarts": [
+    {
+      "solar": "2015-01-20",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-02-19",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-03-20",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-04-19",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-05-18",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-06-16",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-07-16",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-08-14",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-09-13",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-10-13",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-11-12",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2015-12-11",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-01-10",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-02-08",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-03-09",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-04-07",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-05-07",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-06-05",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-07-04",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-08-03",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-09-01",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-10-01",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-10-31",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-11-29",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2016-12-29",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-01-28",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-02-26",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-03-28",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-04-26",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-05-26",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-06-24",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-07-23",
+      "month": 6,
+      "leapMonth": true
+    },
+    {
+      "solar": "2017-08-22",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-09-20",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-10-20",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-11-18",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2017-12-18",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-01-17",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-02-16",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-03-17",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-04-16",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-05-15",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-06-14",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-07-13",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-08-11",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-09-10",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-10-09",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-11-08",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2018-12-07",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-01-06",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-02-05",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-03-07",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-04-05",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-05-05",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-06-03",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-07-03",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-08-01",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-08-30",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-09-29",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-10-28",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-11-26",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2019-12-26",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-01-25",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-02-23",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-03-24",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-04-23",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-05-23",
+      "month": 4,
+      "leapMonth": true
+    },
+    {
+      "solar": "2020-06-21",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-07-21",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-08-19",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-09-17",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-10-17",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-11-15",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2020-12-15",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-01-13",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-02-12",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-03-13",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-04-12",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-05-12",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-06-10",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-07-10",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-08-08",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-09-07",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-10-06",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-11-05",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2021-12-04",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-01-03",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-02-01",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-03-03",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-04-01",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-05-01",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-05-30",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-06-29",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-07-29",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-08-27",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-09-26",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-10-25",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-11-24",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2022-12-23",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-01-22",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-02-20",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-03-22",
+      "month": 2,
+      "leapMonth": true
+    },
+    {
+      "solar": "2023-04-20",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-05-19",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-06-18",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-07-18",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-08-16",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-09-15",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-10-15",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-11-13",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2023-12-13",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-01-11",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-02-10",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-03-10",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-04-09",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-05-08",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-06-06",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-07-06",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-08-04",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-09-03",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-10-03",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-11-01",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-12-01",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2024-12-31",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-01-29",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-02-28",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-03-29",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-04-28",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-05-27",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-06-25",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-07-25",
+      "month": 6,
+      "leapMonth": true
+    },
+    {
+      "solar": "2025-08-23",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-09-22",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-10-21",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-11-20",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2025-12-20",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-01-19",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-02-17",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-03-19",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-04-17",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-05-17",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-06-15",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-07-14",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-08-13",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-09-11",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-10-10",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-11-09",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2026-12-09",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-01-08",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-02-06",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-03-08",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-04-07",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-05-06",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-06-05",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-07-04",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-08-02",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-09-01",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-09-30",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-10-29",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-11-28",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2027-12-28",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-01-26",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-02-25",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-03-26",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-04-25",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-05-24",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-06-23",
+      "month": 5,
+      "leapMonth": true
+    },
+    {
+      "solar": "2028-07-22",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-08-20",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-09-19",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-10-18",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-11-16",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2028-12-16",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-01-15",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-02-13",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-03-15",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-04-14",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-05-13",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-06-12",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-07-11",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-08-10",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-09-08",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-10-08",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-11-06",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2029-12-05",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-01-04",
+      "month": 12,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-02-03",
+      "month": 1,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-03-04",
+      "month": 2,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-04-03",
+      "month": 3,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-05-02",
+      "month": 4,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-06-01",
+      "month": 5,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-07-01",
+      "month": 6,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-07-30",
+      "month": 7,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-08-29",
+      "month": 8,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-09-27",
+      "month": 9,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-10-27",
+      "month": 10,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-11-25",
+      "month": 11,
+      "leapMonth": false
+    },
+    {
+      "solar": "2030-12-25",
+      "month": 12,
+      "leapMonth": false
     }
   ]
 }
