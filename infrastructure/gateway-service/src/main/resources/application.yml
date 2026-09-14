@@ -102,3 +102,9 @@ gateway:
       - /actuator/**
     admin-blocked-paths:
       - /api/v1/special-days/admin/**
+    # 토큰이 없으면 게스트로 통과시키지 않고 401 을 낼 경로.
+    # d-day 는 공개 읽기가 대부분이라 토큰 없는 요청을 게스트로 통과시키는데,
+    # 개인 자원까지 그 한 줄에 들어가면 막는 것이 서비스 하나뿐이 된다.
+    # 경로가 열리기 전에 먼저 막아 둔다 — apps/d-day/docs/ARCHITECTURE.md §7.1
+    guest-blocked-paths:
+      - /api/v1/dday/me/**

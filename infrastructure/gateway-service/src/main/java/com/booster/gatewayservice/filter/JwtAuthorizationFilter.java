@@ -35,7 +35,12 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
 
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
     private static final String ACCESS_SERVICES_CLAIM = "access_services";
+    // ⚠ 이 지도는 순서가 없다(Map.of + entrySet 순회). 서로 겹치는 패턴을 넣으면
+    //    어느 것이 먼저 맞을지 JVM 이 정한다 — 겹치는 패턴을 여기 넣지 않는다.
+    //    그래서 개인 자원은 이 지도가 아니라 guest-blocked-paths 가 가른다.
+    //    special-days 는 옛 경로다. 라우팅을 옮길 때(ARCHITECTURE §7.1 순서 3) 지운다.
     private static final Map<String, String> PATH_SERVICE_MAPPING = Map.of(
+            "/api/v1/dday/**", "d-day",
             "/api/v1/special-days/**", "d-day",
             "/api/v1/diary/**", "diary",
             "/waitings/**", "waiting",
@@ -45,16 +50,19 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
     private final SecretKey key;
     private final List<String> excludePaths;
     private final List<String> adminBlockedPaths;
+    private final List<String> guestBlockedPaths;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public JwtAuthorizationFilter(
             @Value("${app.jwt.secret}") String secret,
             @Value("${gateway.jwt.exclude-paths:}") List<String> excludePaths,
-            @Value("${gateway.jwt.admin-blocked-paths:}") List<String> adminBlockedPaths) {
+            @Value("${gateway.jwt.admin-blocked-paths:}") List<String> adminBlockedPaths,
+            @Value("${gateway.jwt.guest-blocked-paths:}") List<String> guestBlockedPaths) {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.excludePaths = excludePaths;
         this.adminBlockedPaths = adminBlockedPaths;
+        this.guestBlockedPaths = guestBlockedPaths;
     }
 
     @Override
@@ -77,6 +85,11 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
         String token = extractTokenFromCookie(request);
 
         if (token == null) {
+            // 게스트 통과보다 먼저 본다. 순서가 뒤집히면 개인 자원이 X-User-Id: -1 로
+            // 서비스까지 흘러가고, 막는 것이 서비스 하나뿐이 된다.
+            if (isGuestBlockedPath(path)) {
+                return onError(exchange, "Login required: " + path, HttpStatus.UNAUTHORIZED);
+            }
             if ("d-day".equals(requiredService)) {
                 return handleGuestAccess(exchange, chain);
             }
@@ -133,6 +146,11 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
 
     private boolean isAdminBlockedPath(String path) {
         return adminBlockedPaths.stream()
+                .anyMatch(pattern -> pathMatcher.match(pattern, path));
+    }
+
+    private boolean isGuestBlockedPath(String path) {
+        return guestBlockedPaths.stream()
                 .anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 

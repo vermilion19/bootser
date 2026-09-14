@@ -16,6 +16,12 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.13.0")
 
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+    // 필터가 토큰을 실제로 서명·검증하므로 테스트에도 구현체가 필요하다
+    testImplementation("io.jsonwebtoken:jjwt-impl:0.13.0")
+    testImplementation("io.jsonwebtoken:jjwt-jackson:0.13.0")
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
