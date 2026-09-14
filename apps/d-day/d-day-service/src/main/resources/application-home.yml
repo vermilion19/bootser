@@ -1,0 +1,16 @@
+# 로컬에 PostgreSQL 을 띄워 쓰는 프로필.
+#
+# 스키마는 앱이 만들지 않는다 — scripts/schema.sql 을 psql 로 먼저 넣는다.
+#   psql jdbc 아닌 주소로: psql -d dday_service_db -v ON_ERROR_STOP=1 -f src/main/resources/scripts/schema.sql
+# ddl-auto 가 validate 인 것은 「앱이 스키마를 건드리지 않는다」는 뜻이다 (docs/SCHEMA.md §11.3).
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/dday_service_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:}
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate

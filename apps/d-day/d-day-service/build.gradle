@@ -31,6 +31,9 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // 스키마 검사 둘이 Testcontainers PostgreSQL 을 띄운다. 마이그레이션 도구를 안 쓰기로
+    // 했으므로 그 둘이 유일한 방어다 — docs/SCHEMA.md §11.4
+    testImplementation testFixtures(project(':libs:storage-db'))
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

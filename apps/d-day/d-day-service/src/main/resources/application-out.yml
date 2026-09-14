@@ -1,0 +1,21 @@
+# DB 없이 띄워 보는 프로필. 인메모리라 켤 때마다 새로 만든다.
+#
+# 여기서만 ddl-auto 가 create-drop 이다 — 엔티티에서 스키마가 나온다.
+# 그래서 **인덱스도 부분 제약도 여기엔 없다.** scripts/schema.sql 과 이 프로필이
+# 갈라지는 것을 막는 것이 SchemaDriftTest · SchemaIndexTest 다 (docs/SCHEMA.md §11.4).
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:dday;MODE=PostgreSQL
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
