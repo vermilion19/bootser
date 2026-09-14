@@ -1075,7 +1075,7 @@ if (isAdminBlockedPath(path)) {
 | --- | --- | --- |
 | ~~0~~ | ~~게이트웨이 **4번**~~ | **끝남** — `guest-blocked-paths` · 테스트 10 |
 | ~~1~~ | ~~모듈 골격~~ | **끝남** — main 클래스패스가 Lombok 하나뿐임을 `verifyNoSpring` 이 지킨다 |
-| 2 | `shared` — `DDayCalculator` · `VersionedCache` · `DomainOutbox` + 3세대 릴레이 | 모두가 여기 기댄다. 나중에 끼우면 조립 규칙이 컨텍스트마다 갈라진다 |
+| 2 | `shared` — ~~`DDayCalculator`~~ · `VersionedCache` · `DomainOutbox` + 3세대 릴레이 | **셋 중 하나 끝남.** 조립(§9.9(2))은 섰고, 나머지 둘은 Redis 와 Outbox 테이블이 있어야 한다 |
 | 3 | `country` 시드 (CLDR) | 나머지 전부가 읽는다 (§9.1). E-1 의 근거 |
 | ~~4~~ | ~~`astro-core` 절기 · 삭망~~ | **끝남** — 절기 72건 최대 38초 · 삭망 74건 최대 39초 (허용 1분) |
 | 5 | `holiday` 동기화 + **1층 검산점** (일본 春分の日 · 한국 설날) | 4가 있어야 1층이 의미를 갖는다 |
