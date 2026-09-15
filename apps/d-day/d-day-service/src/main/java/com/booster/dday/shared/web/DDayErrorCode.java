@@ -39,6 +39,12 @@ public enum DDayErrorCode implements ErrorCode {
     COUNTRY_NOT_FOUND(404, "DDAY-COUNTRY-001",
             "그 국가 코드는 다루지 않는다"),
 
+    UNAUTHENTICATED(401, "DDAY-AUTH-001",
+            "로그인이 필요하다"),
+
+    ANNIVERSARY_NOT_FOUND(404, "DDAY-ANNIV-001",
+            "그 기념일이 없다"),
+
     INVALID_PARAMETER(400, "DDAY-COMMON-001",
             "요청 값이 올바르지 않다");
 
