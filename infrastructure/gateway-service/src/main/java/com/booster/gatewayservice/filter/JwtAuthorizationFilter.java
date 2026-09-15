@@ -35,34 +35,70 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
 
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
     private static final String ACCESS_SERVICES_CLAIM = "access_services";
-    // ⚠ 이 지도는 순서가 없다(Map.of + entrySet 순회). 서로 겹치는 패턴을 넣으면
-    //    어느 것이 먼저 맞을지 JVM 이 정한다 — 겹치는 패턴을 여기 넣지 않는다.
-    //    그래서 개인 자원은 이 지도가 아니라 guest-blocked-paths 가 가른다.
-    //    special-days 는 옛 경로다. 라우팅을 옮길 때(ARCHITECTURE §7.1 순서 3) 지운다.
-    private static final Map<String, String> PATH_SERVICE_MAPPING = Map.of(
-            "/api/v1/dday/**", "d-day",
-            "/api/v1/special-days/**", "d-day",
-            "/api/v1/diary/**", "diary",
-            "/waitings/**", "waiting",
-            "/restaurants/**", "restaurant"
+    /**
+     * 경로 → 서비스. <b>순서가 있는 목록이다.</b>
+     *
+     * <p>{@code Map.of} 였다. 그것은 순서 없는 해시맵이고 {@code entrySet} 순회 순서가
+     * JVM 이 정하는 값이라, <b>서로 겹치는 패턴을 넣는 순간 어느 것이 먼저 맞을지
+     * 아무도 모른다</b> (apps/d-day/docs/ARCHITECTURE.md §7.2). 지금은 패턴이 안
+     * 겹쳐 무해했지만, 「겹치는 것을 넣지 마라」를 주석으로만 지키는 것은
+     * 언젠가 깨진다.
+     *
+     * <p>목록이면 <b>먼저 적은 것이 이긴다</b>가 규칙이 되고, 그 규칙은 읽는 사람이
+     * 확인할 수 있다. 값은 설정에서 오고({@code gateway.jwt.path-services}), 비면
+     * 이 기본값이 쓰인다 — 설정 파일 하나가 비어 있는 것으로 인가가 통째로 꺼지면
+     * 안 되기 때문이다.
+     */
+    private static final List<Map.Entry<String, String>> DEFAULT_PATH_SERVICES = List.of(
+            Map.entry("/api/v1/dday/**", "d-day"),
+            Map.entry("/waitings/**", "waiting"),
+            Map.entry("/restaurants/**", "restaurant")
     );
 
     private final SecretKey key;
     private final List<String> excludePaths;
     private final List<String> adminBlockedPaths;
     private final List<String> guestBlockedPaths;
+    private final List<Map.Entry<String, String>> pathServices;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public JwtAuthorizationFilter(
             @Value("${app.jwt.secret}") String secret,
             @Value("${gateway.jwt.exclude-paths:}") List<String> excludePaths,
             @Value("${gateway.jwt.admin-blocked-paths:}") List<String> adminBlockedPaths,
-            @Value("${gateway.jwt.guest-blocked-paths:}") List<String> guestBlockedPaths) {
+            @Value("${gateway.jwt.guest-blocked-paths:}") List<String> guestBlockedPaths,
+            @Value("${gateway.jwt.path-services:}") List<String> pathServices) {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.excludePaths = excludePaths;
         this.adminBlockedPaths = adminBlockedPaths;
         this.guestBlockedPaths = guestBlockedPaths;
+        this.pathServices = parsePathServices(pathServices);
+    }
+
+    /**
+     * {@code /api/v1/dday/**=d-day} 꼴을 읽는다.
+     *
+     * <p>모양이 틀린 줄은 <b>조용히 버리지 않고 터뜨린다.</b> 버리면 그 경로의
+     * 서비스 검사가 사라지는데, 그것은 <b>인가가 헐거워지는 방향의 침묵</b>이다 —
+     * 부팅에 실패하는 편이 낫다.
+     */
+    private static List<Map.Entry<String, String>> parsePathServices(List<String> raw) {
+        if (raw == null || raw.isEmpty() || raw.stream().allMatch(String::isBlank)) {
+            return DEFAULT_PATH_SERVICES;
+        }
+        return raw.stream()
+                .filter(line -> !line.isBlank())
+                .map(line -> {
+                    int split = line.indexOf('=');
+                    if (split <= 0 || split == line.length() - 1) {
+                        throw new IllegalArgumentException(
+                                "gateway.jwt.path-services 의 모양이 틀렸다 (패턴=서비스): " + line);
+                    }
+                    return Map.entry(line.substring(0, split).trim(),
+                            line.substring(split + 1).trim());
+                })
+                .toList();
     }
 
     @Override
@@ -155,7 +191,8 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
     }
 
     private String getRequiredService(String path) {
-        for (Map.Entry<String, String> entry : PATH_SERVICE_MAPPING.entrySet()) {
+        /* 먼저 적은 것이 이긴다 */
+        for (Map.Entry<String, String> entry : pathServices) {
             if (pathMatcher.match(entry.getKey(), path)) {
                 return entry.getValue();
             }

@@ -39,13 +39,17 @@ class JwtAuthorizationFilterTest {
     private static final List<String> EXCLUDE = List.of("/auth/**", "/actuator/**");
     private static final List<String> ADMIN_BLOCKED = List.of("/api/v1/dday/admin/**");
     private static final List<String> GUEST_BLOCKED = List.of("/api/v1/dday/me/**");
+    /** 운영 설정과 같은 값이다 — 여기서만 맞으면 계약을 안 지킨 것이다 */
+    private static final List<String> PATH_SERVICES = List.of(
+            "/api/v1/dday/**=d-day", "/waitings/**=waiting", "/restaurants/**=restaurant");
 
     private JwtAuthorizationFilter filter;
     private RecordingChain chain;
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthorizationFilter(SECRET_BASE64, EXCLUDE, ADMIN_BLOCKED, GUEST_BLOCKED);
+        filter = new JwtAuthorizationFilter(SECRET_BASE64, EXCLUDE, ADMIN_BLOCKED,
+                GUEST_BLOCKED, PATH_SERVICES);
         chain = new RecordingChain();
     }
 
@@ -238,6 +242,86 @@ class JwtAuthorizationFilterTest {
 
             assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
             assertThat(chain.wasCalled()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("경로 → 서비스 지도 (착수 10, 변경 1번)")
+    class PathServices {
+
+        /**
+         * {@code Map.of} 를 순서 있는 목록으로 바꾼 이유가 이것이다. 해시맵이면
+         * 겹치는 패턴 둘 중 <b>어느 것이 먼저 맞을지 JVM 이 정한다.</b>
+         */
+        @Test
+        @DisplayName("겹치는 패턴은 먼저 적은 것이 이긴다")
+        void firstEntryWins() {
+            JwtAuthorizationFilter ordered = new JwtAuthorizationFilter(
+                    SECRET_BASE64, EXCLUDE, List.of(), List.of(),
+                    List.of("/api/v1/dday/sky/**=other-service", "/api/v1/dday/**=d-day"));
+
+            /* other-service 로 잡혔으므로 d-day 게스트 통과를 안 탄다 — 401 */
+            MockServerWebExchange exchange = get("/api/v1/dday/sky/solar-terms");
+            ordered.filter(exchange, chain).block();
+
+            assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(chain.wasCalled()).isFalse();
+        }
+
+        @Test
+        @DisplayName("설정이 비면 기본값이 쓰인다 — 인가가 통째로 꺼지지 않는다")
+        void emptyConfigFallsBackToDefaults() {
+            JwtAuthorizationFilter defaulted = new JwtAuthorizationFilter(
+                    SECRET_BASE64, EXCLUDE, List.of(), GUEST_BLOCKED, List.of());
+
+            MockServerWebExchange exchange = get("/api/v1/dday/countries");
+            defaulted.filter(exchange, chain).block();
+
+            assertThat(chain.wasCalled()).isTrue();
+            assertThat(chain.header("X-User-Role")).isEqualTo("ROLE_GUEST");
+        }
+
+        /**
+         * 모양이 틀린 줄을 조용히 버리면 <b>그 경로의 서비스 검사가 사라진다.</b>
+         * 인가가 헐거워지는 방향의 침묵이라 부팅에 실패하는 편이 낫다.
+         */
+        @Test
+        @DisplayName("모양이 틀린 줄은 조용히 버리지 않고 터뜨린다")
+        void malformedEntryFailsFast() {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                            new JwtAuthorizationFilter(SECRET_BASE64, EXCLUDE, List.of(), List.of(),
+                                    List.of("/api/v1/dday/**")))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("path-services");
+        }
+
+        /**
+         * 옛 경로가 정말 지워졌는지 묻는다. 남아 있으면 «갈아 끼웠다» 가 거짓이고,
+         * 두 경로가 같이 사는 동안 어느 쪽이 진짜인지 아무도 모른다.
+         */
+        @Test
+        @DisplayName("옛 경로(special-days)는 더 이상 d-day 가 아니다")
+        void oldPathIsGone() {
+            MockServerWebExchange exchange = get("/api/v1/special-days/today");
+
+            filter.filter(exchange, chain).block();
+
+            assertThat(exchange.getResponse().getStatusCode())
+                    .as("게스트 통과는 d-day 로 잡힌 경로만 탄다")
+                    .isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(chain.wasCalled()).isFalse();
+        }
+
+        @Test
+        @DisplayName("지도에 없는 경로는 토큰만 있으면 통과한다 — 서비스 검사가 없다")
+        void unmappedPathNeedsNoServiceClaim() {
+            MockServerWebExchange exchange =
+                    getWithToken("/api/v1/unknown/thing", token("42", List.of(), 600_000));
+
+            filter.filter(exchange, chain).block();
+
+            assertThat(chain.wasCalled()).isTrue();
+            assertThat(chain.header("X-User-Id")).isEqualTo("42");
         }
     }
 }

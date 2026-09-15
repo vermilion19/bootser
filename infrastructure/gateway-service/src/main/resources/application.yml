@@ -47,10 +47,13 @@ spring:
               predicates:
                 - Path=/coupons/**
 
+            # 경로를 /api/v1/special-days/** 에서 갈아 끼웠다 (착수 10, 변경 2번).
+            # 병기 기간을 두지 않는다 — 옛 경로를 부르던 컨트롤러는 이미 지워졌고
+            # 껍데기 서비스가 404 를 내고 있었을 뿐이다 (ARCHITECTURE.md §7.4).
             - id: d-day-service-route
               uri: lb://d-day-service
               predicates:
-                - Path=/api/v1/special-days/**
+                - Path=/api/v1/dday/**
 
           globalcors:
             cors-configurations:
@@ -100,11 +103,26 @@ gateway:
       - /oauth2/**
       - /login/oauth2/**
       - /actuator/**
+    # admin API 는 게이트웨이를 통과하지 않는다 — 내부 접근 전용이다.
+    # 이 검사는 토큰을 보기도 전에 무조건 403 이므로 권한이 있어도 막힌다.
+    # 그것이 의도다: 공개 인터넷에서 동기화를 트리거할 수 있는 표면을 열지 않는다
+    # (ARCHITECTURE.md §7.3 의 「가」). 운영자는 내부망·포트포워딩으로 쓴다.
+    # 서비스 쪽에도 X-User-Role 검사가 있다 — 게이트웨이가 유일한 방어가 아니다.
     admin-blocked-paths:
-      - /api/v1/special-days/admin/**
+      - /api/v1/dday/admin/**
     # 토큰이 없으면 게스트로 통과시키지 않고 401 을 낼 경로.
     # d-day 는 공개 읽기가 대부분이라 토큰 없는 요청을 게스트로 통과시키는데,
     # 개인 자원까지 그 한 줄에 들어가면 막는 것이 서비스 하나뿐이 된다.
     # 경로가 열리기 전에 먼저 막아 둔다 — apps/d-day/docs/ARCHITECTURE.md §7.1
     guest-blocked-paths:
       - /api/v1/dday/me/**
+    # 경로 → 서비스. **먼저 적은 것이 이긴다.**
+    # Map.of 였던 것을 순서 있는 목록으로 바꿨다 (착수 10, 변경 1번) — 해시맵은
+    # 순회 순서가 JVM 이 정하는 값이라 겹치는 패턴을 넣는 순간 어느 것이 먼저
+    # 맞을지 아무도 모른다 (ARCHITECTURE.md §7.2).
+    # /api/v1/special-days/** 와 /api/v1/diary/** 는 여기서 지웠다 — 앞은 옛 경로고
+    # 뒤는 존재하지 않는 서비스의 잔재다.
+    path-services:
+      - /api/v1/dday/**=d-day
+      - /waitings/**=waiting
+      - /restaurants/**=restaurant

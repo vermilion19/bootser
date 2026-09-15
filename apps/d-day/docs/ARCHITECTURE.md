@@ -425,18 +425,60 @@ public interface DomainOutbox {
 
 | 겹 | 어디 | 무엇 |
 | --- | --- | --- |
-| 1 | **발행 쪽** | `DomainOutbox.append` 의 `idempotencyKey` 에 유일 제약. 경기 변경 = `(externalId, fromTs, toTs)`, 기념일 알림 = `(anniversaryId, occurrenceDate, notifyOffset)`. **창 누적으로 같은 경기를 여러 번 보므로**(§12.2) 여기서 걸러야 한다 |
+| 1 | **발행 쪽** | `DomainOutbox.append` 의 `idempotencyKey` 에 유일 제약. 경기 변경 = ~~`(externalId, fromTs, toTs)`~~ → **`(externalId, field, oldValue, newValue, 탐지한 날)`** (아래), 기념일 알림 = `(anniversaryId, occurrenceDate, notifyOffset)` |
 | 2 | 소비 쪽 | 이벤트의 Snowflake `eventId` 로 dedup |
+
+### ⚠ 고침 — 원래 규칙대로면 **순연이 두 번째부터 조용히 사라진다**
+
+이 표는 경기 변경의 멱등키를 `(externalId, fromTs, toTs)` 로 적었다. 착수 9 에서
+그대로 만들다 보니 **`POSTPONED: no→yes` 가 한 번 적힌 뒤로 며칠 뒤의 같은 전이가
+「이미 보냈다」로 걸러진다.**
+
+우천 순연은 KBO 에서 일상이고 — SPEC §12.1 이 KBO 를 고른 근거가 **바로 그것**이다 —
+**순연 → 해제 → 다시 순연은 서로 다른 사실**이다. SCHEMA §6.3 이 `date_change` 에
+유일 제약을 일부러 안 걸어 두었는데, **멱등키가 그것을 뒤에서 되돌리고 있었다.**
+
+그래서 키에 **탐지한 날(UTC)** 을 더했다. 원래 목적은 그대로다.
+
+| 무엇이 두 번 오나 | 어디서 걸리나 |
+| --- | --- |
+| 창 누적이 **안 바뀐 경기**를 하루에 여러 번 본다 | `source_hash` 비교. **멱등키까지 오지도 않는다** |
+| 같은 날 같은 전이가 두 번 (우리 쪽 재실행) | 멱등키. 날짜가 같으므로 여전히 걸린다 |
+| 다른 날 같은 전이 (진짜 재순연) | **안 걸린다 — 그것이 고친 것이다** |
+
+`sameDayRepeatIsFolded` 와 `repeatedTransitionOnAnotherDaySurvives` 가 둘을 갈라 문다.
 
 **`DateChange` 와 Outbox 가 같은 트랜잭션에 있는 것이 D-4 의 전부다.** 둘이 갈라지면
 "이력에는 있는데 알림은 안 갔다" 또는 그 반대가 생기고, 그것은 §9.7 의 `DateChange` 가
 존재하는 이유를 무너뜨린다.
 
-## 3.6 `notification-service` 를 건드려야 한다
+## 3.6 `notification-service` 를 건드려야 한다 — **건드렸다**
 
 지금 그 서비스에는 `WaitingEvent` 배치 리스너 하나뿐이다
 (`NotificationEventListener.handleWaitingEvents`). `dday.notification.requested` 를 받으려면
-리스너를 하나 더 넣어야 하고, **그것은 다른 서비스의 변경**이다. → 열린 결정 §11-2.
+리스너를 하나 더 넣어야 하고, **그것은 다른 서비스의 변경**이다. → 열린 결정 §10-2.
+
+**착수 9 에서 넣었다** (`DDayNotificationListener`). 넣으면서 알게 된 것 둘.
+
+**(1) 기본 리스너 팩토리를 쓸 수 없다.** 그 서비스는 배치 리스너이고
+(`app.kafka.listener.type: batch`), 값을 `JacksonJsonDeserializer` 로 푼다 — 그것은
+**타입 헤더가 실려 온다는 가정**이다. 그런데 우리 Outbox 릴레이는 `stringKafkaTemplate`
+로 **본문만** 보낸다. 릴레이가 페이로드를 열어 보지 않기로 했으므로(§3.3) 그것이 무슨
+타입인지 모르고, **모르는 것을 헤더에 적을 수 없다.** 그래서 문자열로 받는 팩토리를
+그 서비스에 따로 뒀다. 안 맞추면 컨슈머가 첫 메시지에서 죽고, 그 죽음은 역직렬화
+예외라서 재시도해도 계속 죽는다.
+
+**(2) 적을 표가 없다.** `notification` 표는 웨이팅 모양이다 — `waiting_id` ·
+`restaurant_id` 가 필수다. d-day 알림을 거기 적으려면 그 표를 고쳐야 하고, 그것은
+**그 서비스의 스키마 결정**이다. 지금은 채널로 보내고 로그만 남긴다.
+「보냈는지 나중에 확인할 수 없다」가 그 대가다.
+
+**본문 타입은 `libs/core-web` 에 뒀다** (`DDayNotificationEvent`). `WaitingEvent` 가 이미
+같은 자리에 있고, 양쪽이 따로 적으면 **둘이 갈라지는 날 컨슈머가 필드 하나를 조용히
+잃는다** — 역직렬화는 성공하고 값만 `null` 이 된다. 열거형은 올리지 않았다:
+올리면 **d-day 가 값을 하나 더하는 일이 다른 서비스의 배포를 기다리는 일**이 되고,
+반대로 모르는 값이 오면 컨슈머가 역직렬화에서 죽어 그 파티션이 막힌다.
+그래서 `subjectType` · `field` 는 문자열이다.
 
 ---
 
@@ -1123,8 +1165,8 @@ if (isAdminBlockedPath(path)) {
 | ~~6~~ | ~~`sky` 캐시 정책 + 콜드 계산 측정~~ | **끝남** — §10-1 닫힘. **이 서비스의 첫 HTTP 표면**이기도 하다 |
 | ~~7~~ | ~~`axis` + 버전 플립 + 워밍~~ | **끝남** — 축 셋 · 주소 넷. **워밍은 안 넣었다** (성능은 뒤로 미룬다) |
 | ~~8~~ | ~~**C-7** — `anniversary` + `Occurrence` 투영 + `sky` 포트~~ | **끝남** — 등록·수정·삭제·목록. **알림(C-5·C-10)은 아직** |
-| 9 | **D-4** — `release`(KBO) + `DateChange` + Outbox + 2단 발행 | 가로지르는 것 둘 |
-| 10 | 게이트웨이 1·2·3 + `docs/AUTH_FLOW.md` | 표면이 실제로 있을 때 연다 |
+| ~~9~~ | ~~**D-4** — `release`(KBO) + `DateChange` + Outbox + 2단 발행~~ | **끝남** — 테스트 101. 사슬이 코드로는 끝까지 이어졌다(`notification-service` 리스너까지). **영화는 원천 미정이라 뺐다.** 실제 자료로는 안 돌렸다 — API 키가 없다 |
+| ~~10~~ | ~~게이트웨이 1·2·3 + `docs/AUTH_FLOW.md`~~ | **끝남** — 테스트 15. `PATH_SERVICE_MAPPING` 을 순서 있는 목록으로 바꿨고, `shared/web/AdminOnly` 를 함께 세웠다 |
 | 11 | E-3 인기 · 부하 테스트 | |
 | — | E-2 검색 | **1차 밖** (§7) |
 
@@ -1140,10 +1182,10 @@ if (isAdminBlockedPath(path)) {
 | | 물음 | 무엇에 달렸나 | 언제 |
 | --- | --- | --- | --- |
 | ~~1~~ | ~~**콜드 연도를 캐시할 것인가**~~ | **닫힘 — 안 한다.** p99 **2.07ms** 로 게이트(20ms)의 10분의 1이다. 캐시 키가 20개로 고정되어 오염될 자리가 없다 (§4.4) | 끝남 |
-| 2 | **`notification-service` 에 d-day 리스너를 넣을 것인가** (§3.6) | 다른 서비스의 변경이다. 아니면 d-day 가 채널을 직접 치고 알림 서비스는 나중에 | 착수 9 전 |
+| ~~2~~ | ~~**`notification-service` 에 d-day 리스너를 넣을 것인가** (§3.6)~~ | **닫힘 — 넣었다.** `DDayNotificationListener` 가 `dday.notification.requested` 를 받아 채널로 보낸다. 본문 타입은 `libs/core-web` 의 `DDayNotificationEvent` — **양쪽이 따로 적으면 갈라지는 날 컨슈머가 필드 하나를 조용히 잃는다**(역직렬화는 성공하고 값만 `null` 이 된다). ⚠ **DB 에는 안 적는다** — `notification` 표가 웨이팅 모양이라(`waiting_id` 필수) 그것을 고치는 것은 그 서비스의 스키마 결정이다 | 끝남 |
 | 3 | **공개 갈래에서 `requiredService` 검사를 건너뛸 것인가** (§7.5) | 게이트웨이 인가 모델 변경. §10.1 의 넷을 넘어선다 | 착수 10 |
 | ~~4~~ | ~~**`@Scheduled` 가 가상 스레드를 타는가**~~ | **닫힘 — 탄다.** `TaskSchedulingConfigurations` 의 `taskScheduler` 빈이 `@ConditionalOnThreading(VIRTUAL)` 이라 `spring.threads.virtual.enabled: true` 면 `SimpleAsyncTaskScheduler` 가 뜨고 **풀 크기라는 개념이 사라진다.** 그래도 `spring.task.scheduling.pool.size: 10` 은 남긴다 — 가상 스레드를 끄면 기본값 **1** 로 돌아가 §5.7 의 함정이 그대로 복귀한다. `SchedulerThreadingTest` 가 셋 다 문다 | 끝남 |
-| 5 | **`/api/v1/special-days/**` 의 저장소 밖 소비자** (§7.4) | 있으면 병기 기간, 없으면 갈아 끼움. 저장소 안에는 없다 | 착수 10 |
+| ~~5~~ | ~~**`/api/v1/special-days/**` 의 저장소 밖 소비자** (§7.4)~~ | **닫힘 — 갈아 끼웠다.** 저장소 안에 소비자가 없고, 그 경로를 부르던 컨트롤러는 이미 지워져 있었다. 병기 기간을 안 뒀다. `oldPathIsGone` 이 옛 경로가 정말 지워졌는지 문다 | 끝남 |
 | 6 | **L1(Caffeine) 도입** (§4.6) | 부하 테스트에서 Redis 왕복이 p99 의 10% 를 넘는가 | 착수 11 이후 |
 | ~~7~~ | ~~**ΔT 모델**~~ | **닫힘** — 2005~2050 은 Espenak·Meeus, 그 밖은 장기 포물선. 1600~2005 의 정밀 다항식은 **검산점이 없어 넣지 않았다**(`DeltaT.isRefined` 가 그 사실에 답한다). B-6 이 그 구간을 실제로 요구할 때 원천을 받아 채운다 | 끝남 |
 | 8 | **음력 기준 자오선** (§2.4) | 1차는 KST 고정. 포트 서명에는 남긴다. 다른 나라 음력을 열 때 닫는다 | 1차 이후 |
@@ -1152,7 +1194,7 @@ if (isAdminBlockedPath(path)) {
 | 11 | **`Watch` fan-out 상한** (§3.4) | 한 경기의 관심자가 수만이면 2단도 길어진다. 1차 KBO 규모에서는 문제가 아니다 | 관측 후 |
 | ~~12~~ | ~~**소프트 삭제 보존 기간**~~ | **닫힘** — 성공 회차 **3번** (SCHEMA §3.3). `anniversary` 는 소프트 삭제 자체를 안 한다(§5.6) | 끝남 |
 | 13 | **검색 색인 · 검색 캐시 키** | SPEC §7 의 남은 결정 3·4 | **1차 이후** |
-| **14** | **음력 변환 25ms 를 어떻게 할 것인가** (§4.4) | 읽기 경로는 캐시가 받는다. **문제는 C-7 등록이 3년치를 전개하는 것**(75ms+)과 콜드 경로 Bulkhead 크기다. 전개 폭을 줄이거나 · 등록을 비동기로 돌리거나 · 계산을 고치거나 | **착수 8 전** |
+| ~~14~~ | ~~**음력 변환 25ms 를 어떻게 할 것인가** (§4.4)~~ | **닫힘 — 트랜잭션 밖으로 뺐다.** `AnniversaryFacade` 가 발생일을 먼저 다 계산하고 서비스는 **이미 손에 든 날짜**만 받는다(인자의 `List<LocalDate>` 가 그것을 강제한다). 75ms 를 못 줄이는 대신 **그동안 커넥션을 쥐지 않는다.** Bulkhead 는 성능 쪽이라 뒤로 미뤘다 | 끝남 |
 
 ---
 
@@ -1162,10 +1204,10 @@ if (isAdminBlockedPath(path)) {
 
 | | 무엇 | 어디 |
 | --- | --- | --- |
-| 1 | **`admin/` 은 게이트웨이를 통과하지 않는다 (내부 전용)** — 3번을 그대로 하면 운영자도 403 | §10.1 · §10.7 |
-| 2 | `GET /admin/sync/runs/{runId}` 추가 — 202 를 주고 조회할 곳이 없다 | §10.7 |
+| ~~1~~ | ~~**`admin/` 은 게이트웨이를 통과하지 않는다 (내부 전용)**~~ — **했다.** `admin-blocked-paths` 를 `/api/v1/dday/admin/**` 로 옮기고, 서비스에도 `shared/web/AdminOnly`(`X-User-Role`)를 뒀다. `docs/AUTH_FLOW.md` §3.3 에 적었다 | §10.1 · §10.7 |
+| ~~2~~ | ~~`GET /admin/sync/runs/{runId}` 추가~~ — **했다.** 다만 **202 를 안 준다** — 회차가 끝나기를 기다려 회차 보고를 그대로 돌려준다(비동기로 만들면 운영자가 결과를 볼 곳이 없다). 조회는 `GET .../{target}/runs` 와 `GET .../runs/{id}/items`(**안 된 항목만**) | §10.7 |
 | 3 | `GET /meta/coverage` 추가 — 정의역(연도·날짜 범위·유성우 공표 연도)을 공표한다 | §10 |
-| 4 | 게이트웨이 변경은 **넷이 아니라 다섯** — `docs/AUTH_FLOW.md` | §10.1 |
+| ~~4~~ | ~~게이트웨이 변경은 **넷이 아니라 다섯** — `docs/AUTH_FLOW.md`~~ — **다섯 다 했다.** 게다가 **여섯이었다** — `PATH_SERVICE_MAPPING` 의 `Map.of` 를 순서 있는 목록으로 바꾸는 것(§7.2 가 「같이 하기를 권한다」고 한 것)까지 했다 | §10.1 |
 | 5 | §F-5 표의 「외부 연동이 읽기 경로에 남은 것」은 **1차에 해당 없음**이고, 그 사실이 통과 조건 | §F-5 |
 | 6 | 유성우는 **공표값 보유(나)** 로 닫혔다 — 자료는 DB 가 아니라 자원 파일이므로 §9.5 는 그대로 유지 | §B · ASTRO-CHECKPOINTS §4 |
 

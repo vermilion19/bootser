@@ -158,12 +158,38 @@ response.sendRedirect(redirectUri);  // Frontend로 리다이렉트
 
 | 서비스 코드 | 설명 | 경로 패턴 |
 |------------|------|----------|
-| `d-day` | D-Day 서비스 | `/api/v1/special-days/**` |
-| `diary` | 다이어리 서비스 (예정) | `/api/v1/diary/**` |
+| `d-day` | D-Day 서비스 | `/api/v1/dday/**` |
 | `waiting` | 웨이팅 서비스 | `/waitings/**` |
 | `restaurant` | 레스토랑 서비스 | `/restaurants/**` |
 
 신규 가입 시 기본값: `["d-day"]`
+
+이 표는 `gateway.jwt.path-services` 설정에서 온다. **먼저 적은 것이 이긴다** —
+`Map.of` 였던 것을 순서 있는 목록으로 바꿨다. 해시맵은 순회 순서가 JVM 이 정하는
+값이라, 서로 겹치는 패턴을 넣는 순간 어느 것이 먼저 맞을지 아무도 모른다
+(`apps/d-day/docs/ARCHITECTURE.md` §7.2).
+
+> **`/api/v1/special-days/**` 는 옛 경로다.** 2026-09-15 에 `/api/v1/dday/**` 로
+> 갈아 끼웠다 (착수 10). 병기 기간을 두지 않았다 — 옛 경로를 부르던 컨트롤러는
+> 이미 지워져 껍데기가 404 를 내고 있었을 뿐이다. `/api/v1/diary/**` 는 존재하지
+> 않는 서비스의 잔재라 같이 지웠다.
+
+### 3.3 d-day 의 세 갈래 — 한 서비스 안에 공개와 비공개가 섞여 있다
+
+| 갈래 | 예 | 토큰이 없으면 |
+|------|-----|--------------|
+| 공개 읽기 | `/api/v1/dday/countries` · `/sky/**` · `/leagues/**` | **게스트로 통과** (`X-User-Id: -1` · `ROLE_GUEST`) |
+| 개인 자원 | `/api/v1/dday/me/**` | **401** (`gateway.jwt.guest-blocked-paths`) |
+| 운영자 | `/api/v1/dday/admin/**` | **403** — 토큰이 있어도 403 |
+
+**운영자 갈래는 게이트웨이를 통과하지 않는다. 내부 접근 전용이다.**
+`isAdminBlockedPath` 검사가 토큰을 보기도 전에 있으므로 권한이 있어도 막힌다.
+그것이 의도다 — 공개 인터넷에서 동기화를 트리거할 수 있는 표면을 열 이유가 없다
+(`ARCHITECTURE.md` §7.3). 안 적어 두면 나중에 "왜 403 이지" 로 몇 시간이 간다.
+
+내부에서 부를 때도 서비스가 `X-User-Role: ROLE_ADMIN` 을 요구한다
+(`shared/web/AdminOnly`). 게이트웨이를 거치지 않는 경로가 생겼으므로
+**서비스가 유일한 방어가 아니라 마지막 방어**여야 한다.
 
 ---
 
@@ -176,7 +202,7 @@ response.sendRedirect(redirectUri);  // Frontend로 리다이렉트
 │Browser │          │ Gateway │          │ d-day-service│
 └───┬────┘          └────┬────┘          └──────┬───────┘
     │                    │                      │
-    │ 1. GET /api/v1/special-days/today         │
+    │ 1. GET /api/v1/dday/me/anniversaries      │
     │    Cookie: access_token=eyJhbG...         │
     │───────────────────▶│                      │
     │                    │                      │
@@ -342,7 +368,7 @@ public ResponseEntity<Void> logout() {
   "timestamp": "2026-02-04T10:00:00",
   "status": 403,
   "error": "Forbidden",
-  "message": "Access denied to service: diary"
+  "message": "Access denied to service: d-day"
 }
 ```
 
@@ -408,7 +434,10 @@ curl http://localhost:6000/auth/v1/login/google
 ```bash
 # Cookie로 API 호출
 curl --cookie "access_token=eyJhbG..." \
-     http://localhost:6000/api/v1/special-days/today
+     http://localhost:6000/api/v1/dday/me/anniversaries
+
+# 공개 읽기는 쿠키 없이도 된다 (게스트로 통과)
+curl "http://localhost:6000/api/v1/dday/countries/KR/holidays?year=2026"
 
 # 또는 브라우저에서 직접 호출 (쿠키 자동 전송)
 ```
@@ -419,5 +448,9 @@ curl --cookie "access_token=eyJhbG..." \
 # Gateway 없이 d-day-service 직접 호출
 curl -H "X-User-Id: 123456789" \
      -H "X-User-Role: ROLE_USER" \
-     http://localhost:8080/api/v1/special-days/today
+     http://localhost:8080/api/v1/dday/me/anniversaries
+
+# 운영자 주소는 게이트웨이를 통과하지 않는다 — 내부에서만 부를 수 있고,
+# 서비스가 ROLE_ADMIN 을 따로 요구한다 (shared/web/AdminOnly)
+curl -X POST -H "X-User-Role: ROLE_ADMIN"      http://localhost:8080/api/v1/dday/admin/sync/sport-event
 ```
