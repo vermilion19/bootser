@@ -665,9 +665,19 @@ interface HolidaySyncRunner {
 }
 ```
 
-Java 25 의 `StructuredTaskScope` 로 국가별 작업을 묶는다 —
-`ExecutorService` + `CompletableFuture` 조합보다 **부분 실패를 다루기 쉽다**(§5.2 가 요구하는 바로 그것).
-전부 실패해도 스코프가 닫히면서 결과를 모아 준다.
+~~Java 25 의 `StructuredTaskScope` 로 국가별 작업을 묶는다~~ —
+**재 보니 못 쓴다 (2026-09-15).**
+
+> `jdk-25.0.4` 에서 `java.util.concurrent.StructuredTaskScope` 는 **아직 프리뷰다**
+> (JEP 505 — 다섯 번째 프리뷰). 쓰려면 컴파일과 **런타임 양쪽에 `--enable-preview`** 가
+> 필요하고, 프리뷰로 컴파일한 클래스는 **다른 JDK 마이너 버전에서 아예 안 뜬다.**
+> 서비스 모듈에 그 값을 치를 이유가 없다.
+
+**그리고 치를 이유가 애초에 약했다.** 위에서 든 근거는 *"부분 실패를 다루기 쉽다"* 인데,
+§5.2 가 이미 **작업이 던지지 않게** 만들어 두었다 — 단위마다 `SyncRunItem` 을 돌려준다.
+그러면 `Executors.newVirtualThreadPerTaskExecutor()` + `invokeAll` 로 충분하고,
+**가상 스레드라는 알맹이는 그대로다.** 스코프가 주는 것은 취소 전파와 타임아웃인데
+둘 다 여기서 안 쓴다 (속도는 RateLimiter 가, 시간은 회로가 잡는다).
 
 ### 그런데 가상 스레드가 병목을 옮길 뿐인 자리가 둘 있다
 
