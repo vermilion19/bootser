@@ -4,13 +4,22 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * {@code scripts/schema.sql} 을 컨테이너에 넣는다.
@@ -23,6 +32,14 @@ import java.util.List;
 final class SchemaScript {
 
     static final String PATH = "/scripts/schema.sql";
+    static final String CHANGES_DIR = "/scripts/changes/";
+
+    /** {@code INSERT INTO schema_change (revision, name) VALUES (2, ...)} 에서 2 를 뽑는다 */
+    private static final Pattern REVISION = Pattern.compile(
+            "INSERT\\s+INTO\\s+schema_change\\s*\\([^)]*\\)\\s*VALUES\\s*\\(\\s*(\\d+)");
+
+    /** {@code 0002-add-holiday-name-ko.sql} — 번호는 이름이 아니라 리비전이다 (SCHEMA.md §14.3) */
+    private static final Pattern CHANGE_FILE = Pattern.compile("^(\\d{4})-[a-z0-9-]+\\.sql$");
 
     private SchemaScript() {
     }
@@ -108,5 +125,66 @@ final class SchemaScript {
         if (!sql.isEmpty()) {
             out.add(sql);
         }
+    }
+
+    /**
+     * {@code schema.sql} 이 스스로 선언하는 리비전.
+     *
+     * <p>파일의 <b>마지막 문장</b>이 그것을 적는다 — 위의 것이 전부 섰다는 뜻이기
+     * 때문이다 (SCHEMA.md §14.3).
+     */
+    static int declaredRevision() {
+        return lastRevisionIn(read())
+                .orElseThrow(() -> new IllegalStateException(
+                        "schema.sql 이 리비전을 안 적는다 — docs/SCHEMA.md §14.3"));
+    }
+
+    static java.util.Optional<Integer> lastRevisionIn(String sql) {
+        Matcher matcher = REVISION.matcher(sql);
+        Integer last = null;
+        while (matcher.find()) {
+            last = Integer.parseInt(matcher.group(1));
+        }
+        return java.util.Optional.ofNullable(last);
+    }
+
+    /**
+     * {@code scripts/changes/} 의 변경 스크립트들. 이름순 = 리비전순이다.
+     *
+     * <p>디렉터리가 없거나 비어 있으면 빈 목록이다 — <b>그것이 지금의 상태</b>이고,
+     * 아래 테스트들은 그 상태에서 참말을 한다 (비어 있는 동안은 R1 이 깨질 수 없다).
+     * 재기준 뒤의 {@code archive/} 는 하위 디렉터리라 여기 안 걸린다 (§14.8).
+     */
+    static List<Change> changes() {
+        URL dir = SchemaScript.class.getResource(CHANGES_DIR);
+        if (dir == null) {
+            return List.of();
+        }
+        try (Stream<Path> files = Files.list(Path.of(dir.toURI()))) {
+            return files.filter(Files::isRegularFile)
+                    .filter(file -> file.getFileName().toString().endsWith(".sql"))
+                    .sorted(Comparator.comparing(file -> file.getFileName().toString()))
+                    .map(SchemaScript::readChange)
+                    .toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException(CHANGES_DIR + " 를 읽지 못했다", e);
+        }
+    }
+
+    private static Change readChange(Path file) {
+        try {
+            String name = file.getFileName().toString();
+            Matcher matcher = CHANGE_FILE.matcher(name);
+            Integer revision = matcher.matches() ? Integer.valueOf(matcher.group(1)) : null;
+            return new Change(name, revision, Files.readString(file, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** @param revision 이름이 규칙을 안 지키면 {@code null} */
+    record Change(String fileName, Integer revision, String sql) {
     }
 }

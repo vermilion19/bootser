@@ -432,3 +432,23 @@ CREATE INDEX ix_sync_run_item_run ON sync_run_item (sync_run_id);
 CREATE INDEX ix_sync_run_item_bad
     ON sync_run_item (target, country_code, holiday_year)
     WHERE status IN ('FAILED','ABORTED');
+
+-- -------------------------------------------------------------
+-- schema_change  (§14) — 이력. **도메인 표가 아니다.**
+--
+-- 마이그레이션 도구를 안 쓰기로 했으므로(§11.2) 「무엇이 적용됐는가」를 들고 있는
+-- 자리가 없었다. 그 자리를 DB 안에 만든다 — 파일 밖에 두면 인스턴스마다 다른
+-- 답을 갖게 되고, 그것은 답이 없는 것보다 나쁘다.
+-- -------------------------------------------------------------
+CREATE TABLE schema_change (
+    revision   integer      PRIMARY KEY,
+    name       varchar(80)  NOT NULL,
+    applied_at timestamptz  NOT NULL DEFAULT now(),
+    applied_by varchar(80)  NOT NULL DEFAULT current_user
+);
+COMMENT ON TABLE schema_change IS
+  '적용된 스키마 변경. 빈 DB 는 기준선 한 줄만 갖는다 (docs/SCHEMA.md §14)';
+
+-- 이 스크립트가 세우는 리비전. **파일의 맨 마지막 문장이어야 한다** — 위의 것이
+-- 전부 섰다는 뜻이기 때문이다. 변경 스크립트를 더할 때마다 이 숫자도 같이 올린다 (§14 R1).
+INSERT INTO schema_change (revision, name) VALUES (1, 'baseline — scripts/schema.sql');

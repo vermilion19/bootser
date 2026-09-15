@@ -102,17 +102,20 @@ class SchemaIndexTest {
     }
 
     @Test
-    @DisplayName("문서가 정한 표 열여덟 개가 선다")
+    @DisplayName("문서가 정한 표 열아홉 개가 선다 — 도메인 18 + 이력 1")
     void createsEveryTable() {
         List<String> tables = query("""
                 SELECT tablename FROM pg_tables
                  WHERE schemaname = 'public' ORDER BY tablename
                 """);
 
-        assertThat(tables).hasSize(18);
+        assertThat(tables).hasSize(19);
         assertThat(tables).contains("country", "holiday", "long_weekend", "holiday_coverage",
                 "anniversary", "anniversary_occurrence", "outbox_event",
                 "sync_run", "sync_run_item");
+
+        // 도구를 안 쓰기로 했으므로 「무엇이 적용됐는가」를 DB 가 들고 있어야 한다 (§14)
+        assertThat(tables).contains("schema_change");
 
         // sky 와 axis 는 표가 없다. 그것이 SPEC §9.4 · §9.5 가 지켜졌다는 증거다
         assertThat(tables).noneMatch(t -> t.startsWith("sky") || t.startsWith("axis"));
