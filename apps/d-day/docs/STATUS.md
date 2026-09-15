@@ -5,12 +5,11 @@
 
 ## 한 줄
 
-**착수 5까지 닫혔다 — 자료를 담을 그릇과 채우는 파이프가 다 섰다.**
-그런데 **꺼내 보여 주는 부분은 아직 하나도 없다.** 서버를 띄워도 부를 수 있는
-주소가 없다. 다음 착수 셋(6·7·8)이 그것을 만든다.
+**처음으로 부를 수 있는 주소가 생겼다.** 착수 6 까지 닫혔고, 하늘 조회 일곱 개가
+실제로 뜬 서버에서 답한다 — 절기 · 삭망 · 유성우 · 음력 변환.
 
-- 자바 파일 120개 · 테스트 364개 (astro-core 44 · d-day-service 310 · gateway 10)
-- 커밋 14개
+- 자바 파일 132개 · 테스트 418개 (astro-core 44 · d-day-service 364 · gateway 10)
+- 커밋 15개
 
 ---
 
@@ -73,6 +72,23 @@ SCHEMA §8.4 는 그 차이를 "A-10 이 거른 비-`Public` 건수" 라고 적�
 그러므로 그 차이는 설계상 0 이다. 두 칼럼은 그대로 두되 무엇을 잡는지를
 고쳐 적었다 — **원천이 같은 자연키를 두 번 준 경우**와 **행을 못 만든 경우**다.
 
+### 공유 라이브러리가 날짜 응답을 500 으로 만들고 있었다
+
+첫 HTTP 표면을 세우자마자 드러났다. `libs/storage-redis` 에
+`jackson-datatype-jsr310:3.0.0-rc1` 이 못 박혀 있는데, 그것이 ServiceLoader 로
+자동 등록되고 그 안의 `JavaTimeModule` 이 rc1 시절의
+`SerializationFeature.WRITE_DATES_AS_TIMESTAMPS` 를 참조한다. 3.0.3 에서 그 필드는
+`DateTimeFeature` 로 옮겨졌다.
+
+```
+NoSuchFieldError: Class tools.jackson.databind.SerializationFeature
+                  does not have member field ... WRITE_DATES_AS_TIMESTAMPS
+```
+
+**날짜가 든 응답이 전부 500 이 된다.** Jackson 3 에서 JavaTime 지원이 databind 안으로
+들어왔으므로 이 모듈은 필요 없다 — 지웠다. `storage-redis` 를 쓰는 다른 서비스도
+같은 고장을 안고 있었다.
+
 ### 음력 변환이 절기의 12배였다 — 재라고 한 적 없는 값인데 같이 쟀다
 
 설계가 «절기 한 해의 p99 가 20ms 이하면 콜드를 캐시하지 않는다» 로 캐시 정책을
@@ -134,9 +150,9 @@ A-7 이 544 를 못 맞혔을 때 "인도가 왜 없지" 로 헤매지 않도록
 
 | 착수 | 무엇 | 막힌 데 |
 | --- | --- | --- |
-| 6 (앞) | ~~콜드 계산 측정~~ | **끝남** — 절기 p99 **2.07ms** (게이트 20ms) |
-| 6 (뒤) | `sky` 캐시 + 첫 웹 표면 (`shared/web` · `shared/locale`) | 없음 — **다음 차례다** |
-| 7 | `axis` + 버전 플립 + **워밍** | 5 — ⚠ 워밍이 설 때까지 플립이 스탬피드의 씨앗이다 |
+| 6 (앞) | 콜드 계산 측정 | 절기 p99 **2.07ms** (게이트 20ms) |
+| 6 (뒤) | **하늘 조회 API 7개** + `shared/web` · `shared/locale` | 테스트 54 · **실제로 떠서 답한다** |
+| 7 | `axis` — 이름별 · 순위 · 요일별로 묶어 보기 | 5 — **다음 차례다** |
 | 8 | **C-7** `anniversary` + `Occurrence` 투영 | 5 |
 | 9 | **D-4** `release`(KBO) + `DateChange` + 2단 발행 | 없음 (Outbox 섰다) · §10-2 는 열려 있다 |
 | 10 | 게이트웨이 경로 전환 + `docs/AUTH_FLOW.md` | 표면이 설 때 |
