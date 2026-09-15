@@ -8,7 +8,22 @@ dependencies {
     // 1. Spring Data Redis (Redis 연동 필수)
     api 'org.springframework.boot:spring-boot-starter-data-redis'
     api 'org.springframework.boot:spring-boot-starter-json'
-    api 'tools.jackson.datatype:jackson-datatype-jsr310:3.0.0-rc1'
+    /*
+     * jackson-datatype-jsr310 을 **쓰지 않는다.**
+     *
+     * Jackson 3 에서 JavaTime 지원이 databind 안으로 들어왔다
+     * (tools.jackson.databind.ext.javatime). 그래서 이 모듈은 필요 없을 뿐 아니라
+     * **깨진다** — 3.0.0-rc1 에 못 박혀 있던 것이 ServiceLoader
+     * (META-INF/services/tools.jackson.databind.JacksonModule) 로 자동 등록되는데,
+     * 그 안의 JavaTimeModule 이 rc1 시절의 SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
+     * 를 참조한다. 3.0.3 에서 그 필드는 DateTimeFeature 로 옮겨졌다.
+     *
+     *     NoSuchFieldError: Class tools.jackson.databind.SerializationFeature
+     *                       does not have member field ... WRITE_DATES_AS_TIMESTAMPS
+     *
+     * 이것이 **날짜가 든 응답을 500 으로 만든다.** d-day 의 첫 HTTP 표면을 세우다
+     * 드러났다 (2026-09-15). 지우면 databind 가 제 것을 쓴다.
+     */
 
     api 'org.redisson:redisson-spring-boot-starter:4.0.0'
     api 'org.springframework.boot:spring-boot-starter-aop:4.0.0-M2'
