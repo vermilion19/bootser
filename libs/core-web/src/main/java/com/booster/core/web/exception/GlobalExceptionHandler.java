@@ -18,12 +18,23 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * 던진 쪽이 적어 준 메시지를 쓴다.
+     *
+     * <p>{@code ApiResponse.error(errorCode)} 로만 만들면 {@code CoreException} 의
+     * 두 번째 인자가 <b>조용히 버려진다.</b> 그러면 "그 해는 다루지 않는다" 까지만
+     * 나가고 "1583~2999 안의 해를 달라" 가 사라진다 — <b>서버가 범위를 정해 놓고
+     * 안 알리는 셈</b>이다.
+     *
+     * <p>인자 하나짜리 생성자를 쓴 경우에는 {@code getMessage()} 가 곧 열거형의
+     * 메시지이므로 달라지는 것이 없다.
+     */
     @ExceptionHandler(CoreException.class)
     public ResponseEntity<ApiResponse<Void>> handleCoreException(CoreException e) {
         log.warn("CoreException : {}", e.getMessage());
         return ResponseEntity
                 .status(e.getErrorCode().getStatus())
-                .body(ApiResponse.error(e.getErrorCode()));
+                .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
     }
 
     /**
