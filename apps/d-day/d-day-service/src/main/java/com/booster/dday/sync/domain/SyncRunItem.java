@@ -125,6 +125,52 @@ public class SyncRunItem {
         return item;
     }
 
+    /**
+     * 리그 한 건의 결과 (SPEC §12).
+     *
+     * <p>공휴일은 (국가, 연도)가 단위였고 경기는 <b>리그</b>가 단위다. 같은 표에
+     * 담는 까닭은 회차 · 락 · 보고가 전부 같은 모양이기 때문이고, 그래서
+     * {@code country_code} 와 {@code league_id} 가 한 표에 같이 있다 — 대상에 따라
+     * 한쪽만 채워진다.
+     *
+     * @param received 원천이 준 건수. <b>무료 키에서는 2~3건이 정상이다</b> (§12.2)
+     * @param stored   담은 건수. 안 바뀐 건은 여기 안 센다
+     */
+    public static SyncRunItem leagueOk(long runId, Long leagueId, int received,
+                                       int stored, int durationMs) {
+        SyncRunItem item = leagueBase(runId, leagueId, SyncItemStatus.OK, durationMs);
+        item.sourceCount = received;
+        item.storedCount = stored;
+        return item;
+    }
+
+    public static SyncRunItem leagueFailed(long runId, Long leagueId, String errorCode,
+                                           String errorMessage, int durationMs) {
+        SyncRunItem item = leagueBase(runId, leagueId, SyncItemStatus.FAILED, durationMs);
+        item.errorCode = errorCode;
+        item.errorMessage = trim(errorMessage);
+        return item;
+    }
+
+    /** 켤 수 없어 안 돌았다 — 키가 없거나 리그가 꺼져 있다 */
+    public static SyncRunItem leagueSkipped(long runId, Long leagueId, String reason) {
+        SyncRunItem item = leagueBase(runId, leagueId, SyncItemStatus.SKIPPED, 0);
+        item.errorMessage = trim(reason);
+        return item;
+    }
+
+    private static SyncRunItem leagueBase(long runId, Long leagueId,
+                                          SyncItemStatus status, int durationMs) {
+        SyncRunItem item = new SyncRunItem();
+        item.id = SnowflakeGenerator.nextId();
+        item.syncRunId = runId;
+        item.target = SyncTarget.SPORT_EVENT;
+        item.leagueId = leagueId;
+        item.status = status;
+        item.durationMs = durationMs;
+        return item;
+    }
+
     private static SyncRunItem base(long runId, String countryCode, int year,
                                     SyncItemStatus status, int durationMs) {
         SyncRunItem item = new SyncRunItem();

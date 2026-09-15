@@ -65,8 +65,8 @@ public class SyncRunRecorder {
         items.saveAll(outcome.items());
 
         runs.findById(runId).ifPresent(run -> run.finish(
-                outcome.total(), outcome.ok(), outcome.failed(),
-                outcome.aborted(), outcome.droppedTotal(), Instant.now(clock)));
+                outcome.total(), outcome.ok(), outcome.failed(), outcome.aborted(),
+                outcome.skipped(), outcome.droppedTotal(), Instant.now(clock)));
     }
 
     @Transactional

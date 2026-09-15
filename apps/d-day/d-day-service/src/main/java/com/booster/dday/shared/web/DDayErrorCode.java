@@ -42,8 +42,39 @@ public enum DDayErrorCode implements ErrorCode {
     UNAUTHENTICATED(401, "DDAY-AUTH-001",
             "로그인이 필요하다"),
 
+    /**
+     * 누구인지는 알지만 부를 수 없다. <b>401 과 가른다</b> — 앞은 「누구인지
+     * 밝혀라」고 이것은 「당신은 안 된다」다. 부르는 쪽이 할 일이 다르다.
+     */
+    FORBIDDEN(403, "DDAY-AUTH-002",
+            "권한이 없다"),
+
     ANNIVERSARY_NOT_FOUND(404, "DDAY-ANNIV-001",
             "그 기념일이 없다"),
+
+    /**
+     * 남의 관심을 지우려 해도 이것이다 — <b>403 이 아니다.</b> 있다는 사실조차
+     * 알려 주지 않는다 (기념일과 같은 규칙).
+     */
+    WATCH_NOT_FOUND(404, "DDAY-WATCH-001",
+            "그 관심이 없다"),
+
+    /** 관심을 걸 수 없는 대상이다 — {@code ck_watch_subject} 가 막는 것을 먼저 막는다 */
+    WATCH_SUBJECT_NOT_ALLOWED(400, "DDAY-WATCH-002",
+            "그 대상에는 관심을 걸 수 없다"),
+
+    LEAGUE_NOT_FOUND(404, "DDAY-SPORT-001",
+            "그 리그가 없다"),
+
+    TEAM_NOT_FOUND(404, "DDAY-SPORT-002",
+            "그 팀이 없다"),
+
+    /**
+     * 이미 돌고 있다. <b>실패가 아니다</b> — 200 으로 돌려주면 운영자가
+     * 「내가 시작한 회차가 있다」고 믿는다 (ARCHITECTURE §5.6).
+     */
+    SYNC_ALREADY_RUNNING(409, "DDAY-SYNC-001",
+            "그 동기화가 이미 돌고 있다"),
 
     INVALID_PARAMETER(400, "DDAY-COMMON-001",
             "요청 값이 올바르지 않다");

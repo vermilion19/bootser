@@ -95,3 +95,41 @@ dday:
       # 이 둘의 합이 TimeLimiter(4s)보다 짧아야 한다.
       connect-timeout: 1s
       read-timeout: 3s
+
+    # 경기 일정 (SPEC.md §12). **키가 없으면 아예 안 돈다.**
+    #
+    # 키 없이 돌리면 원천이 401 을 주고 그것이 회차마다 실패로 기록되어,
+    # 실패 기록이 「원천이 이상하다」를 뜻하지 않게 된다 — 켤 수 없는 것은
+    # 꺼져 있는 것으로 보여야 한다. scheduled 도 기본이 꺼짐이다.
+    sports:
+      scheduled: false
+      # 10분. 창이 끊기면 경기를 놓치고(무료 키는 「다음 1건」만 준다),
+      # 우천 순연은 경기 당일에 정해진다 (ARCHITECTURE.md §5.1).
+      fixed-delay-ms: 600000
+      base-url: https://www.thesportsdb.com
+      # 공개 저장소에 적지 않는다. 환경변수 DDAY_SYNC_SPORTS_API_KEY 로 준다.
+      api-key: ${DDAY_SYNC_SPORTS_API_KEY:}
+      # 유료 키가 있어 시즌 전수를 받을 수 있나. 무료 키로 켜면 시즌 질의가
+      # 5건만 돌려주는데 에러가 아니라서 「시즌에 5경기」로 조용히 담긴다 (§12.2).
+      bulk: false
+      leagues:
+        # 1차에 켤 리그는 KBO 다 (SPEC.md §12.1). 근거는 성능이 아니라
+        # **D-4 가 실제로 발동한다**는 것이다 — 우천 순연이 일상이라
+        # 변경 감지 → 이벤트 → 알림 사슬을 시즌 내내 여러 번 밟는다.
+        # 축구를 켜면 그 사슬이 한 번도 안 돌 수 있다.
+        - external-id: "4830"
+          sport: Baseball
+          # 팀 목록을 **이 이름으로** 받는다. id 로 받는 길은 무료 키에서
+          # 언제나 잉글랜드 3부 24팀을 주고 HTTP 200 이다 (SPEC.md §12.3).
+          name: Korean KBO League
+          country-code: KR
+          zone: Asia/Seoul
+          # 야구는 연도 하나가 시즌이다. 유럽 축구는 2025-2026 꼴이다.
+          season: "2026"
+      rate-limit:
+        # 공휴일(5rps)보다 느리다. 창 누적은 리그당 2~3 호출이라 빠를 필요가 없고,
+        # 이 원천은 무료 키 제한이 명시돼 있지 않아 모를 때는 천천히 간다.
+        permits-per-second: 2
+        wait-timeout: 5m
+      connect-timeout: 1s
+      read-timeout: 3s

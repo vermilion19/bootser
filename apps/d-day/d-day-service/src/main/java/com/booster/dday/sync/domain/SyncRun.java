@@ -93,15 +93,20 @@ public class SyncRun extends BaseEntity {
      *
      * <p>하나라도 되면 {@link SyncRunStatus#PARTIAL} 이지 실패가 아니다. 990개를
      * 반영해 놓고 회차를 실패라고 적으면, 다음 사람이 그 990 을 못 믿는다.
+     *
+     * <p>{@code skipped} 는 <b>세지만 담지 않는다.</b> 상태를 정하는 데만 쓴다 —
+     * 표에 칸이 없고, 칸을 더하는 것은 이제 SCHEMA §14 의 변경 스크립트다. 건너뛴
+     * 까닭은 {@code sync_run_item} 에 한 건씩 적혀 있으므로 잃는 것이 없다.
      */
-    public void finish(int total, int ok, int failed, int aborted, int droppedTotal, Instant now) {
+    public void finish(int total, int ok, int failed, int aborted, int skipped,
+                       int droppedTotal, Instant now) {
         this.itemTotal = total;
         this.itemOk = ok;
         this.itemFailed = failed;
         this.itemAborted = aborted;
         this.droppedTotal = droppedTotal;
         this.finishedAt = require(now, "끝난 시각");
-        this.status = decide(total, ok);
+        this.status = decide(total, ok, skipped);
     }
 
     /** 회차가 죽었다 — 항목을 세기도 전에 터진 경우 */
@@ -125,9 +130,31 @@ public class SyncRun extends BaseEntity {
         return itemOk > 0;
     }
 
-    private static SyncRunStatus decide(int total, int ok) {
-        if (total == 0 || ok == 0) {
+    /**
+     * 항목 수에서 상태를 뽑는다.
+     *
+     * <h2>전부 건너뛴 회차는 <b>실패가 아니다</b></h2>
+     *
+     * <p>착수 9 에서 실제로 부딪혔다. 경기 동기화는 API 키가 없으면 「건너뜀」 한
+     * 건으로 끝나는데, {@code ok == 0} 만 보면 그 회차가 <b>FAILED</b> 로 적힌다 —
+     * <b>켤 수 없는 것이 고장으로 보인다.</b> 그것은 기능을 끌 수 있게 만든 이유를
+     * 통째로 무너뜨린다. 10분마다 「실패」가 쌓이면 그 표는 못 읽는 표가 된다.
+     *
+     * <p>그래서 «할 일이 없었다» 를 {@link SyncRunStatus#SUCCEEDED} 로 본다. 왜
+     * 없었는지는 {@code sync_run_item} 의 그 한 건이 문장으로 들고 있다.
+     *
+     * <h2>{@code total == 0} 은 여전히 실패다</h2>
+     *
+     * <p>항목이 <b>하나도 안 만들어진 것</b>은 다르다 — 시도조차 안 했다는 뜻이고,
+     * 공휴일 쪽에서는 «국가 시드가 비어 있다» 가 그 모양이다. 그것을 성공으로
+     * 적으면 <b>아무 일도 안 하는 동기화가 조용히 성공한다.</b>
+     */
+    private static SyncRunStatus decide(int total, int ok, int skipped) {
+        if (total == 0) {
             return SyncRunStatus.FAILED;
+        }
+        if (ok == 0) {
+            return skipped == total ? SyncRunStatus.SUCCEEDED : SyncRunStatus.FAILED;
         }
         return ok == total ? SyncRunStatus.SUCCEEDED : SyncRunStatus.PARTIAL;
     }

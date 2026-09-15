@@ -53,7 +53,7 @@ class SyncRunTest {
     void statusComesFromCounts(int total, int ok, SyncRunStatus expected) {
         SyncRun run = started();
 
-        run.finish(total, ok, total - ok, 0, 0, NOW);
+        run.finish(total, ok, total - ok, 0, 0, 0, NOW);
 
         assertThat(run.getStatus()).isEqualTo(expected);
         assertThat(run.getFinishedAt()).isEqualTo(NOW);
@@ -64,7 +64,7 @@ class SyncRunTest {
     void carriesDroppedTotal() {
         SyncRun run = started();
 
-        run.finish(10, 10, 0, 0, 3, NOW);
+        run.finish(10, 10, 0, 0, 0, 3, NOW);
 
         assertThat(run.getDroppedTotal()).isEqualTo(3);
     }
@@ -73,12 +73,55 @@ class SyncRunTest {
     @DisplayName("하나라도 반영됐는지로 캐시를 뒤집을지 정한다")
     void changedAnythingDrivesTheFlip() {
         SyncRun succeeded = started();
-        succeeded.finish(10, 10, 0, 0, 0, NOW);
+        succeeded.finish(10, 10, 0, 0, 0, 0, NOW);
         assertThat(succeeded.changedAnything()).isTrue();
 
         SyncRun allFailed = started();
-        allFailed.finish(10, 0, 10, 0, 0, NOW);
+        allFailed.finish(10, 0, 10, 0, 0, 0, NOW);
         assertThat(allFailed.changedAnything()).isFalse();
+    }
+
+    /**
+     * <b>착수 9 에서 실제로 부딪힌 자리.</b> 경기 동기화는 API 키가 없으면
+     * 「건너뜀」 한 건으로 끝난다. {@code ok == 0} 만 보면 그 회차가 FAILED 로
+     * 적히고, <b>켤 수 없는 것이 고장으로 보인다</b> — 10분마다 「실패」가 쌓이면
+     * 그 표는 못 읽는 표가 된다.
+     */
+    @Test
+    @DisplayName("전부 건너뛴 회차는 실패가 아니다 — 켤 수 없는 것은 꺼진 것으로 보여야 한다")
+    void allSkippedIsNotFailure() {
+        SyncRun run = started();
+
+        run.finish(1, 0, 0, 0, 1, 0, NOW);
+
+        assertThat(run.getStatus()).isEqualTo(SyncRunStatus.SUCCEEDED);
+        /* 뒤집을 것이 없다 — 자료가 안 바뀌었다 */
+        assertThat(run.changedAnything()).isFalse();
+    }
+
+    @Test
+    @DisplayName("건너뛴 것과 실패한 것이 섞이면 실패다")
+    void skippedMixedWithFailedIsFailure() {
+        SyncRun run = started();
+
+        run.finish(2, 0, 1, 0, 1, 0, NOW);
+
+        assertThat(run.getStatus()).isEqualTo(SyncRunStatus.FAILED);
+    }
+
+    /**
+     * 항목이 <b>하나도 안 만들어진 것</b>은 다르다 — 시도조차 안 했다는 뜻이다.
+     * 공휴일 쪽의 «국가 시드가 비어 있다» 가 그 모양이고, 그것을 성공으로 적으면
+     * <b>아무 일도 안 하는 동기화가 조용히 성공한다.</b>
+     */
+    @Test
+    @DisplayName("항목이 하나도 없으면 여전히 실패다")
+    void zeroItemsIsStillFailure() {
+        SyncRun run = started();
+
+        run.finish(0, 0, 0, 0, 0, 0, NOW);
+
+        assertThat(run.getStatus()).isEqualTo(SyncRunStatus.FAILED);
     }
 
     @Test
@@ -96,7 +139,7 @@ class SyncRunTest {
     @DisplayName("플립한 버전과 워밍 결과를 남긴다 — 1차에는 워밍이 없다")
     void recordsFlip() {
         SyncRun run = started();
-        run.finish(10, 10, 0, 0, 0, NOW);
+        run.finish(10, 10, 0, 0, 0, 0, NOW);
 
         run.flipped(8L, WarmStatus.SKIPPED);
 
@@ -112,7 +155,7 @@ class SyncRunTest {
     @DisplayName("못 뒤집은 것도 남긴다")
     void recordsWarmingFailure() {
         SyncRun run = started();
-        run.finish(10, 10, 0, 0, 0, NOW);
+        run.finish(10, 10, 0, 0, 0, 0, NOW);
 
         run.warmingFailed();
 
