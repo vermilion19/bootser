@@ -63,3 +63,8 @@ dday:
     relay:
       enabled: true
       fixed-delay-ms: 3000
+  country:
+    seed:
+      # 부팅할 때 seed/country.tsv 를 표에 넣는다 (SPEC.md §9.2).
+      # 동기화가 아니라 시드라 스케줄도 수동 트리거도 없다 — 배포가 곧 갱신이다.
+      enabled: true

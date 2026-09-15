@@ -1,0 +1,224 @@
+# country 시드 — 원천에서 받아 적은 것. 손으로 고치지 않는다.
+# tools/gen-country-seed.mjs 가 낸다. 고칠 것이 있으면 그 스크립트를 고치고 다시 돌린다.
+#
+# 받은 날: 2026-09-15
+# 원천: Nager.Date AvailableCountries (목록 204)
+#       CLDR weekData (주말) · CLDR territories en·ko (이름)
+#       IANA tzdb zone1970.tab (대표 시간대)
+#
+# 목록은 ISO 3166 전체(249)가 아니라 **공휴일 자료가 있는 나라**다 (SPEC §11.1).
+#
+# 이름 둘 다 CLDR 것이다. Nager 도 영어 이름을 주지만 19개국에서 다르고
+#   (Nager "Ivory Coast" ↔ CLDR "Côte d’Ivoire"), 영어와 한국어가 한 원천에서 와야
+#   둘이 같은 것을 가리킨다. Nager 의 이름은 목록에 드는지를 정할 때만 쓴다.
+#
+# 주말 (SCHEMA §4.3 · ISO-8601 bit0=월 … bit6=일): 48→8개국 · 64→1개국 · 96→195개국
+# 시간대가 여럿이라 대표를 고른 나라: 27
+#   고른 규칙은 zone1970.tab 의 줄 순서다 — 그 파일이 "가장 인구가 많은 시간대를
+#   앞에 둔다" 고 제 머리에 적어 두었다. 고른 사실은 zoneAmbiguous 로 나간다 (SPEC §9.9(4)).
+#
+# 줄 모양: code|nameEn|nameKo|primaryZoneId|zoneAmbiguous|weekendMask
+AD|Andorra|안도라|Europe/Andorra|false|96
+AG|Antigua & Barbuda|앤티가 바부다|America/Puerto_Rico|false|96
+AI|Anguilla|앵귈라|America/Puerto_Rico|false|96
+AL|Albania|알바니아|Europe/Tirane|false|96
+AM|Armenia|아르메니아|Asia/Yerevan|false|96
+AO|Angola|앙골라|Africa/Lagos|false|96
+AR|Argentina|아르헨티나|America/Argentina/Buenos_Aires|true|96
+AT|Austria|오스트리아|Europe/Vienna|false|96
+AU|Australia|오스트레일리아|Australia/Lord_Howe|true|96
+AW|Aruba|아루바|America/Puerto_Rico|false|96
+AX|Åland Islands|올란드 제도|Europe/Helsinki|false|96
+BA|Bosnia & Herzegovina|보스니아 헤르체고비나|Europe/Belgrade|false|96
+BB|Barbados|바베이도스|America/Barbados|false|96
+BD|Bangladesh|방글라데시|Asia/Dhaka|false|96
+BE|Belgium|벨기에|Europe/Brussels|false|96
+BF|Burkina Faso|부르키나파소|Africa/Abidjan|false|96
+BG|Bulgaria|불가리아|Europe/Sofia|false|96
+BH|Bahrain|바레인|Asia/Qatar|false|48
+BI|Burundi|부룬디|Africa/Maputo|false|96
+BJ|Benin|베냉|Africa/Lagos|false|96
+BL|St. Barthélemy|생바르텔레미|America/Puerto_Rico|false|96
+BM|Bermuda|버뮤다|Atlantic/Bermuda|false|96
+BO|Bolivia|볼리비아|America/La_Paz|false|96
+BQ|Caribbean Netherlands|네덜란드령 카리브|America/Puerto_Rico|false|96
+BR|Brazil|브라질|America/Noronha|true|96
+BS|Bahamas|바하마|America/Toronto|false|96
+BW|Botswana|보츠와나|Africa/Maputo|false|96
+BY|Belarus|벨라루스|Europe/Minsk|false|96
+BZ|Belize|벨리즈|America/Belize|false|96
+CA|Canada|캐나다|America/St_Johns|true|96
+CC|Cocos (Keeling) Islands|코코스 제도|Asia/Yangon|false|96
+CD|Congo - Kinshasa|콩고-킨샤사|Africa/Maputo|true|96
+CF|Central African Republic|중앙 아프리카 공화국|Africa/Lagos|false|96
+CG|Congo - Brazzaville|콩고-브라자빌|Africa/Lagos|false|96
+CH|Switzerland|스위스|Europe/Zurich|false|96
+CI|Côte d’Ivoire|코트디부아르|Africa/Abidjan|false|96
+CK|Cook Islands|쿡 제도|Pacific/Rarotonga|false|96
+CL|Chile|칠레|America/Santiago|true|96
+CM|Cameroon|카메룬|Africa/Lagos|false|96
+CN|China|중국|Asia/Shanghai|true|96
+CO|Colombia|콜롬비아|America/Bogota|false|96
+CR|Costa Rica|코스타리카|America/Costa_Rica|false|96
+CU|Cuba|쿠바|America/Havana|false|96
+CV|Cape Verde|카보베르데|Atlantic/Cape_Verde|false|96
+CW|Curaçao|퀴라소|America/Puerto_Rico|false|96
+CX|Christmas Island|크리스마스섬|Asia/Bangkok|false|96
+CY|Cyprus|키프로스|Asia/Nicosia|true|96
+CZ|Czechia|체코|Europe/Prague|false|96
+DE|Germany|독일|Europe/Zurich|true|96
+DJ|Djibouti|지부티|Africa/Nairobi|false|96
+DK|Denmark|덴마크|Europe/Berlin|false|96
+DM|Dominica|도미니카|America/Puerto_Rico|false|96
+DO|Dominican Republic|도미니카 공화국|America/Santo_Domingo|false|96
+DZ|Algeria|알제리|Africa/Algiers|false|48
+EC|Ecuador|에콰도르|America/Guayaquil|true|96
+EE|Estonia|에스토니아|Europe/Tallinn|false|96
+EG|Egypt|이집트|Africa/Cairo|false|48
+ER|Eritrea|에리트리아|Africa/Nairobi|false|96
+ES|Spain|스페인|Europe/Madrid|true|96
+ET|Ethiopia|에티오피아|Africa/Nairobi|false|96
+FI|Finland|핀란드|Europe/Helsinki|false|96
+FK|Falkland Islands|포클랜드 제도|Atlantic/Stanley|false|96
+FM|Micronesia|미크로네시아|Pacific/Kosrae|true|96
+FO|Faroe Islands|페로 제도|Atlantic/Faroe|false|96
+FR|France|프랑스|Europe/Paris|false|96
+GA|Gabon|가봉|Africa/Lagos|false|96
+GB|United Kingdom|영국|Europe/London|false|96
+GD|Grenada|그레나다|America/Puerto_Rico|false|96
+GE|Georgia|조지아|Asia/Tbilisi|false|96
+GF|French Guiana|프랑스령 기아나|America/Cayenne|false|96
+GG|Guernsey|건지|Europe/London|false|96
+GH|Ghana|가나|Africa/Abidjan|false|96
+GI|Gibraltar|지브롤터|Europe/Gibraltar|false|96
+GL|Greenland|그린란드|America/Nuuk|true|96
+GM|Gambia|감비아|Africa/Abidjan|false|96
+GN|Guinea|기니|Africa/Abidjan|false|96
+GP|Guadeloupe|과들루프|America/Puerto_Rico|false|96
+GQ|Equatorial Guinea|적도 기니|Africa/Lagos|false|96
+GR|Greece|그리스|Europe/Athens|false|96
+GT|Guatemala|과테말라|America/Guatemala|false|96
+GW|Guinea-Bissau|기니비사우|Africa/Bissau|false|96
+GY|Guyana|가이아나|America/Guyana|false|96
+HK|Hong Kong SAR China|홍콩(중국 특별행정구)|Asia/Hong_Kong|false|96
+HN|Honduras|온두라스|America/Tegucigalpa|false|96
+HR|Croatia|크로아티아|Europe/Belgrade|false|96
+HT|Haiti|아이티|America/Port-au-Prince|false|96
+HU|Hungary|헝가리|Europe/Budapest|false|96
+ID|Indonesia|인도네시아|Asia/Jakarta|true|96
+IE|Ireland|아일랜드|Europe/Dublin|false|96
+IM|Isle of Man|맨섬|Europe/London|false|96
+IQ|Iraq|이라크|Asia/Baghdad|false|48
+IS|Iceland|아이슬란드|Africa/Abidjan|false|96
+IT|Italy|이탈리아|Europe/Rome|false|96
+JE|Jersey|저지|Europe/London|false|96
+JM|Jamaica|자메이카|America/Jamaica|false|96
+JP|Japan|일본|Asia/Tokyo|false|96
+KE|Kenya|케냐|Africa/Nairobi|false|96
+KH|Cambodia|캄보디아|Asia/Bangkok|false|96
+KI|Kiribati|키리바시|Pacific/Tarawa|true|96
+KM|Comoros|코모로|Africa/Nairobi|false|96
+KN|St. Kitts & Nevis|세인트키츠 네비스|America/Puerto_Rico|false|96
+KR|South Korea|대한민국|Asia/Seoul|false|96
+KY|Cayman Islands|케이맨 제도|America/Panama|false|96
+KZ|Kazakhstan|카자흐스탄|Asia/Almaty|true|96
+LC|St. Lucia|세인트루시아|America/Puerto_Rico|false|96
+LI|Liechtenstein|리히텐슈타인|Europe/Zurich|false|96
+LR|Liberia|라이베리아|Africa/Monrovia|false|96
+LS|Lesotho|레소토|Africa/Johannesburg|false|96
+LT|Lithuania|리투아니아|Europe/Vilnius|false|96
+LU|Luxembourg|룩셈부르크|Europe/Brussels|false|96
+LV|Latvia|라트비아|Europe/Riga|false|96
+LY|Libya|리비아|Africa/Tripoli|false|48
+MA|Morocco|모로코|Africa/Casablanca|false|96
+MC|Monaco|모나코|Europe/Paris|false|96
+MD|Moldova|몰도바|Europe/Chisinau|false|96
+ME|Montenegro|몬테네그로|Europe/Belgrade|false|96
+MF|St. Martin|생마르탱|America/Puerto_Rico|false|96
+MG|Madagascar|마다가스카르|Africa/Nairobi|false|96
+MH|Marshall Islands|마셜 제도|Pacific/Tarawa|true|96
+MK|North Macedonia|북마케도니아|Europe/Belgrade|false|96
+ML|Mali|말리|Africa/Abidjan|false|96
+MN|Mongolia|몽골|Asia/Ulaanbaatar|true|96
+MP|Northern Mariana Islands|북마리아나제도|Pacific/Guam|false|96
+MQ|Martinique|마르티니크|America/Martinique|false|96
+MR|Mauritania|모리타니|Africa/Abidjan|false|96
+MS|Montserrat|몬트세라트|America/Puerto_Rico|false|96
+MT|Malta|몰타|Europe/Malta|false|96
+MW|Malawi|말라위|Africa/Maputo|false|96
+MX|Mexico|멕시코|America/Mexico_City|true|96
+MZ|Mozambique|모잠비크|Africa/Maputo|false|96
+NA|Namibia|나미비아|Africa/Windhoek|false|96
+NC|New Caledonia|뉴칼레도니아|Pacific/Noumea|false|96
+NE|Niger|니제르|Africa/Lagos|false|96
+NF|Norfolk Island|노퍽섬|Pacific/Norfolk|false|96
+NG|Nigeria|나이지리아|Africa/Lagos|false|96
+NI|Nicaragua|니카라과|America/Managua|false|96
+NL|Netherlands|네덜란드|Europe/Brussels|false|96
+NO|Norway|노르웨이|Europe/Berlin|false|96
+NR|Nauru|나우루|Pacific/Nauru|false|96
+NU|Niue|니우에|Pacific/Niue|false|96
+NZ|New Zealand|뉴질랜드|Pacific/Auckland|true|96
+PA|Panama|파나마|America/Panama|false|96
+PE|Peru|페루|America/Lima|false|96
+PF|French Polynesia|프랑스령 폴리네시아|Pacific/Tahiti|true|96
+PG|Papua New Guinea|파푸아뉴기니|Pacific/Port_Moresby|true|96
+PH|Philippines|필리핀|Asia/Manila|false|96
+PL|Poland|폴란드|Europe/Warsaw|false|96
+PM|St. Pierre & Miquelon|생피에르 미클롱|America/Miquelon|false|96
+PN|Pitcairn Islands|핏케언 제도|Pacific/Pitcairn|false|96
+PR|Puerto Rico|푸에르토리코|America/Puerto_Rico|false|96
+PT|Portugal|포르투갈|Europe/Lisbon|true|96
+PW|Palau|팔라우|Pacific/Palau|false|96
+PY|Paraguay|파라과이|America/Asuncion|false|96
+RO|Romania|루마니아|Europe/Bucharest|false|96
+RS|Serbia|세르비아|Europe/Belgrade|false|96
+RU|Russia|러시아|Europe/Kaliningrad|true|96
+RW|Rwanda|르완다|Africa/Maputo|false|96
+SB|Solomon Islands|솔로몬 제도|Pacific/Guadalcanal|false|96
+SC|Seychelles|세이셸|Asia/Dubai|false|96
+SD|Sudan|수단|Africa/Khartoum|false|48
+SE|Sweden|스웨덴|Europe/Berlin|false|96
+SG|Singapore|싱가포르|Asia/Singapore|false|96
+SH|St. Helena|세인트헬레나|Africa/Abidjan|false|96
+SI|Slovenia|슬로베니아|Europe/Belgrade|false|96
+SJ|Svalbard & Jan Mayen|스발바르제도-얀마웬섬|Europe/Berlin|false|96
+SK|Slovakia|슬로바키아|Europe/Prague|false|96
+SL|Sierra Leone|시에라리온|Africa/Abidjan|false|96
+SM|San Marino|산마리노|Europe/Rome|false|96
+SN|Senegal|세네갈|Africa/Abidjan|false|96
+SO|Somalia|소말리아|Africa/Nairobi|false|96
+SR|Suriname|수리남|America/Paramaribo|false|96
+SS|South Sudan|남수단|Africa/Juba|false|96
+ST|São Tomé & Príncipe|상투메 프린시페|Africa/Sao_Tome|false|96
+SV|El Salvador|엘살바도르|America/El_Salvador|false|96
+SX|Sint Maarten|신트마르턴|America/Puerto_Rico|false|96
+SY|Syria|시리아|Asia/Damascus|false|48
+SZ|Eswatini|에스와티니|Africa/Johannesburg|false|96
+TC|Turks & Caicos Islands|터크스 케이커스 제도|America/Grand_Turk|false|96
+TD|Chad|차드|Africa/Ndjamena|false|96
+TG|Togo|토고|Africa/Abidjan|false|96
+TK|Tokelau|토켈라우|Pacific/Fakaofo|false|96
+TN|Tunisia|튀니지|Africa/Tunis|false|96
+TO|Tonga|통가|Pacific/Tongatapu|false|96
+TR|Türkiye|튀르키예|Europe/Istanbul|false|96
+TT|Trinidad & Tobago|트리니다드 토바고|America/Puerto_Rico|false|96
+TV|Tuvalu|투발루|Pacific/Tarawa|false|96
+TZ|Tanzania|탄자니아|Africa/Nairobi|false|96
+UA|Ukraine|우크라이나|Europe/Simferopol|true|96
+UG|Uganda|우간다|Africa/Nairobi|false|64
+US|United States|미국|America/New_York|true|96
+UY|Uruguay|우루과이|America/Montevideo|false|96
+VA|Vatican City|바티칸 시국|Europe/Rome|false|96
+VC|St. Vincent & Grenadines|세인트빈센트그레나딘|America/Puerto_Rico|false|96
+VE|Venezuela|베네수엘라|America/Caracas|false|96
+VG|British Virgin Islands|영국령 버진아일랜드|America/Puerto_Rico|false|96
+VI|U.S. Virgin Islands|미국령 버진아일랜드|America/Puerto_Rico|false|96
+VN|Vietnam|베트남|Asia/Bangkok|true|96
+VU|Vanuatu|바누아투|Pacific/Efate|false|96
+WF|Wallis & Futuna|왈리스-푸투나 제도|Pacific/Tarawa|false|96
+WS|Samoa|사모아|Pacific/Apia|false|96
+YE|Yemen|예멘|Asia/Riyadh|false|48
+ZA|South Africa|남아프리카|Africa/Johannesburg|false|96
+ZM|Zambia|잠비아|Africa/Maputo|false|96
+ZW|Zimbabwe|짐바브웨|Africa/Maputo|false|96

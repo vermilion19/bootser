@@ -11,7 +11,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 import org.springframework.orm.jpa.EntityManagerHolder;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Outbox 가 DB 와 만나는 자리. H2 를 PostgreSQL 모드로 띄운다({@code out} 프로필).
+ * Outbox 가 DB 와 만나는 자리. H2 를 PostgreSQL 모드로 띄운다.
  *
  * <p>여기서 무는 것 둘이 이 구조의 급소다.
  *
@@ -36,10 +36,26 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * <p>Docker 없이 돈다. Testcontainers PostgreSQL 이 필요한 것 — 부분 인덱스를
  * <b>실제로 타는지</b> — 은 {@code SchemaIndexTest} 쪽 몫이다. 여기서는 <b>뜻</b>이
  * 맞는지만 묻는다.
+ *
+ * <h2>{@code out} 프로필을 쓰지 않는다</h2>
+ *
+ * <p>두 가지에 걸린다. (1) 그 프로필은 Loki 부가 기능을 켜는데(core-observability 의
+ * {@code logback-spring.xml}) 로컬에 Loki 가 없어서, <b>슬라이스가 둘이 되는 순간
+ * 두 번째 스프링 컨텍스트가 Logback 설정 오류로 통째로 못 뜬다.</b>
+ * (2) 그 프로필의 인메모리 DB 이름이 하나라 슬라이스끼리 서로의 표를 지운다.
+ *
+ * <p>그래서 이 테스트가 <b>필요한 것만 스스로 적는다.</b> DB 이름도 클래스마다 다르다.
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("out")
+@TestPropertySource(properties = {
+        "spring.datasource.url=jdbc:h2:mem:dday-outbox;MODE=PostgreSQL",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+})
 @Import({JpaDomainOutbox.class, JpaConfig.class})
 class OutboxPersistenceTest {
 

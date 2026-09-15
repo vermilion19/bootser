@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -291,6 +292,35 @@ class RedisVersionedCacheTest {
 
             assertThat(got).isEqualTo("loaded");
             verify(valueOps).set("h:KR:2026:v1", "loaded", Duration.ofDays(7));
+        }
+
+        /**
+         * 읽다 터지는 경우가 실제로 둘 있다. <b>담긴 값을 되살릴 수 없거나</b>
+         * (final 타입이 타입 정보 없이 저장된 옛 값 — {@code CountryCatalog} 주석),
+         * <b>Redis 가 없거나.</b>
+         *
+         * <p>둘 다 캐시의 사정이지 응답을 못 줄 이유가 아니다. 그대로 두면 조회가
+         * 500 이 되는데, TTL 이 없는 키에서는 <b>그 500 이 저절로 풀리지도 않는다.</b>
+         */
+        @Test
+        @DisplayName("읽다 터지면 미스로 친다 — 캐시가 응답을 막아서는 안 된다")
+        void readFailureFallsBackToLoader() {
+            when(valueOps.get("h:KR:2026:v1")).thenThrow(new IllegalStateException("직렬화 실패"));
+
+            String got = cache.getOrLoad(CacheName.HOLIDAY_YEAR, "KR:2026", String.class, () -> "loaded");
+
+            assertThat(got).isEqualTo("loaded");
+        }
+
+        @Test
+        @DisplayName("담다 터져도 응답은 나간다")
+        void writeFailureDoesNotBreakTheResponse() {
+            doThrow(new IllegalStateException("Redis 없음"))
+                    .when(valueOps).set(anyString(), any(), any(Duration.class));
+
+            String got = cache.getOrLoad(CacheName.HOLIDAY_YEAR, "KR:2026", String.class, () -> "loaded");
+
+            assertThat(got).isEqualTo("loaded");
         }
 
         @Test

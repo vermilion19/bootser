@@ -27,3 +27,9 @@ dday:
   outbox:
     relay:
       enabled: false
+  country:
+    seed:
+      # DB 도 Redis 도 없이 띄워 보는 프로필이라 시드도 끈다.
+      # 인메모리 H2 라 켜 두면 켤 때마다 204행을 다시 넣는데, 그것이 「시드가
+      # 들어갔다」는 착각을 준다 — 운영에서는 판이 박히는 일회성 작업이다.
+      enabled: false

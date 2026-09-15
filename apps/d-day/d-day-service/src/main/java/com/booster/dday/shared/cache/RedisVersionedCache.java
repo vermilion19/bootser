@@ -54,7 +54,7 @@ public class RedisVersionedCache implements VersionedCache {
     public <T> T getOrLoad(CacheName name, String suffix, Class<T> type, Supplier<T> loader) {
         String key = CacheKey.of(name, suffix, version(name.namespace()));
 
-        Object cached = values.opsForValue().get(key);
+        Object cached = readQuietly(key);
         if (type.isInstance(cached)) {
             return type.cast(cached);
         }
@@ -70,8 +70,47 @@ public class RedisVersionedCache implements VersionedCache {
         if (loaded == null) {
             return null;
         }
-        put(key, loaded, name.ttl());
+        putQuietly(key, loaded, name.ttl());
         return loaded;
+    }
+
+    /**
+     * 캐시에서 읽는다. <b>읽다 터지면 미스로 친다.</b>
+     *
+     * <p>터지는 경우가 실제로 둘 있다.
+     *
+     * <ol>
+     *   <li><b>담긴 값을 되살릴 수 없다.</b> 값 직렬화기의 기본 타이핑이
+     *       {@code NON_FINAL} 이라 final 타입은 타입 정보 없이 저장되고, 읽을 때
+     *       {@code SerializationException} 이 난다. 옛 배포가 그런 값을 남겼거나
+     *       클래스 이름이 바뀐 경우다.</li>
+     *   <li><b>Redis 가 없다.</b></li>
+     * </ol>
+     *
+     * <p>둘 다 <b>캐시의 사정</b>이지 응답을 못 줄 이유가 아니다. 그대로 두면
+     * 조회가 500 이 되는데, {@code country:all} 처럼 <b>TTL 이 없는 키</b>에서는
+     * 그 500 이 저절로 풀리지도 않는다 — 만료로 사라질 길이 없기 때문이다.
+     *
+     * <p>대신 <b>조용하지 않게</b> 삼킨다. 캐시가 통째로 안 듣는 상태는 부하가
+     * 걸려야 보이는 종류의 고장이라, 여기 WARN 이 관측의 유일한 실마리다
+     * (§8.2 에 메트릭을 붙일 자리).
+     */
+    private Object readQuietly(String key) {
+        try {
+            return values.opsForValue().get(key);
+        } catch (RuntimeException e) {
+            log.warn("[Cache] 읽지 못했다. 미스로 친다. key={}, 까닭={}", key, e.toString());
+            return null;
+        }
+    }
+
+    /** 못 담아도 응답은 나간다. 다음 요청이 다시 담아 볼 뿐이다 */
+    private void putQuietly(String key, Object value, Duration ttl) {
+        try {
+            put(key, value, ttl);
+        } catch (RuntimeException e) {
+            log.warn("[Cache] 담지 못했다. key={}, 까닭={}", key, e.toString());
+        }
     }
 
     @Override

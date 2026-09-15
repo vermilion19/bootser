@@ -45,9 +45,15 @@ public interface VersionedCache {
      * 사고</b>다. 그것을 담으면 사고가 TTL 만큼 굳는다.
      *
      * <p>목록을 담는 캐시가 많은데 {@code Class<T>} 로는 {@code List<Holiday>} 를
-     * 표현할 수 없다. <b>목록은 레코드 하나로 감싸서 담는다</b> — 제네릭 때문만은
+     * 표현할 수 없다. <b>목록은 타입 하나로 감싸서 담는다</b> — 제네릭 때문만은
      * 아니고, 나중에 목록 옆에 필드 하나를 더할 때 캐시에 든 옛 값이 그대로 살아
      * 있어도 읽히기 때문이다.
+     *
+     * <p><b>그 감싸는 타입은 레코드면 안 된다.</b> 값 직렬화기의 기본 타이핑이
+     * {@code NON_FINAL} 이라 final 타입에는 타입 정보가 안 적히고, 레코드는 언제나
+     * final 이다. 그렇게 담긴 값은 읽을 때 {@code SerializationException} 을 낸다 —
+     * 미스가 아니라 예외다. {@code CountryCatalog} 가 클래스인 까닭이 이것이고,
+     * {@code CountryCatalogSerializationTest} 가 그 사실을 붙잡아 둔다.
      */
     <T> T getOrLoad(CacheName name, String suffix, Class<T> type, Supplier<T> loader);
 
