@@ -26,4 +26,12 @@ public interface LongWeekendRepository extends JpaRepository<LongWeekend, Long> 
                           @Param("year") short year,
                           @Param("runId") long runId,
                           @Param("now") Instant now);
+
+    /** 그 해의 살아 있는 연휴 전부 (A-6 순위 축) */
+    @Query("""
+            select w from LongWeekend w
+             where w.year = :year
+               and w.deletedAt is null
+            """)
+    List<LongWeekend> findAliveOfYear(@Param("year") short year);
 }

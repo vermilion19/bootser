@@ -1,5 +1,6 @@
 package com.booster.dday.holiday.domain;
 
+import com.booster.dday.holiday.application.dto.HolidayRow;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -40,4 +41,38 @@ public interface HolidayRepository extends JpaRepository<Holiday, Long> {
                           @Param("year") short year,
                           @Param("runId") long runId,
                           @Param("now") Instant now);
+
+    /**
+     * 그 해의 <b>공개 대상 · 살아 있는</b> 공휴일 전부 (A-5 ~ A-7).
+     *
+     * <p>축 셋이 전부 이 한 질의를 쓴다. 한 해가 204개국 × 14 ≈ 2,800행이라
+     * 통째로 읽어 자바에서 접는 편이 낫다 — 축마다 다른 집계 SQL 을 쓰면
+     * <b>같은 자료를 세는 방법이 셋</b>이 되고, 셋이 갈라지면 허브의 숫자와
+     * 낱장의 목록이 안 맞는다.
+     *
+     * <p>{@code is_public} 을 거르는 것이 A-10 이다. 비-{@code Public} 도 저장은
+     * 하지만 노출하지 않는다.
+     */
+    @Query("""
+            select new com.booster.dday.holiday.application.dto.HolidayRow(
+                       h.countryCode, h.date, h.nameSlug, h.nameEn, h.global)
+              from Holiday h
+             where h.year = :year
+               and h.publicHoliday = true
+               and h.deletedAt is null
+            """)
+    List<HolidayRow> findPublicRowsOfYear(@Param("year") short year);
+
+    /** 그 해 그 이름의 공휴일 (A-5 낱장) */
+    @Query("""
+            select new com.booster.dday.holiday.application.dto.HolidayRow(
+                       h.countryCode, h.date, h.nameSlug, h.nameEn, h.global)
+              from Holiday h
+             where h.year = :year
+               and h.nameSlug = :slug
+               and h.publicHoliday = true
+               and h.deletedAt is null
+            """)
+    List<HolidayRow> findPublicRowsOfName(@Param("year") short year,
+                                          @Param("slug") NameSlug slug);
 }
