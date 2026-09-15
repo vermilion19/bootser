@@ -34,4 +34,15 @@ public interface LongWeekendRepository extends JpaRepository<LongWeekend, Long> 
                and w.deletedAt is null
             """)
     List<LongWeekend> findAliveOfYear(@Param("year") short year);
+
+    /** 그 나라 그 해의 살아 있는 연휴 (A-3) */
+    @Query("""
+            select w from LongWeekend w
+             where w.countryCode = :countryCode
+               and w.year = :year
+               and w.deletedAt is null
+             order by w.startDate
+            """)
+    List<LongWeekend> findAliveOf(@Param("countryCode") String countryCode,
+                                  @Param("year") short year);
 }

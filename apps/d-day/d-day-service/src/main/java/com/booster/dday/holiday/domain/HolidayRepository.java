@@ -75,4 +75,31 @@ public interface HolidayRepository extends JpaRepository<Holiday, Long> {
             """)
     List<HolidayRow> findPublicRowsOfName(@Param("year") short year,
                                           @Param("slug") NameSlug slug);
+
+    /** 그 나라 그 해의 공개 공휴일 (A-1) */
+    @Query("""
+            select h from Holiday h
+             where h.countryCode = :countryCode
+               and h.year = :year
+               and h.publicHoliday = true
+               and h.deletedAt is null
+             order by h.date, h.nameEn
+            """)
+    List<Holiday> findPublicAliveOf(@Param("countryCode") String countryCode,
+                                    @Param("year") short year);
+
+    /**
+     * 그 날 쉬는 나라 전부 (A-4).
+     *
+     * <p>날짜에서 나라로 가는 역방향이다. 정적 사이트가 «월별 역인덱스 36벌» 로
+     * 만들어 두었던 것이 여기서 질의 하나가 된다.
+     */
+    @Query("""
+            select h from Holiday h
+             where h.date = :date
+               and h.publicHoliday = true
+               and h.deletedAt is null
+             order by h.countryCode, h.nameEn
+            """)
+    List<Holiday> findPublicAliveOn(@Param("date") java.time.LocalDate date);
 }

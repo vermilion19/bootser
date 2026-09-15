@@ -30,6 +30,9 @@ public enum DDayErrorCode implements ErrorCode {
     SKY_LUNAR_DATE_NOT_FOUND(404, "DDAY-SKY-003",
             "그 음력 날짜는 그 해에 없다 (윤달이 아닌 해이거나 29일까지인 달이다)"),
 
+    DATE_OUT_OF_COVERAGE(400, "DDAY-HOLIDAY-001",
+            "그 날짜는 아직 담고 있지 않다"),
+
     HOLIDAY_NAME_NOT_FOUND(404, "DDAY-AXIS-001",
             "그 이름으로 쉬는 나라가 없다"),
 
