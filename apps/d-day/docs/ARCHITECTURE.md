@@ -756,10 +756,15 @@ spring:
 **`waiting-service` 도 같은 위험을 안고 있다** (릴레이 3초 + 노쇼 1분 + 자정 정리).
 이 저장소에서 아직 안 터진 고장이고, d-day 는 스케줄이 일곱이라 **훨씬 빨리 터진다.**
 
-> 대안: `@Scheduled` 를 전부 가상 스레드에서 돌리도록 `SimpleAsyncTaskScheduler` 를 쓰면
-> 풀 크기 자체가 사라진다. Spring Boot 4 에서 `spring.threads.virtual.enabled: true` 가
-> 스케줄러까지 덮는지 **버전별로 확인이 필요하다.** 확인 전까지는 위의 명시적 풀 크기로 간다.
-> (→ §11-4)
+> **확인했다 (2026-09-15) — 덮는다.** Spring Boot 4.0.1 의
+> `TaskSchedulingConfigurations.TaskSchedulerConfiguration` 안에 `@ConditionalOnThreading(VIRTUAL)`
+> 인 `taskScheduler` 빈이 있고, `spring.threads.virtual.enabled: true` 면 그쪽이 떠서
+> `SimpleAsyncTaskScheduler` 가 된다. **스케줄마다 가상 스레드를 새로 뽑으므로 풀 크기라는
+> 개념 자체가 없다.** 위의 함정은 우리 설정에서는 이미 없는 셈이다. (→ §10-4 닫힘)
+>
+> **그래도 `pool.size: 10` 을 지우지 않는다.** 누가 가상 스레드를 끄는 순간 기본값이
+> **1** 로 돌아오고 함정이 그대로 복귀한다. 설정 한 줄이 그 복귀를 막는다.
+> `SchedulerThreadingTest` 가 세 경우를 다 문다 — 가상 스레드 켬 · 끔+설정 · 끔+무설정(풀이 1).
 
 ---
 
@@ -1076,7 +1081,7 @@ if (isAdminBlockedPath(path)) {
 | --- | --- | --- |
 | ~~0~~ | ~~게이트웨이 **4번**~~ | **끝남** — `guest-blocked-paths` · 테스트 10 |
 | ~~1~~ | ~~모듈 골격~~ | **끝남** — main 클래스패스가 Lombok 하나뿐임을 `verifyNoSpring` 이 지킨다 |
-| 2 | `shared` — ~~`DDayCalculator`~~ · `VersionedCache` · `DomainOutbox` + 3세대 릴레이 | **셋 중 하나 끝남.** 조립(§9.9(2))은 섰고, 나머지 둘은 Redis 와 Outbox 테이블이 있어야 한다 |
+| ~~2~~ | ~~`shared` — `DDayCalculator` · `VersionedCache` · `DomainOutbox` + 3세대 릴레이~~ | **끝남** — 테스트 99. 여기서 §10-4 도 닫혔다 |
 | 3 | `country` 시드 (CLDR) | 나머지 전부가 읽는다 (§9.1). E-1 의 근거 |
 | ~~4~~ | ~~`astro-core` 절기 · 삭망~~ | **끝남** — 절기 72건 최대 38초 · 삭망 74건 최대 39초 (허용 1분) |
 | 5 | `holiday` 동기화 + **1층 검산점** (일본 春分の日 · 한국 설날) | 4가 있어야 1층이 의미를 갖는다 |
@@ -1102,7 +1107,7 @@ if (isAdminBlockedPath(path)) {
 | 1 | **콜드 연도를 캐시할 것인가** (§4.4) | `SolarTermSolver.termsOf` 의 p99. **20ms 이하면 무캐시 확정** | 착수 6 |
 | 2 | **`notification-service` 에 d-day 리스너를 넣을 것인가** (§3.6) | 다른 서비스의 변경이다. 아니면 d-day 가 채널을 직접 치고 알림 서비스는 나중에 | 착수 9 전 |
 | 3 | **공개 갈래에서 `requiredService` 검사를 건너뛸 것인가** (§7.5) | 게이트웨이 인가 모델 변경. §10.1 의 넷을 넘어선다 | 착수 10 |
-| 4 | **`@Scheduled` 가 가상 스레드를 타는가** (§5.7) | Spring Boot 4.0.1 에서 `spring.threads.virtual.enabled` 가 `TaskScheduler` 까지 덮는지 **확인 필요.** 확인 전까지 풀 8 | 착수 2 |
+| ~~4~~ | ~~**`@Scheduled` 가 가상 스레드를 타는가**~~ | **닫힘 — 탄다.** `TaskSchedulingConfigurations` 의 `taskScheduler` 빈이 `@ConditionalOnThreading(VIRTUAL)` 이라 `spring.threads.virtual.enabled: true` 면 `SimpleAsyncTaskScheduler` 가 뜨고 **풀 크기라는 개념이 사라진다.** 그래도 `spring.task.scheduling.pool.size: 10` 은 남긴다 — 가상 스레드를 끄면 기본값 **1** 로 돌아가 §5.7 의 함정이 그대로 복귀한다. `SchedulerThreadingTest` 가 셋 다 문다 | 끝남 |
 | 5 | **`/api/v1/special-days/**` 의 저장소 밖 소비자** (§7.4) | 있으면 병기 기간, 없으면 갈아 끼움. 저장소 안에는 없다 | 착수 10 |
 | 6 | **L1(Caffeine) 도입** (§4.6) | 부하 테스트에서 Redis 왕복이 p99 의 10% 를 넘는가 | 착수 11 이후 |
 | ~~7~~ | ~~**ΔT 모델**~~ | **닫힘** — 2005~2050 은 Espenak·Meeus, 그 밖은 장기 포물선. 1600~2005 의 정밀 다항식은 **검산점이 없어 넣지 않았다**(`DeltaT.isRefined` 가 그 사실에 답한다). B-6 이 그 구간을 실제로 요구할 때 원천을 받아 채운다 | 끝남 |

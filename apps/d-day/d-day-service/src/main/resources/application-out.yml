@@ -19,3 +19,11 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+# DB 도 Redis 도 없이 띄워 보는 프로필이라 릴레이를 끈다.
+# 켜 두면 3초마다 ShedLock 이 Redis 를 찾다 실패해 로그가 그것으로 뒤덮이고,
+# 진짜 에러가 그 속에 묻힌다.
+dday:
+  outbox:
+    relay:
+      enabled: false

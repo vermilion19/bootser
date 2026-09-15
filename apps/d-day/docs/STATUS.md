@@ -1,14 +1,15 @@
 # d-day-service — 어디까지 왔나
 
-> 2026-09-14 기준. 착수 순서는 `ARCHITECTURE.md` §9 를 따른다.
+> 2026-09-15 기준. 착수 순서는 `ARCHITECTURE.md` §9 를 따른다.
 > 이 문서는 **목록만** 둔다. 왜 그렇게 정했는지는 각 문서에 있다.
 
 ## 한 줄
 
-설계 넷이 닫혔고, **천문 계산과 스키마 골격까지 섰다.** 도메인 엔티티는 아직 하나도 없다.
+설계 넷이 닫혔고, **천문 계산 · 스키마 골격 · `shared` 층까지 섰다.**
+착수 2 가 닫혔으므로 이제부터는 도메인 컨텍스트 차례다 — `country` · `holiday` 는 아직 한 줄도 없다.
 
-- 자바 파일 37개 · 테스트 73개 (astro-core 37 · d-day-service 26 · gateway 10)
-- 커밋 9개
+- 자바 파일 55개 · 테스트 172개 (astro-core 37 · d-day-service 125 · gateway 10)
+- 커밋 10개
 
 ---
 
@@ -29,13 +30,17 @@
 | --- | --- | --- |
 | 0 | 게이트웨이 — `/dday/me/**` 게스트 통과 차단 | 테스트 10 |
 | 1 | 모듈 골격 — `astro-core` 신설 · 패키지 이동 · 의존 정리 | `verifyNoSpring` |
-| 2 (일부) | `shared/dday` — `DDayCalculator` | 테스트 17 |
+| 2 | `shared/dday` — `DDayCalculator` | 테스트 17 |
+| 2 | `shared/cache` — `CacheNamespace` · `CacheName` · `CacheKey` · `VersionedCache` | 테스트 65 |
+| 2 | `shared/outbox` — `DomainOutbox` · `OutboxEvent` · **3세대 릴레이** + `config/SchedulerConfig` | 테스트 31 |
+| 2 | `@Scheduled` 가 가상 스레드를 타는지 확인 (§10-4) | 테스트 3 |
 | 4 | `astro-core` 절기 · 삭망 | **2층 146건** (최대 38초 · 39초) |
 | — | 유성우 (B-3) | **공표값 11건** |
 | — | 음력 변환 (B-4) | **1층 198건** (윤달 5) |
 | — | DDL 골격 — `scripts/schema.sql` + 프로필 셋 + 검사 둘 | 표 18 · 인덱스 31 · CHECK 27 |
 
-**`sky` 도메인 계산(B-1·2·3·4)은 전부 끝났다.**
+**`sky` 도메인 계산(B-1·2·3·4)은 전부 끝났다.** 그리고 **착수 2(`shared`)가 닫혔다** —
+캐시 · Outbox · 락이 전부 섰으므로 뒤의 착수들이 「그때 만들자」로 미뤄 둔 것이 더 없다.
 
 ---
 
@@ -45,14 +50,12 @@
 
 | 착수 | 무엇 | 막힌 데 |
 | --- | --- | --- |
-| 2 | `VersionedCache` (Redis 버전 플립) | 없음 |
-| 2 | `DomainOutbox` + 3세대 릴레이 | 없음 (스키마 섰다) |
-| 3 | `country` CLDR 시드 | 없음 |
+| 3 | `country` CLDR 시드 | 없음 — **다음 차례다** |
 | 5 | `holiday` 동기화 + 1층 검산점 | 없음 |
-| 6 | `sky` 캐시 정책 + 콜드 계산 측정 | 2 · 6 |
+| 6 | `sky` 캐시 정책 + 콜드 계산 측정 | 없음 (캐시 섰다) |
 | 7 | `axis` + 버전 플립 + 워밍 | 5 |
 | 8 | **C-7** `anniversary` + `Occurrence` 투영 | 3 · 5 |
-| 9 | **D-4** `release`(KBO) + `DateChange` + 2단 발행 | 2 |
+| 9 | **D-4** `release`(KBO) + `DateChange` + 2단 발행 | 없음 (Outbox 섰다) · §10-2 는 열려 있다 |
 | 10 | 게이트웨이 경로 전환 + `docs/AUTH_FLOW.md` | 표면이 설 때 |
 | 11 | E-3 인기 · 부하 테스트(p99) | 전부 |
 | — | E-2 검색 | **1차 밖** |
@@ -61,8 +64,10 @@
 
 | | 무엇 |
 | --- | --- |
-| ⬜ | 도메인 엔티티 — **하나도 없다.** `scripts/schema.sql` 만 있다 |
+| ⬜ | 도메인 엔티티 — 표 18개 중 **`outbox_event` 하나만** 섰다. 나머지는 `scripts/schema.sql` 만 있다 |
 | ⬜ | `SchemaIndexTest` 를 실제로 돌린 적 없음 — Docker 없는 자리라 건너뛴다 (임시 PostgreSQL 로 수동 확인은 했다) |
+| ⬜ | **`ix_outbox_claim` 을 실제로 타는지 안 봤다** — 부분 인덱스라 PostgreSQL 실행 계획으로만 확인된다 (SCHEMA §7.2) |
+| ⬜ | **Redis 통합 테스트 없음** — `RedisVersionedCache` 는 가짜 템플릿으로만 물었다. 직렬화와 TTL 적용은 착수 6·7 에서 본다 |
 | ⬜ | 부하 테스트 설계 (p99 를 p95 에서 베끼지 않는다) |
 
 ---
@@ -71,7 +76,7 @@
 
 | 어디 | 몇 개 | 대표적인 것 |
 | --- | --- | --- |
-| `ARCHITECTURE.md` §10 | 13 중 **2 닫힘** | 콜드 연도 캐시 여부 · `notification-service` 리스너 · 공개 갈래 인가 모델 |
+| `ARCHITECTURE.md` §10 | 13 중 **3 닫힘** | 콜드 연도 캐시 여부 · `notification-service` 리스너 · 공개 갈래 인가 모델 |
 | `SCHEMA.md` §13.3 | **6** | `name_slug` 정규화 · 보유 연도 범위 · **S-6 2차 스키마 변경 절차** |
 
 **S-6 이 제일 급하다** — 마이그레이션 도구를 안 쓰기로 했으므로 `schema.sql` 은 빈 DB 용이다.
