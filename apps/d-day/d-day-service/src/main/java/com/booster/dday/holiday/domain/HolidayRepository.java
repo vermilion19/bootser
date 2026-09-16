@@ -3,6 +3,7 @@ package com.booster.dday.holiday.domain;
 import com.booster.dday.holiday.application.dto.HolidayRow;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import com.booster.dday.holiday.application.dto.HolidayNameRow;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -75,6 +76,28 @@ public interface HolidayRepository extends JpaRepository<Holiday, Long> {
             """)
     List<HolidayRow> findPublicRowsOfName(@Param("year") short year,
                                           @Param("slug") NameSlug slug);
+
+    /**
+     * 공휴일 <b>이름</b>들 — 검색이 읽는 것 (E-2).
+     *
+     * <p>단위가 행이 아니라 이름이다. 「크리스마스」를 찾는 사람에게 178개국의
+     * 크리스마스를 178줄로 내보내면 <b>결과가 아니라 소음</b>이다.
+     *
+     * <p>이름을 <b>DB 에서 거르지 않는다.</b> 우리 정규화(악센트 펴기 · 기호 지우기)는
+     * {@code unaccent} 확장이 있어야 DB 에서 되는데 H2 에는 없다 — 거기서 거르면
+     * <b>테스트와 운영이 다르게 돈다</b> (SCHEMA §1.2 · {@code CASCADE} 와 같은 함정).
+     * 한 해의 서로 다른 이름은 수백이라 다 읽고 자바에서 거른다.
+     */
+    @Query("""
+            select new com.booster.dday.holiday.application.dto.HolidayNameRow(
+                       h.nameSlug, min(h.nameEn), count(distinct h.countryCode))
+              from Holiday h
+             where h.year = :year
+               and h.publicHoliday = true
+               and h.deletedAt is null
+             group by h.nameSlug
+            """)
+    List<HolidayNameRow> findPublicNamesOfYear(@Param("year") short year);
 
     /** 그 나라 그 해의 공개 공휴일 (A-1) */
     @Query("""

@@ -1,5 +1,6 @@
 package com.booster.dday.release.domain;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,6 +25,23 @@ public interface SportEventRepository extends JpaRepository<SportEvent, Long> {
     @Query("select e from SportEvent e where e.source = :source and e.externalId in :externalIds")
     List<SportEvent> findAllBySourceAndExternalIdIn(@Param("source") String source,
                                                     @Param("externalIds") Collection<String> externalIds);
+
+    /**
+     * 다가오는 경기 — 리그를 안 가린다. 검색이 읽는 것 (E-2).
+     *
+     * <p><b>지난 경기는 안 본다.</b> D-day 서비스에서 「어제 끝난 경기」를 찾는 일은
+     * 없고, 그것까지 넣으면 시즌이 갈수록 훑는 양이 는다.
+     *
+     * <p>{@code Pageable} 로 상한을 받는다 — 유료 키를 넣으면 시즌 전수가 들어오므로
+     * (SPEC §12.2) 전부 읽는 길을 애초에 안 열어 둔다. <b>그 상한 밖의 경기는 검색에
+     * 안 걸린다</b>는 것이 대가이고, 무료 키에서는 애초에 몇 건 없다.
+     */
+    @Query("""
+            select e from SportEvent e
+             where e.startsAt >= :from
+             order by e.startsAt asc
+            """)
+    List<SportEvent> findUpcoming(@Param("from") Instant from, Pageable pageable);
 
     /** 리그의 다가오는 경기 (D-2) */
     @Query("""

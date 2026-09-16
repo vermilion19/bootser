@@ -778,11 +778,21 @@ CREATE INDEX        ix_watch_fanout ON watch (subject_type, subject_id) INCLUDE 
 상한이 필요해지면 이 인덱스에 커서 페이지네이션(`... AND member_id > :last ORDER BY member_id`)
 을 붙일 수 있게 `member_id` 가 이미 인덱스 안에 있다.
 
-## 6.6 1차 이후 — 검색 (한 줄만)
+## 6.6 검색 — **표가 하나도 안 늘었다**
 
 `sport_event.name` · `movie.title_ko` · `movie.title_en` 을 **소유 테이블의 평범한 텍스트
 칼럼**으로 둔다. 색인이 필요해지는 날 `pg_trgm` GIN 이든 별도 엔진이든 **더하기만** 하면 된다.
-**색인 스키마는 설계하지 않는다** (SPEC §7 — 1차 밖).
+
+> 검색을 만들면서 **그 「더하기」를 안 하는 쪽으로 닫았다** (SPEC §13.1).
+> 소유 테이블을 직접 읽는다 — 색인은 원본과 갈라지고 **갈라진 것은 조용하며**,
+> `pg_trgm` GIN 이 실제로 타는지를 확인할 PostgreSQL 이 지금 없다.
+
+**그래서 이 문서에 `search` 로 시작하는 표가 한 줄도 없다.** `axis` 가 그런 것과 같다
+(§9.4) — 자료를 하나도 더 만들지 않고 있는 것을 다르게 읽는다.
+
+검색이 더한 것은 **질의 하나**뿐이다 — `findPublicNamesOfYear` (`holiday` 를
+`name_slug` 로 묶어 이름 단위로 센다). 이름이 아니라 행 단위로 내보내면 178개국의
+크리스마스가 178줄이 되고, **그것은 결과가 아니라 소음**이다.
 
 ---
 

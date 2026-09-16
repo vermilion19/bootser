@@ -144,11 +144,19 @@ apps/d-day/
         ├── sky/           api · application · web          (계산 없음 — astro-core 가 한다)
         ├── anniversary/   domain · application · web · event
         ├── release/       domain · application · web · event · infrastructure
-        └── sync/          domain(SyncRun · SyncRunItem) · application · web(admin) · event(스케줄러)
+        ├── sync/          domain(SyncRun · SyncRunItem) · application · web(admin) · event(스케줄러)
+        └── search/        api(포트 · 값) · application · web         (domain 없음 — 표가 없다)
 ```
 
-**`search/` 패키지를 만들지 않는다.** 1차에서 빠졌다 (§7). 빈 패키지는 "여기 뭔가 있다" 는
-거짓 신호를 준다. 자리는 이 문서와 §9.1 의 점선이 기억한다.
+~~**`search/` 패키지를 만들지 않는다.**~~ **만들었다** (SPEC §13). 1차에서 빠졌던 것이라
+빈 패키지를 미리 두지 않았고 그 판단은 그대로 옳았다 — **만들 때 모양이 초안과 달랐다.**
+§9.8 의 초안은 `SearchDocument` 라는 표를 그렸는데 실제로는 **표가 하나도 안 늘었다.**
+
+**`search` 에 `domain` 이 없다.** `axis` 와 같은 이유다 — 집합체도 테이블도 없고 남의
+자료를 다르게 읽을 뿐이다. `api` 에 포트(`SearchSource`)와 값(`SearchHit` ·
+`SearchTerm` · `MatchScore`)이 있고 **각 컨텍스트가 그 포트를 구현한다** —
+`SyncTask` 와 같은 모양이라, 검색에 들어오는 컨텍스트가 느는 일이 **클래스 하나
+더하는 일**이 된다.
 
 **`axis` 에 `domain` 이 없는 것은 실수가 아니다** (§9.4 — 집합체도 테이블도 없다).
 `application` 에 읽기 모델과 QueryDSL 질의만 산다. 이 빈칸이 CLAUDE.md 의 DDD 규약에서
@@ -377,8 +385,9 @@ public interface DomainOutbox {
 1. **동기화 트랜잭션이 `Watch` 크기와 무관해진다.** 쓰는 것은 `SportEvent` 갱신 + `DateChange` + Outbox 1건.
 2. **펼치기가 독립적으로 재시도된다.** Kafka 컨슈머라 실패하면 재시도되고, 끝내 실패하면 DLT 로 간다
    (`notification-service/config/KafkaRetryConfig.java` 와 같은 모양).
-3. **사실 이벤트에 소비자를 더 붙일 수 있다.** 1차 이후의 `search` 색인 갱신(§E-2)이 바로 이 이벤트를 탄다.
-   **검색을 뺐어도 `release` 의 모양을 지킨다는 §7 의 약속이 여기서 한 번 더 지켜진다.**
+3. **사실 이벤트에 소비자를 더 붙일 수 있다.** ~~1차 이후의 `search` 색인 갱신(§E-2)이 바로 이 이벤트를 탄다.~~
+   **검색을 만들어 보니 색인이 없어 이 소비자도 없다** (SPEC §13.1) — 검색은 `sport_event` 를 직접 읽는다.
+   자리는 그대로 비어 있고, 색인을 세우는 날 여기 붙는다.
 
 ### 흐름
 
@@ -1168,7 +1177,7 @@ if (isAdminBlockedPath(path)) {
 | ~~9~~ | ~~**D-4** — `release`(KBO) + `DateChange` + Outbox + 2단 발행~~ | **끝남** — 테스트 101. 사슬이 코드로는 끝까지 이어졌다(`notification-service` 리스너까지). **영화는 원천 미정이라 뺐다.** 실제 자료로는 안 돌렸다 — API 키가 없다 |
 | ~~10~~ | ~~게이트웨이 1·2·3 + `docs/AUTH_FLOW.md`~~ | **끝남** — 테스트 15. `PATH_SERVICE_MAPPING` 을 순서 있는 목록으로 바꿨고, `shared/web/AdminOnly` 를 함께 세웠다 |
 | 11 | E-3 인기 · 부하 테스트 | |
-| — | E-2 검색 | **1차 밖** (§7) |
+| ~~—~~ | ~~E-2 검색~~ | **끝남** — 주소 하나(`GET /search`)에 소스 여섯. **표가 하나도 안 늘었다** (SPEC §13) |
 
 **4를 5보다 앞에 두는 것이 ASTRO-CHECKPOINTS §1 의 요구다** — *"2층 없이 시작하면 날짜는 다 맞는데
 시각이 전부 틀린 상태로 완성됐다고 믿게 된다."* 그리고 5의 1층 검산점은 4가 있어야 성립한다.
@@ -1193,7 +1202,7 @@ if (isAdminBlockedPath(path)) {
 | 10 | **급감 가드 임계치** (§5.3) | 50% 는 가정이다. 몇 회차 관측 후 조정 | 착수 5 이후 |
 | 11 | **`Watch` fan-out 상한** (§3.4) | 한 경기의 관심자가 수만이면 2단도 길어진다. 1차 KBO 규모에서는 문제가 아니다 | 관측 후 |
 | ~~12~~ | ~~**소프트 삭제 보존 기간**~~ | **닫힘** — 성공 회차 **3번** (SCHEMA §3.3). `anniversary` 는 소프트 삭제 자체를 안 한다(§5.6) | 끝남 |
-| 13 | **검색 색인 · 검색 캐시 키** | SPEC §7 의 남은 결정 3·4 | **1차 이후** |
+| ~~13~~ | ~~**검색 색인 · 검색 캐시 키**~~ | **닫힘 — 둘 다 「안 한다」.** 색인은 안 세우고 소유 테이블을 직접 읽는다(갈라질 자리를 안 만든다 · 규모가 작다 · `pg_trgm` 을 검증할 PostgreSQL 이 없다). 캐시는 안 건다 — 키에 사람이 들어가야 하는데 <b>한 번 틀리면 남의 기념일이 남에게 가고, 그 사고는 조용하다.</b> 공개/개인을 `SearchScope` 로 갈라 뒀으므로 나중에 공개 축만 캐시할 수 있다 (SPEC §13.1) | 끝남 |
 | ~~14~~ | ~~**음력 변환 25ms 를 어떻게 할 것인가** (§4.4)~~ | **닫힘 — 트랜잭션 밖으로 뺐다.** `AnniversaryFacade` 가 발생일을 먼저 다 계산하고 서비스는 **이미 손에 든 날짜**만 받는다(인자의 `List<LocalDate>` 가 그것을 강제한다). 75ms 를 못 줄이는 대신 **그동안 커넥션을 쥐지 않는다.** Bulkhead 는 성능 쪽이라 뒤로 미뤘다 | 끝남 |
 
 ---
