@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('하늘')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('sky', ${me})}"></header>
+
+<main class="wrap">
+    <h1>하늘</h1>
+    <p class="sub">
+        <span th:text="${year}">2026</span>년 · <span th:text="${zone}">Asia/Seoul</span> 기준 ·
+        <b>받아 오는 자료가 아니라 계산</b>이다. 그래서 동기화 없이도 답이 나온다.
+    </p>
+
+    <div th:replace="~{:: skyTable('절기', ${terms})}"></div>
+    <div th:replace="~{:: skyTable('삭 · 망', ${moons})}"></div>
+    <div th:replace="~{:: skyTable('유성우 극대', ${meteors})}"></div>
+</main>
+
+<div th:fragment="skyTable(heading, rows)" th:remove="tag">
+    <h2 th:text="${heading}">절기</h2>
+    <table th:if="${!#lists.isEmpty(rows)}">
+        <tr><th>날짜</th><th>이름</th><th class="num">D-day</th></tr>
+        <tr th:each="r : ${rows}">
+            <td th:text="${r.date}">2026-09-23</td>
+            <td>
+                <span th:text="${r.value.nameKo}">추분</span>
+                <span class="meta" th:text="${r.value.nameEn}">Autumn Equinox</span>
+                <span class="tag warn" th:if="${r.value.estimated}">어림값</span>
+            </td>
+            <td class="num">
+                <span class="dday"
+                      th:classappend="${r.dDay} == 0 ? 'today' : (${r.dDay} &lt; 0 ? 'past' : '')"
+                      th:text="${r.dDay} == 0 ? 'D-day' : (${r.dDay} &gt; 0 ? 'D-' + ${r.dDay} : 'D+' + (-${r.dDay}))">D-7</span>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

@@ -145,7 +145,8 @@ apps/d-day/
         ├── anniversary/   domain · application · web · event
         ├── release/       domain · application · web · event · infrastructure
         ├── sync/          domain(SyncRun · SyncRunItem) · application · web(admin) · event(스케줄러)
-        └── search/        api(포트 · 값) · application · web         (domain 없음 — 표가 없다)
+        ├── search/        api(포트 · 값) · application · web         (domain 없음 — 표가 없다)
+        └── page/          web                                        (사람이 보는 화면. 표도 도메인도 없다)
 ```
 
 ~~**`search/` 패키지를 만들지 않는다.**~~ **만들었다** (SPEC §13). 1차에서 빠졌던 것이라
@@ -1187,6 +1188,7 @@ if (isAdminBlockedPath(path)) {
 | ~~10~~ | ~~게이트웨이 1·2·3 + `docs/AUTH_FLOW.md`~~ | **끝남** — 테스트 15. `PATH_SERVICE_MAPPING` 을 순서 있는 목록으로 바꿨고, `shared/web/AdminOnly` 를 함께 세웠다 |
 | 11 | E-3 인기 · 부하 테스트 | |
 | ~~—~~ | ~~E-2 검색~~ | **끝남** — 주소 하나(`GET /search`)에 소스 여섯. **표가 하나도 안 늘었다** (SPEC §13) |
+| ~~—~~ | ~~사람이 보는 화면 (SSR)~~ | **끝남** — 서버가 HTML 을 그린다(Thymeleaf). 주소는 `/dday/**` 로, API(`/api/v1/dday/**`)와 <b>경로로 가른다</b> — 안 가르면 게이트웨이가 둘을 같은 규칙으로 다룰 수밖에 없고 그때 「로그인 안 했으면 401」이 화면에서는 흰 화면이 된다. 개인 화면은 <b>401 대신 로그인으로 보낸다</b> |
 | ~~—~~ | ~~C-5 · C-10 기념일 알림 + 롤포워드~~ | **끝남** — 투영을 읽는 스케줄러가 생겨 <b>투영이 원래 목적을 찾았다.</b> 「오늘」을 기념일마다의 시간대로 센다(E-1). 띄워서 실제로 나가는 것을 봤다 |
 
 **4를 5보다 앞에 두는 것이 ASTRO-CHECKPOINTS §1 의 요구다** — *"2층 없이 시작하면 날짜는 다 맞는데

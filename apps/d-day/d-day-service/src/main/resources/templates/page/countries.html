@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('나라')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('countries', ${me})}"></header>
+
+<main class="wrap">
+    <h1>나라</h1>
+    <p class="sub"><span th:text="${#lists.size(rows)}">204</span>개국</p>
+
+    <div th:if="${#lists.isEmpty(rows)}" class="empty">
+        <strong>국가 시드가 비어 있다</strong>
+        <code>dday.country.seed.enabled</code> 를 켜고 띄우면 204개국이 들어온다.
+    </div>
+
+    <table th:if="${!#lists.isEmpty(rows)}">
+        <tr><th>코드</th><th>이름</th><th>영문</th><th>시간대</th></tr>
+        <tr th:each="c : ${rows}">
+            <td><a th:href="@{'/dday/countries/' + ${c.code}}" th:text="${c.code}">KR</a></td>
+            <td th:text="${c.nameKo}">대한민국</td>
+            <td class="meta" th:text="${c.nameEn}">Korea, South</td>
+            <td class="meta">
+                <span th:text="${c.zoneId}">Asia/Seoul</span>
+                <span class="tag warn" th:if="${c.zoneAmbiguous}">대표</span>
+            </td>
+        </tr>
+    </table>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

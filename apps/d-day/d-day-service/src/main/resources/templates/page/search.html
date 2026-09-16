@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('검색')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('search', ${me})}"></header>
+
+<main class="wrap">
+    <h1>검색</h1>
+
+    <form class="search-bar" method="get" th:action="@{/dday/search}">
+        <input name="q" th:value="${q}" placeholder="나라 · 공휴일 이름 · 팀 · 경기 · 내 기념일" autofocus>
+        <button type="submit">찾기</button>
+    </form>
+
+    <!--
+      안 섞였을 때 말해 주지 않으면 찾는 사람이 「내 기념일이 없나」와
+      「로그인을 안 했나」를 구별할 수 없다 (SPEC §9.9(4)).
+    -->
+    <p class="sub" th:if="${!personalIncluded}">
+        로그인하지 않아 <b>내 기념일은 안 섞여 있다.</b>
+        <a th:href="@{/dday/login}">로그인</a>
+    </p>
+
+    <div th:if="${result != null}">
+        <p class="sub">
+            <span th:text="${#lists.size(result.hits)}">3</span>건
+            <span th:if="${result.truncated}"> · 더 있다 (잘렸다)</span>
+        </p>
+
+        <div th:if="${#lists.isEmpty(result.hits)}" class="empty">
+            <strong>찾은 것이 없다</strong>
+            공휴일과 경기는 아직 자료가 안 들어와 있을 수 있다.
+        </div>
+
+        <div th:each="h : ${result.hits}" class="card">
+            <div class="row">
+                <span>
+                    <span class="title" th:text="${h.title}">대한민국</span>
+                    <span class="tag" th:text="${h.kind}">COUNTRY</span>
+                </span>
+                <span class="meta" th:text="${h.subtitle}">Korea, South</span>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

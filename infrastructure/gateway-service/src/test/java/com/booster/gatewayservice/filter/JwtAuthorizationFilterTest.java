@@ -38,10 +38,13 @@ class JwtAuthorizationFilterTest {
 
     private static final List<String> EXCLUDE = List.of("/auth/**", "/actuator/**");
     private static final List<String> ADMIN_BLOCKED = List.of("/api/v1/dday/admin/**");
-    private static final List<String> GUEST_BLOCKED = List.of("/api/v1/dday/me/**");
+    private static final List<String> GUEST_BLOCKED =
+            List.of("/api/v1/dday/me/**", "/dday/me/**");
+    private static final String LOGIN_URL = "/dday/login";
     /** 운영 설정과 같은 값이다 — 여기서만 맞으면 계약을 안 지킨 것이다 */
     private static final List<String> PATH_SERVICES = List.of(
-            "/api/v1/dday/**=d-day", "/waitings/**=waiting", "/restaurants/**=restaurant");
+            "/api/v1/dday/**=d-day", "/dday/**=d-day",
+            "/waitings/**=waiting", "/restaurants/**=restaurant");
 
     private JwtAuthorizationFilter filter;
     private RecordingChain chain;
@@ -49,7 +52,7 @@ class JwtAuthorizationFilterTest {
     @BeforeEach
     void setUp() {
         filter = new JwtAuthorizationFilter(SECRET_BASE64, EXCLUDE, ADMIN_BLOCKED,
-                GUEST_BLOCKED, PATH_SERVICES);
+                GUEST_BLOCKED, PATH_SERVICES, LOGIN_URL);
         chain = new RecordingChain();
     }
 
@@ -258,7 +261,7 @@ class JwtAuthorizationFilterTest {
         void firstEntryWins() {
             JwtAuthorizationFilter ordered = new JwtAuthorizationFilter(
                     SECRET_BASE64, EXCLUDE, List.of(), List.of(),
-                    List.of("/api/v1/dday/sky/**=other-service", "/api/v1/dday/**=d-day"));
+                    List.of("/api/v1/dday/sky/**=other-service", "/api/v1/dday/**=d-day"), LOGIN_URL);
 
             /* other-service 로 잡혔으므로 d-day 게스트 통과를 안 탄다 — 401 */
             MockServerWebExchange exchange = get("/api/v1/dday/sky/solar-terms");
@@ -272,7 +275,7 @@ class JwtAuthorizationFilterTest {
         @DisplayName("설정이 비면 기본값이 쓰인다 — 인가가 통째로 꺼지지 않는다")
         void emptyConfigFallsBackToDefaults() {
             JwtAuthorizationFilter defaulted = new JwtAuthorizationFilter(
-                    SECRET_BASE64, EXCLUDE, List.of(), GUEST_BLOCKED, List.of());
+                    SECRET_BASE64, EXCLUDE, List.of(), GUEST_BLOCKED, List.of(), LOGIN_URL);
 
             MockServerWebExchange exchange = get("/api/v1/dday/countries");
             defaulted.filter(exchange, chain).block();
@@ -290,7 +293,7 @@ class JwtAuthorizationFilterTest {
         void malformedEntryFailsFast() {
             org.assertj.core.api.Assertions.assertThatThrownBy(() ->
                             new JwtAuthorizationFilter(SECRET_BASE64, EXCLUDE, List.of(), List.of(),
-                                    List.of("/api/v1/dday/**")))
+                                    List.of("/api/v1/dday/**"), LOGIN_URL))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("path-services");
         }
@@ -322,6 +325,86 @@ class JwtAuthorizationFilterTest {
 
             assertThat(chain.wasCalled()).isTrue();
             assertThat(chain.header("X-User-Id")).isEqualTo("42");
+        }
+    }
+
+    @Nested
+    @DisplayName("화면 (SSR)")
+    class Pages {
+
+        /**
+         * <b>API 와 화면이 같은 자리에서 갈린다.</b> 브라우저에 빈 401 을 주면
+         * 흰 화면이고, 사람은 무엇을 해야 할지 알 수 없다.
+         */
+        @Test
+        @DisplayName("개인 화면은 401 이 아니라 로그인으로 보낸다")
+        void personalPageRedirectsToLogin() {
+            MockServerWebExchange exchange = get("/dday/me/anniversaries");
+
+            filter.filter(exchange, chain).block();
+
+            assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.FOUND);
+            assertThat(exchange.getResponse().getHeaders().getLocation())
+                    .hasToString("/dday/login?next=%2Fdday%2Fme%2Fanniversaries");
+            assertThat(chain.wasCalled()).isFalse();
+        }
+
+        /** 같은 경로라도 API 는 그대로 401 이다 — 기계는 리다이렉트를 따라갈 이유가 없다 */
+        @Test
+        @DisplayName("API 는 그대로 401 이다")
+        void apiStillGets401() {
+            MockServerWebExchange exchange = get("/api/v1/dday/me/anniversaries");
+
+            filter.filter(exchange, chain).block();
+
+            assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("공개 화면은 게스트로 통과한다")
+        void publicPagePassesAsGuest() {
+            MockServerWebExchange exchange = get("/dday/countries");
+
+            filter.filter(exchange, chain).block();
+
+            assertThat(chain.wasCalled()).isTrue();
+            assertThat(chain.header("X-User-Role")).isEqualTo("ROLE_GUEST");
+        }
+
+        @Test
+        @DisplayName("로그인 화면 자체는 막히지 않는다")
+        void loginPageIsNotBlocked() {
+            MockServerWebExchange exchange = get("/dday/login");
+
+            filter.filter(exchange, chain).block();
+
+            assertThat(chain.wasCalled()).isTrue();
+        }
+
+        @Test
+        @DisplayName("토큰이 있으면 개인 화면이 열린다")
+        void personalPageOpensWithToken() {
+            MockServerWebExchange exchange =
+                    getWithToken("/dday/me/anniversaries", validToken());
+
+            filter.filter(exchange, chain).block();
+
+            assertThat(chain.wasCalled()).isTrue();
+            assertThat(chain.header("X-User-Id")).isEqualTo("42");
+        }
+
+        /** 화면 쪽 admin 도 막아 둔다 — 운영자 주소는 내부 전용이다 (§7.3) */
+        @Test
+        @DisplayName("화면 쪽 admin 도 403 이다")
+        void adminPageIsBlockedToo() {
+            JwtAuthorizationFilter withAdminPage = new JwtAuthorizationFilter(
+                    SECRET_BASE64, EXCLUDE, List.of("/dday/admin/**"),
+                    GUEST_BLOCKED, PATH_SERVICES, LOGIN_URL);
+
+            MockServerWebExchange exchange = getWithToken("/dday/admin/sync", validToken());
+            withAdminPage.filter(exchange, chain).block();
+
+            assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
     }
 }

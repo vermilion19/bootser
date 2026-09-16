@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('내 기념일')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('anniversaries', ${me})}"></header>
+
+<main class="wrap">
+    <h1>내 기념일</h1>
+    <p class="sub">
+        기념일마다 <b>자기 시간대</b>가 있다. D-day 는 그 시간대의 오늘에서 센다.
+    </p>
+
+    <form class="box" method="post" th:action="@{/dday/me/anniversaries}">
+        <div class="fields">
+            <div class="field">
+                <label for="title">이름</label>
+                <input id="title" name="title" required placeholder="생일">
+            </div>
+            <div class="field">
+                <label for="anchorDate">기준일</label>
+                <input id="anchorDate" name="anchorDate" type="date" required>
+            </div>
+            <div class="field">
+                <label for="calendarType">달력</label>
+                <select id="calendarType" name="calendarType">
+                    <option value="SOLAR">양력</option>
+                    <option value="LUNAR">음력</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="recurrence">반복</label>
+                <select id="recurrence" name="recurrence">
+                    <option value="YEARLY">매년</option>
+                    <option value="NONE">한 번</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="countDirection">세는 방향</label>
+                <select id="countDirection" name="countDirection">
+                    <option value="D_DAY">D-day (남은 날)</option>
+                    <option value="D_PLUS">D+N (지난 날)</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="zone">시간대</label>
+                <input id="zone" name="zone" value="Asia/Seoul" size="14">
+            </div>
+            <div class="field">
+                <label for="notifyOffsets">알림 (며칠 전)</label>
+                <input id="notifyOffsets" name="notifyOffsets" placeholder="7,1" size="8">
+            </div>
+            <div class="field">
+                <label></label>
+                <button type="submit">등록</button>
+            </div>
+        </div>
+    </form>
+
+    <div th:if="${#lists.isEmpty(rows)}" class="empty">
+        <strong>아직 등록한 기념일이 없다</strong>
+        위에서 하나 넣어 보면 다음 발생일이 바로 계산된다.
+    </div>
+
+    <div th:each="r : ${rows}" class="card">
+        <div class="row">
+            <span>
+                <span class="title" th:text="${r.title}">생일</span>
+                <span class="tag" th:if="${r.calendarType.name() == 'LUNAR'}">음력</span>
+                <span class="tag" th:if="${r.recurrence.name() == 'YEARLY'}">매년</span>
+                <span class="tag" th:text="${r.zoneId}">Asia/Seoul</span>
+            </span>
+            <span class="dday" th:if="${r.dDay != null}"
+                  th:classappend="${r.dDay} == 0 ? 'today' : ''"
+                  th:text="${r.countDirection.name() == 'D_PLUS'}
+                           ? 'D+' + ${r.dDay}
+                           : (${r.dDay} == 0 ? 'D-day' : 'D-' + ${r.dDay})">D-7</span>
+        </div>
+        <div class="meta">
+            기준일 <span th:text="${r.anchorDate}">1990-05-20</span>
+            <span th:if="${r.nextDate != null}"> · 다음 <span th:text="${r.nextDate}">2027-05-20</span></span>
+            <span th:if="${!#lists.isEmpty(r.notifyOffsets)}">
+                · 알림 <span th:text="${#strings.listJoin(r.notifyOffsets, ', ')}">7</span>일 전
+            </span>
+        </div>
+        <div class="meta" th:if="${!#lists.isEmpty(r.upcoming)}">
+            앞으로 <span th:text="${#strings.listJoin(r.upcoming, ' · ')}">2027-05-20</span>
+        </div>
+        <form method="post" th:action="@{'/dday/me/anniversaries/' + ${r.id} + '/delete'}">
+            <button class="plain" type="submit">지우기</button>
+        </form>
+    </div>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

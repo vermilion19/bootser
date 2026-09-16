@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--
+  화면 조각들.
+
+  레이아웃 다이얼렉트를 쓰지 않는다 — 조각 셋(head · nav · footer)이면 되는 규모라
+  의존을 하나 더 들일 이유가 없다. 페이지마다 온전한 HTML 문서를 쓰고 이 조각을
+  끼운다.
+-->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · d-day'">d-day</title>
+    <!--
+      /dday/ 아래에 둔다. 게이트웨이 라우팅이 `Path=/dday/**` 라 **`/dday.css` 는
+      그 규칙에 안 걸린다** — 서비스를 직접 부를 때는 되고 게이트웨이를 거치면
+      404 가 된다. 띄워서 찾기 전에는 안 보이는 종류의 어긋남이다.
+    -->
+    <link rel="stylesheet" th:href="@{/dday/assets/dday.css}">
+</head>
+
+<body>
+
+<!--
+  머리. `me` 가 null 이면 로그인 안 한 것이다 — 게이트웨이가 게스트에게 붙이는
+  X-User-Id: -1 은 로그인으로 치지 않는다.
+-->
+<header class="top" th:fragment="nav(here, me)">
+    <div class="wrap">
+        <a class="brand" th:href="@{/dday}">d-day</a>
+        <nav class="main">
+            <a th:href="@{/dday/countries}" th:classappend="${here == 'countries'} ? 'on'">나라</a>
+            <a th:href="@{/dday/sky}" th:classappend="${here == 'sky'} ? 'on'">하늘</a>
+            <a th:href="@{/dday/leagues}" th:classappend="${here == 'leagues'} ? 'on'">경기</a>
+            <a th:href="@{/dday/search}" th:classappend="${here == 'search'} ? 'on'">검색</a>
+            <a th:href="@{/dday/me/anniversaries}" th:classappend="${here == 'anniversaries'} ? 'on'">기념일</a>
+            <a th:href="@{/dday/me/watches}" th:classappend="${here == 'watches'} ? 'on'">관심</a>
+        </nav>
+        <span class="who" th:if="${me != null}">
+            <span th:text="${me}">7</span>번 회원
+        </span>
+        <span class="who" th:if="${me == null}">
+            <a th:href="@{/dday/login}">로그인</a>
+        </span>
+    </div>
+</header>
+
+<footer class="bottom" th:fragment="footer">
+    <div class="wrap">
+        <span>서버가 그린 화면이다. 날짜는 <b>그 나라·그 회원의 시간대</b>로 센다.</span>
+    </div>
+</footer>
+
+</body>
+</html>

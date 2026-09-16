@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('공휴일')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('countries', ${me})}"></header>
+
+<main class="wrap">
+    <h1 th:text="${country != null} ? ${country.nameKo} : '공휴일'">대한민국</h1>
+    <p class="sub">
+        <span th:text="${year}">2026</span>년 ·
+        <span th:if="${country != null}" th:text="${country.zoneId}">Asia/Seoul</span> 기준
+        <span class="tag warn" th:if="${country != null and country.zoneAmbiguous}">시간대가 여럿이라 하나를 골랐다</span>
+    </p>
+
+    <h2>공휴일</h2>
+    <div th:if="${#lists.isEmpty(rows)}" class="empty">
+        <strong>이 해의 공휴일 자료가 없다</strong>
+        동기화를 한 번도 안 돌렸다.
+    </div>
+    <table th:if="${!#lists.isEmpty(rows)}">
+        <tr><th>날짜</th><th>이름</th><th class="num">D-day</th></tr>
+        <tr th:each="r : ${rows}">
+            <td th:text="${r.date}">2026-09-25</td>
+            <td>
+                <span th:text="${r.value.nameLocal} ?: ${r.value.nameEn}">추석</span>
+                <span class="tag" th:unless="${r.value.global}">일부 지역</span>
+            </td>
+            <td class="num">
+                <span class="dday"
+                      th:classappend="${r.dDay} == 0 ? 'today' : (${r.dDay} &lt; 0 ? 'past' : '')"
+                      th:text="${r.dDay} == 0 ? 'D-day' : (${r.dDay} &gt; 0 ? 'D-' + ${r.dDay} : 'D+' + (-${r.dDay}))">D-9</span>
+            </td>
+        </tr>
+    </table>
+
+    <h2>황금연휴</h2>
+    <div th:if="${#lists.isEmpty(longWeekends)}" class="empty">
+        <strong>없다</strong>
+        원천이 주는 값이다 — 우리가 계산하지 않는다.
+    </div>
+    <table th:if="${!#lists.isEmpty(longWeekends)}">
+        <tr><th>시작</th><th>끝</th><th>징검다리</th></tr>
+        <tr th:each="w : ${longWeekends}">
+            <td th:text="${w.startDate}">2026-09-24</td>
+            <td th:text="${w.endDate}">2026-09-27</td>
+            <td class="meta">
+                <span th:if="${!w.needBridge}">없음</span>
+                <span th:if="${w.needBridge}" th:text="${#strings.listJoin(w.bridgeDays, ' · ')}">2026-09-24</span>
+            </td>
+        </tr>
+    </table>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

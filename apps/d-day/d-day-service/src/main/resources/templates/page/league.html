@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('리그')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('leagues', ${me})}"></header>
+
+<main class="wrap">
+    <h1 th:text="${league.name}">Korean KBO League</h1>
+    <p class="sub">
+        <span th:text="${league.sport}">Baseball</span> ·
+        <span th:text="${league.zoneId}">Asia/Seoul</span> 기준 —
+        <b>보는 사람의 기기 날짜가 아니라 리그의 시간대</b>로 센다.
+    </p>
+
+    <h2>다가오는 경기</h2>
+    <div th:if="${#lists.isEmpty(rows)}" class="empty">
+        <strong>다가오는 경기가 없다</strong>
+        동기화를 한 번도 안 돌렸거나 시즌이 아니다.
+    </div>
+    <div th:each="r : ${rows}" class="card">
+        <div class="row">
+            <span>
+                <span class="title" th:text="${r.name}">Hanwha Eagles vs NC Dinos</span>
+                <span class="tag warn" th:if="${r.postponed}">순연</span>
+                <span class="tag" th:if="${r.timeUnknown}">시각 미정</span>
+            </span>
+            <span>
+                <span class="meta" th:text="${r.date}">2026-09-20</span>
+                <span class="dday" th:if="${r.dDay != null}"
+                      th:classappend="${r.dDay} == 0 ? 'today' : ''"
+                      th:text="${r.dDay} == 0 ? 'D-day' : 'D-' + ${r.dDay}">D-4</span>
+            </span>
+        </div>
+        <div class="meta" th:if="${r.venue != null}" th:text="${r.venue}">Daejeon</div>
+    </div>
+
+    <h2>팀</h2>
+    <p class="sub">번호를 「관심」 화면에 넣으면 그 팀의 일정 변경을 알림으로 받는다.</p>
+    <div th:if="${#lists.isEmpty(teams)}" class="empty">
+        <strong>담긴 팀이 없다</strong>
+    </div>
+    <table th:if="${!#lists.isEmpty(teams)}">
+        <tr><th>번호</th><th>이름</th></tr>
+        <tr th:each="t : ${teams}">
+            <td class="meta" th:text="${t.id}">10</td>
+            <td>
+                <span th:text="${t.nameKo} ?: ${t.name}">Hanwha Eagles</span>
+                <span class="tag warn" th:if="${t.stub}">이름을 모른다</span>
+            </td>
+        </tr>
+    </table>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

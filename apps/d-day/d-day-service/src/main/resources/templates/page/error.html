@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('문제가 생겼다')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('', null)}"></header>
+
+<main class="wrap">
+    <h1 th:text="${status}">404</h1>
+    <p class="sub" th:text="${message}">그 나라 코드는 다루지 않는다</p>
+    <p class="sub" th:if="${code != null}"><span class="tag" th:text="${code}">DDAY-COUNTRY-001</span></p>
+    <p><a th:href="@{/dday}">처음으로</a></p>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

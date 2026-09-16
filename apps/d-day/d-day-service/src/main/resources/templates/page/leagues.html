@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('경기')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('leagues', ${me})}"></header>
+
+<main class="wrap">
+    <h1>경기</h1>
+    <p class="sub">켜 둔 리그만 보인다. 꺼 둔 리그는 경기가 안 들어온다.</p>
+
+    <div th:if="${#lists.isEmpty(rows)}" class="empty">
+        <strong>켜 둔 리그가 없다</strong>
+        <code>dday.sync.sports.api-key</code> 가 있어야 경기 동기화가 돈다.
+    </div>
+
+    <div th:each="l : ${rows}" class="card">
+        <div class="row">
+            <span>
+                <a class="title" th:href="@{'/dday/leagues/' + ${l.id}}" th:text="${l.name}">Korean KBO League</a>
+                <span class="tag" th:text="${l.sport}">Baseball</span>
+            </span>
+            <span class="meta" th:text="${l.zoneId}">Asia/Seoul</span>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

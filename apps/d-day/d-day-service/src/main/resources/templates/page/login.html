@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('로그인')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('', ${me})}"></header>
+
+<main class="wrap">
+    <h1>로그인</h1>
+    <p class="sub" th:if="${me == null}">
+        기념일과 관심은 로그인해야 보인다. 공휴일·하늘·경기는 로그인 없이도 볼 수 있다.
+    </p>
+    <p class="sub" th:if="${me != null}">
+        이미 <span th:text="${me}">7</span>번 회원으로 로그인해 있다.
+    </p>
+
+    <!--
+      우리가 로그인을 하지 않는다. 인증은 정문(auth-service)에서 한 번만 한다 —
+      그래서 이 화면에 입력칸이 없고, 링크 하나뿐이다.
+    -->
+    <div class="card" th:if="${me == null}">
+        <a href="/oauth2/authorization/google">구글로 계속하기</a>
+        <p class="meta">게이트웨이가 토큰을 쿠키에 담아 준다. 이 서비스는 그 쿠키를 풀지 않는다.</p>
+    </div>
+
+    <p><a th:href="@{/dday}">처음으로</a></p>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

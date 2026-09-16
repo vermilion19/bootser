@@ -21,6 +21,9 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +54,7 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
      */
     private static final List<Map.Entry<String, String>> DEFAULT_PATH_SERVICES = List.of(
             Map.entry("/api/v1/dday/**", "d-day"),
+            Map.entry("/dday/**", "d-day"),
             Map.entry("/waitings/**", "waiting"),
             Map.entry("/restaurants/**", "restaurant")
     );
@@ -60,6 +64,7 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
     private final List<String> adminBlockedPaths;
     private final List<String> guestBlockedPaths;
     private final List<Map.Entry<String, String>> pathServices;
+    private final String loginUrl;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public JwtAuthorizationFilter(
@@ -67,13 +72,15 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
             @Value("${gateway.jwt.exclude-paths:}") List<String> excludePaths,
             @Value("${gateway.jwt.admin-blocked-paths:}") List<String> adminBlockedPaths,
             @Value("${gateway.jwt.guest-blocked-paths:}") List<String> guestBlockedPaths,
-            @Value("${gateway.jwt.path-services:}") List<String> pathServices) {
+            @Value("${gateway.jwt.path-services:}") List<String> pathServices,
+            @Value("${gateway.jwt.login-url:/dday/login}") String loginUrl) {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         this.key = Keys.hmacShaKeyFor(keyBytes);
         this.excludePaths = excludePaths;
         this.adminBlockedPaths = adminBlockedPaths;
         this.guestBlockedPaths = guestBlockedPaths;
         this.pathServices = parsePathServices(pathServices);
+        this.loginUrl = loginUrl;
     }
 
     /**
@@ -124,6 +131,12 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
             // 게스트 통과보다 먼저 본다. 순서가 뒤집히면 개인 자원이 X-User-Id: -1 로
             // 서비스까지 흘러가고, 막는 것이 서비스 하나뿐이 된다.
             if (isGuestBlockedPath(path)) {
+                // 화면이면 로그인으로 보낸다. API 라면 401 로 끝이지만 **브라우저에는
+                // 빈 401 이 흰 화면**이다 — 사람이 할 수 있는 일이 로그인뿐이므로
+                // 그리로 보내는 것이 답이다.
+                if (isPage(path)) {
+                    return redirectToLogin(exchange);
+                }
                 return onError(exchange, "Login required: " + path, HttpStatus.UNAUTHORIZED);
             }
             if ("d-day".equals(requiredService)) {
@@ -183,6 +196,33 @@ public class JwtAuthorizationFilter implements GlobalFilter, Ordered {
     private boolean isAdminBlockedPath(String path) {
         return adminBlockedPaths.stream()
                 .anyMatch(pattern -> pathMatcher.match(pattern, path));
+    }
+
+    /**
+     * 사람이 보는 화면인가.
+     *
+     * <p>{@code /api/} 로 시작하지 않으면 화면으로 본다. 목록을 따로 두지 않는
+     * 까닭은 <b>목록과 라우팅이 갈라지기 때문</b>이다 — 화면을 하나 더 열면서
+     * 목록에 적는 것을 잊으면, 그 화면만 빈 401 을 낸다.
+     */
+    private boolean isPage(String path) {
+        return !path.startsWith("/api/");
+    }
+
+    /**
+     * 로그인 화면으로 보낸다.
+     *
+     * <p>어디로 가려 했는지를 {@code next} 에 실어 준다. 안 실으면 로그인한 뒤
+     * <b>처음 화면으로 돌아가</b> 사람이 가려던 곳을 다시 찾아야 한다.
+     */
+    private Mono<Void> redirectToLogin(ServerWebExchange exchange) {
+        String next = URLEncoder.encode(
+                exchange.getRequest().getURI().getRawPath(), StandardCharsets.UTF_8);
+
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.FOUND);
+        response.getHeaders().setLocation(URI.create(loginUrl + "?next=" + next));
+        return response.setComplete();
     }
 
     private boolean isGuestBlockedPath(String path) {

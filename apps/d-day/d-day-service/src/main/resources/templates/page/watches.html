@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('내 관심')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('watches', ${me})}"></header>
+
+<main class="wrap">
+    <h1>내 관심</h1>
+    <p class="sub">
+        관심은 <b>경기에도 팀에도</b> 걸 수 있다. 팀에 걸어 두면 그 팀 경기가 옮겨질 때
+        알림이 온다 — 경기 하나를 고를 필요가 없다.
+    </p>
+
+    <form class="box" method="post" th:action="@{/dday/me/watches}">
+        <div class="fields">
+            <div class="field">
+                <label for="subjectType">대상</label>
+                <select id="subjectType" name="subjectType">
+                    <option th:each="t : ${subjectTypes}" th:value="${t}" th:text="${t}">TEAM</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="subjectId">번호</label>
+                <input id="subjectId" name="subjectId" required placeholder="팀 · 경기 번호">
+            </div>
+            <div class="field">
+                <label></label>
+                <button type="submit">걸기</button>
+            </div>
+        </div>
+    </form>
+
+    <div th:if="${#lists.isEmpty(rows)}" class="empty">
+        <strong>걸어 둔 관심이 없다</strong>
+        「경기」 화면에서 팀 번호를 찾을 수 있다.
+    </div>
+
+    <div th:each="w : ${rows}" class="card">
+        <div class="row">
+            <span>
+                <span class="title" th:text="${w.subjectType}">TEAM</span>
+                <span class="meta" th:text="${w.subjectId}">10</span>
+            </span>
+            <form method="post" th:action="@{'/dday/me/watches/' + ${w.id} + '/delete'}">
+                <button class="plain" type="submit">떼기</button>
+            </form>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>

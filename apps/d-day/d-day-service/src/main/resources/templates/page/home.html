@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/fragments :: head('홈')}"></head>
+<body>
+<header th:replace="~{layout/fragments :: nav('home', ${me})}"></header>
+
+<main class="wrap">
+    <h1>오늘은 <span th:text="${today}">2026-09-16</span></h1>
+    <p class="sub" th:if="${country != null}">
+        <span th:text="${country.nameKo}">대한민국</span> 기준 ·
+        <span th:text="${country.zoneId}">Asia/Seoul</span>
+    </p>
+
+    <h2>다가오는 공휴일</h2>
+    <div th:if="${#lists.isEmpty(holidays)}" class="empty">
+        <strong>아직 공휴일 자료가 없다</strong>
+        동기화를 한 번도 안 돌렸다. 고장이 아니라 비어 있는 것이다.
+    </div>
+    <div th:each="h : ${holidays}" class="card">
+        <div class="row">
+            <span class="title" th:text="${h.nameLocal} ?: ${h.nameEn}">추석</span>
+            <span class="meta" th:text="${h.date}">2026-09-25</span>
+        </div>
+    </div>
+
+    <h2>다음 하늘</h2>
+    <div th:each="s : ${skyEvents}" class="card">
+        <div class="row">
+            <span>
+                <span class="title" th:text="${s.event.nameKo}">추분</span>
+                <span class="tag" th:text="${s.event.kind}">terms</span>
+                <span class="tag warn" th:if="${s.event.estimated}">어림값</span>
+            </span>
+            <span>
+                <span class="meta" th:text="${s.date}">2026-09-23</span>
+                <span class="dday"
+                      th:classappend="${s.dDay} == 0 ? 'today' : (${s.dDay} &lt; 0 ? 'past' : '')"
+                      th:text="${s.dDay} == 0 ? 'D-day' : (${s.dDay} &gt; 0 ? 'D-' + ${s.dDay} : 'D+' + (-${s.dDay}))">D-7</span>
+            </span>
+        </div>
+    </div>
+
+    <h2>다가오는 경기</h2>
+    <div th:if="${#lists.isEmpty(events)}" class="empty">
+        <strong>켜 둔 리그가 없다</strong>
+        경기 동기화는 API 키가 있어야 돈다.
+    </div>
+    <div th:each="e : ${events}" class="card">
+        <div class="row">
+            <span>
+                <a th:href="@{'/dday/leagues'}" class="meta" th:text="${e.leagueName}">KBO</a>
+                <span class="title" th:text="${e.name}">한화 vs NC</span>
+                <span class="tag warn" th:if="${e.postponed}">순연</span>
+                <span class="tag" th:if="${e.timeUnknown}">시각 미정</span>
+            </span>
+            <span>
+                <span class="meta" th:text="${e.date}">2026-09-20</span>
+                <span class="dday" th:if="${e.dDay != null}"
+                      th:text="${e.dDay} == 0 ? 'D-day' : 'D-' + ${e.dDay}">D-4</span>
+            </span>
+        </div>
+    </div>
+
+    <h2 th:if="${me == null}">내 기념일</h2>
+    <div th:if="${me == null}" class="empty">
+        <strong>로그인하면 내 기념일이 보인다</strong>
+        <a th:href="@{/dday/login}">로그인</a>
+    </div>
+</main>
+
+<footer th:replace="~{layout/fragments :: footer}"></footer>
+</body>
+</html>
