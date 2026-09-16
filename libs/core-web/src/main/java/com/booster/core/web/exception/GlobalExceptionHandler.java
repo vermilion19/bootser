@@ -7,8 +7,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -72,6 +74,45 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(400)
                 .body(ApiResponse.error("요청 포맷이 올바르지 않습니다. (JSON 형식 확인)"));
+    }
+
+    /**
+     * 필수 파라미터가 빠졌다 — <b>부르는 쪽의 실수인데 500 으로 나가고 있었다.</b>
+     *
+     * <p>{@code @RequestParam} 이 없으면 Spring 이
+     * {@link MissingServletRequestParameterException} 을 던지는데, 아래
+     * {@code Exception} 처리기가 그것을 받아 <b>"서버 내부 오류가 발생했습니다"</b>
+     * 로 500 을 냈다. 부르는 쪽은 자기가 빠뜨린 것을 모르고 서버를 의심한다.
+     *
+     * <p>{@code d-day} 의 검색 주소를 세우다 드러났지만 <b>이 저장소의 모든 서비스가
+     * 같은 고장을 안고 있었다.</b>
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParameter(
+            MissingServletRequestParameterException e) {
+
+        log.warn("Missing Parameter : {}", e.getMessage());
+        return ResponseEntity
+                .status(400)
+                .body(ApiResponse.error(
+                        "필수 파라미터가 없습니다: " + e.getParameterName()));
+    }
+
+    /**
+     * 파라미터 타입이 안 맞는다. {@code ?year=올해} 가 여기 온다.
+     *
+     * <p>같은 이유로 500 이었다. <b>무엇이 안 맞았는지</b>를 알려 준다 — 어느
+     * 파라미터인지 안 적으면 부르는 쪽이 하나씩 빼 보며 찾아야 한다.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException e) {
+
+        log.warn("Type Mismatch : {}", e.getMessage());
+        return ResponseEntity
+                .status(400)
+                .body(ApiResponse.error(
+                        "파라미터 값이 올바르지 않습니다: " + e.getName() + "=" + e.getValue()));
     }
 
     @ExceptionHandler(Exception.class)
