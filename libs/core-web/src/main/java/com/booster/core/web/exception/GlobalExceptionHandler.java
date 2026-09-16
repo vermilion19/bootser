@@ -11,6 +11,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -113,6 +114,23 @@ public class GlobalExceptionHandler {
                 .status(400)
                 .body(ApiResponse.error(
                         "파라미터 값이 올바르지 않습니다: " + e.getName() + "=" + e.getValue()));
+    }
+
+    /**
+     * 없는 주소 — <b>404 여야 하는데 500 이 나가고 있었다.</b>
+     *
+     * <p>Spring 이 {@link NoResourceFoundException} 을 던지는데 그것을 받는 자리가
+     * 없어 아래 {@code Exception} 처리기가 «서버 내부 오류» 로 500 을 냈다.
+     *
+     * <p>화면을 세우다 드러났다. 링크 하나가 오타여도 <b>서버가 고장 난 것처럼
+     * 보이고</b>, 크롤러와 모니터링도 그것을 우리 장애로 읽는다.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResource(NoResourceFoundException e) {
+        log.warn("No Resource : {}", e.getResourcePath());
+        return ResponseEntity
+                .status(404)
+                .body(ApiResponse.error("없는 주소입니다: " + e.getResourcePath()));
     }
 
     @ExceptionHandler(Exception.class)
