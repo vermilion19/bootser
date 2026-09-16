@@ -91,7 +91,7 @@ class AnniversaryServiceTest {
         void storesBoth() {
             Anniversary saved = service.register(ME, command("생일"),
                     List.of(LocalDate.of(2027, 5, 20), LocalDate.of(2028, 5, 20)),
-                    TODAY.plusYears(3));
+                    TODAY.plusYears(3), TODAY);
             flush();
 
             assertThat(anniversaries.findAll()).hasSize(1);
@@ -108,7 +108,7 @@ class AnniversaryServiceTest {
         @DisplayName("알림 시점마다 한 줄씩 펼쳐진다")
         void oneRowPerOffset() {
             Anniversary saved = service.register(ME, command("생일", 7, 30),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThat(occurrences.findByAnniversaryIdOrderByOccurrenceDate(saved.getId()))
@@ -116,11 +116,42 @@ class AnniversaryServiceTest {
                     .hasSize(3);
         }
 
+        /**
+         * <b>띄워 보고 찾은 것.</b> 오늘이 생일인 사람이 「7일 전에 알려 줘」로
+         * 등록하면 그 줄의 알림 날짜는 <b>일주일 전</b>이다. 만들어 두면 태어나자마자
+         * 「놓친 알림」으로 세어지고, 그 수는 원래 <b>「스케줄러가 멈춰 있었다」를
+         * 뜻해야 하는 신호</b>다.
+         */
+        @Test
+        @DisplayName("알림 날짜가 이미 지난 줄은 아예 안 만든다")
+        void doesNotCreateAlreadyPastRows() {
+            Anniversary saved = service.register(ME, command("생일", 7),
+                    List.of(TODAY), TODAY.plusYears(3), TODAY);
+            flush();
+
+            assertThat(occurrences.findByAnniversaryIdOrderByOccurrenceDate(saved.getId()))
+                    .as("오프셋 0 만 남는다 — 7일 전은 이미 지났다")
+                    .extracting(o -> o.getNotifyOffset().intValue())
+                    .containsExactly(0);
+        }
+
+        /** 오프셋 0 은 알림 날짜가 곧 발생일이라 걸리지 않는다 — 목록이 그 줄을 읽는다 */
+        @Test
+        @DisplayName("오늘 발생하는 것의 당일 알림은 남는다")
+        void todayItselfSurvives() {
+            Anniversary saved = service.register(ME, command("생일"),
+                    List.of(TODAY), TODAY.plusYears(3), TODAY);
+            flush();
+
+            assertThat(occurrences.findByAnniversaryIdOrderByOccurrenceDate(saved.getId()))
+                    .hasSize(1);
+        }
+
         @Test
         @DisplayName("반복이면 어디까지 펼쳤는지 적는다")
         void recordsExpandedUntil() {
             Anniversary saved = service.register(ME, command("생일"),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThat(anniversaries.findById(saved.getId()).orElseThrow().getExpandedUntil())
@@ -140,11 +171,11 @@ class AnniversaryServiceTest {
         @DisplayName("투영을 통째로 다시 만든다 — 옛 줄이 안 남는다")
         void rebuildsTheProjection() {
             Anniversary saved = service.register(ME, command("생일", 7, 30),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             service.edit(ME, saved.getId(), command("생일", 7),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThat(occurrences.findByAnniversaryIdOrderByOccurrenceDate(saved.getId()))
@@ -156,11 +187,11 @@ class AnniversaryServiceTest {
         @DisplayName("제목이 바뀐다")
         void changesTitle() {
             Anniversary saved = service.register(ME, command("생일"),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             service.edit(ME, saved.getId(), command("바뀐 생일"),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThat(anniversaries.findById(saved.getId()).orElseThrow().getTitle())
@@ -179,7 +210,7 @@ class AnniversaryServiceTest {
         @DisplayName("남의 기념일은 없는 것으로 보인다")
         void othersAreInvisible() {
             Anniversary mine = service.register(ME, command("내 것"),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThatThrownBy(() -> service.mine(SOMEONE_ELSE, mine.getId()))
@@ -191,11 +222,11 @@ class AnniversaryServiceTest {
         @DisplayName("남의 것은 고칠 수도 지울 수도 없다")
         void othersCannotBeTouched() {
             Anniversary mine = service.register(ME, command("내 것"),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThatThrownBy(() -> service.edit(SOMEONE_ELSE, mine.getId(), command("탈취"),
-                    List.of(), TODAY)).isInstanceOf(CoreException.class);
+                    List.of(), TODAY, TODAY)).isInstanceOf(CoreException.class);
             assertThatThrownBy(() -> service.remove(SOMEONE_ELSE, mine.getId()))
                     .isInstanceOf(CoreException.class);
         }
@@ -204,9 +235,9 @@ class AnniversaryServiceTest {
         @DisplayName("목록에 내 것만 나온다")
         void listShowsOnlyMine() {
             service.register(ME, command("내 것"),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             service.register(SOMEONE_ELSE, command("남의 것"),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThat(service.listOf(ME, TODAY))
@@ -228,7 +259,7 @@ class AnniversaryServiceTest {
         @DisplayName("진짜로 지워진다 — 소프트 삭제가 아니다")
         void reallyDeletes() {
             Anniversary saved = service.register(ME, command("생일"),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             service.remove(ME, saved.getId());
@@ -253,7 +284,7 @@ class AnniversaryServiceTest {
         @DisplayName("다음 발생일을 투영에서 읽는다")
         void nextComesFromTheProjection() {
             service.register(ME, command("생일"), List.of(
-                    LocalDate.of(2027, 5, 20), LocalDate.of(2028, 5, 20)), TODAY.plusYears(3));
+                    LocalDate.of(2027, 5, 20), LocalDate.of(2028, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             List<AnniversaryDetail> details = service.listOf(ME, TODAY);
@@ -267,7 +298,7 @@ class AnniversaryServiceTest {
         @DisplayName("지난 것은 다음에 안 든다")
         void pastIsNotUpcoming() {
             service.register(ME, command("생일"), List.of(
-                    LocalDate.of(2026, 1, 1), LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    LocalDate.of(2026, 1, 1), LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThat(service.listOf(ME, TODAY).get(0).nextOccurrence())
@@ -282,7 +313,7 @@ class AnniversaryServiceTest {
         @DisplayName("알림 시점이 여럿이어도 발생일은 한 번만 나온다")
         void offsetsDoNotDuplicateDates() {
             service.register(ME, command("생일", 7, 30),
-                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3));
+                    List.of(LocalDate.of(2027, 5, 20)), TODAY.plusYears(3), TODAY);
             flush();
 
             assertThat(service.listOf(ME, TODAY).get(0).upcoming()).hasSize(1);
@@ -294,7 +325,7 @@ class AnniversaryServiceTest {
             service.register(ME, new AnniversaryCommand("지난 일회성",
                     LocalDate.of(2020, 1, 1), CalendarType.SOLAR, LeapPolicy.PLAIN_ONLY,
                     Recurrence.NONE, CountDirection.D_PLUS, SEOUL, NotifyOffsets.NONE),
-                    List.of(), null);
+                    List.of(), null, TODAY);
             flush();
 
             assertThat(service.listOf(ME, TODAY).get(0).nextOccurrence()).isNull();

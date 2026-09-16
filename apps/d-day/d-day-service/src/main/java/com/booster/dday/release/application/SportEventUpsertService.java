@@ -179,7 +179,7 @@ public class SportEventUpsertService {
                 continue;
             }
             updated++;
-            changesRecorded += record(runId, event, changes, seenAt);
+            changesRecorded += record(runId, league, event, changes, seenAt);
         }
 
         return new SportEventUpsertResult(rows.size(), created, updated, unchanged,
@@ -203,7 +203,7 @@ public class SportEventUpsertService {
      * 오지 않는다 — 같은 날 같은 전이가 두 번 오는 것은 우리 쪽 재실행일 때뿐이고,
      * 그것은 여전히 걸러진다.
      */
-    private int record(long runId, SportEvent event,
+    private int record(long runId, League league, SportEvent event,
                        List<SportEvent.Change> changes, Instant seenAt) {
 
         List<Long> relatedTeamIds = new ArrayList<>(2);
@@ -221,7 +221,7 @@ public class SportEventUpsertService {
             ReleaseChangedEvent payload = new ReleaseChangedEvent(
                     SubjectType.SPORT_EVENT, event.getId(), event.getExternalId(),
                     event.getName(), change.field(), change.oldValue(), change.newValue(),
-                    event.getStartsAt(), seenAt, relatedTeamIds);
+                    event.getStartsAt(), league.getZoneId(), seenAt, relatedTeamIds);
 
             outbox.append(AggregateType.SPORT_EVENT,
                     String.valueOf(event.getId()),

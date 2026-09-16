@@ -43,14 +43,16 @@ public class AnniversaryFacade {
         LocalDate today = LocalDate.now(clock.withZone(command.zone()));
         Expansion expansion = expand(command, today);
 
-        return anniversaryService.register(memberId, command, expansion.dates(), expansion.until());
+        return anniversaryService.register(memberId, command,
+                expansion.dates(), expansion.until(), today);
     }
 
     public Anniversary edit(Long memberId, Long id, AnniversaryCommand command) {
         LocalDate today = LocalDate.now(clock.withZone(command.zone()));
         Expansion expansion = expand(command, today);
 
-        return anniversaryService.edit(memberId, id, command, expansion.dates(), expansion.until());
+        return anniversaryService.edit(memberId, id, command,
+                expansion.dates(), expansion.until(), today);
     }
 
     public void remove(Long memberId, Long id) {

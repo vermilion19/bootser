@@ -47,7 +47,15 @@ class DDayNotificationListenerTest {
     private static String json(String field, String oldValue, String newValue) {
         return JsonUtils.toJson(new DDayNotificationEvent(
                 7L, DDayNotificationEvent.REASON_RELEASE_CHANGED, "SPORT_EVENT", 100L,
-                "Hanwha Eagles vs NC Dinos", field, oldValue, newValue, STARTS, DETECTED));
+                "Hanwha Eagles vs NC Dinos", field, oldValue, newValue,
+                STARTS, "Asia/Seoul", DETECTED));
+    }
+
+    private static String anniversary(String zoneId, Instant occursAt, int offset) {
+        return JsonUtils.toJson(new DDayNotificationEvent(
+                7L, DDayNotificationEvent.REASON_ANNIVERSARY_DUE, "ANNIVERSARY", 100L,
+                "생일", "D_DAY", null, String.valueOf(offset),
+                occursAt, zoneId, DETECTED));
     }
 
     private String sentText() {
@@ -101,11 +109,55 @@ class DDayNotificationListenerTest {
     void withoutTimeItStillSends() {
         String noTime = JsonUtils.toJson(new DDayNotificationEvent(
                 7L, DDayNotificationEvent.REASON_RELEASE_CHANGED, "SPORT_EVENT", 100L,
-                "Hanwha Eagles vs NC Dinos", "POSTPONED", "false", "true", null, DETECTED));
+                "Hanwha Eagles vs NC Dinos", "POSTPONED", "false", "true",
+                null, "Asia/Seoul", DETECTED));
 
         listener.handle(noTime);
 
         assertThat(sentText()).contains("순연됐습니다").doesNotContain("9월");
+    }
+
+    @Test
+    @DisplayName("기념일 알림은 남은 날수로 말한다")
+    void anniversaryCountsDown() {
+        listener.handle(anniversary("Asia/Seoul",
+                Instant.parse("2026-05-20T15:00:00Z"), 7));
+
+        assertThat(sentText()).contains("생일").contains("7일 남았습니다").contains("5월 21일");
+    }
+
+    @Test
+    @DisplayName("당일이면 「오늘입니다」다")
+    void anniversaryToday() {
+        listener.handle(anniversary("Asia/Seoul",
+                Instant.parse("2026-05-20T15:00:00Z"), 0));
+
+        assertThat(sentText()).contains("오늘입니다").doesNotContain("0일");
+    }
+
+    /**
+     * <b>보낸 쪽이 알려 준 시간대로 그린다.</b> 우리 시간대(KST)로 그리면
+     * 오클랜드 회원의 자정이 <b>전날 21시</b>가 되어 날짜가 하루 이르게 나온다 —
+     * d-day 가 고치려고 만들어진 바로 그 고장이다.
+     */
+    @Test
+    @DisplayName("회원의 시간대로 날짜를 그린다 — 우리 시간대가 아니다")
+    void rendersInTheSendersZone() {
+        /* 오클랜드 2026-05-20 자정 = UTC 2026-05-19 12:00 */
+        listener.handle(anniversary("Pacific/Auckland",
+                Instant.parse("2026-05-19T12:00:00Z"), 0));
+
+        assertThat(sentText())
+                .as("KST 로 그리면 5월 19일이 된다")
+                .contains("5월 20일");
+    }
+
+    @Test
+    @DisplayName("모르는 시간대가 와도 알림은 나간다")
+    void unknownZoneStillSends() {
+        listener.handle(anniversary("Mars/Olympus", STARTS, 0));
+
+        assertThat(sentText()).contains("생일");
     }
 
     @Test
@@ -122,7 +174,7 @@ class DDayNotificationListenerTest {
     void missingMemberIsNotRetryable() {
         String noMember = JsonUtils.toJson(new DDayNotificationEvent(
                 null, "RELEASE_CHANGED", "SPORT_EVENT", 100L, "x",
-                "POSTPONED", "false", "true", STARTS, DETECTED));
+                "POSTPONED", "false", "true", STARTS, "Asia/Seoul", DETECTED));
 
         assertThatThrownBy(() -> listener.handle(noMember))
                 .isInstanceOf(IllegalArgumentException.class);

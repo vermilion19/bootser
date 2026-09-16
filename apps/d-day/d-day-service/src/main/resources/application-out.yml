@@ -42,6 +42,10 @@ dday:
       # 남의 서버를 때리는 일이라 기본으로 끈다. 키가 없으면 어차피 안 돌지만
       # 켜 두면 10분마다 「건너뜀」 회차가 쌓여 회차 표가 그것으로 가득 찬다.
       scheduled: false
+  anniversary:
+    # Redis(ShedLock) 없이 띄워 보는 프로필이라 끈다. 기능 자체는 DB 만 있으면
+    # 도므로, 손으로 돌려 보려면 AnniversaryNotifyTask 를 직접 부르면 된다.
+    scheduled: false
   fanout:
     # Kafka 없이 띄워 보는 프로필이라 컨슈머를 끈다. 켜 두면 브로커를 찾다
     # 실패하는 로그가 몇 초마다 쌓여 진짜 에러가 그 속에 묻힌다.

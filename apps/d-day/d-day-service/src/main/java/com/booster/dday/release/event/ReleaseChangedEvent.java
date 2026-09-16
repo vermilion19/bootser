@@ -31,6 +31,9 @@ public record ReleaseChangedEvent(
         String oldValue,
         String newValue,
         Instant startsAt,
+        /** 경기 시각을 그리는 시간대. 리그가 정한다 — 받는 쪽이 자기 시간대로
+            그리면 날짜가 하루 어긋날 수 있다 */
+        String zoneId,
         Instant detectedAt,
         List<Long> relatedTeamIds
 ) {

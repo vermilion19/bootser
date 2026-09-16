@@ -59,7 +59,8 @@ class DateChangeFanoutConsumerTest {
         return JsonUtils.toJson(new ReleaseChangedEvent(
                 SubjectType.SPORT_EVENT, 100L, "2400325", "Hanwha Eagles vs NC Dinos",
                 ChangedField.POSTPONED, "false", "true",
-                Instant.parse("2026-09-11T09:30:00Z"), DETECTED, List.of(10L, 20L)));
+                Instant.parse("2026-09-11T09:30:00Z"), "Asia/Seoul", DETECTED,
+                List.of(10L, 20L)));
     }
 
     @Test
@@ -87,6 +88,8 @@ class DateChangeFanoutConsumerTest {
         assertThat(first.subjectType()).isEqualTo(SubjectType.SPORT_EVENT.name());
         assertThat(first.subjectName()).isEqualTo("Hanwha Eagles vs NC Dinos");
         assertThat(first.occursAt()).isEqualTo(Instant.parse("2026-09-11T09:30:00Z"));
+        /* 받는 쪽이 자기 시간대로 그리면 날짜가 하루 어긋날 수 있다 — 리그가 정한다 */
+        assertThat(first.zoneId()).isEqualTo("Asia/Seoul");
         assertThat(first.detectedAt()).isEqualTo(DETECTED);
     }
 
@@ -128,7 +131,8 @@ class DateChangeFanoutConsumerTest {
     void missingSubjectIsNotRetryable() {
         String noSubject = JsonUtils.toJson(new ReleaseChangedEvent(
                 SubjectType.SPORT_EVENT, null, "2400325", "x",
-                ChangedField.POSTPONED, "false", "true", null, DETECTED, List.of()));
+                ChangedField.POSTPONED, "false", "true", null, "Asia/Seoul", DETECTED,
+                List.of()));
 
         assertThatThrownBy(() -> consumer.onReleaseChanged(noSubject))
                 .isInstanceOf(IllegalArgumentException.class);

@@ -99,6 +99,7 @@ public class DateChangeFanoutConsumer {
                 fact.oldValue(),
                 fact.newValue(),
                 fact.startsAt(),
+                fact.zoneId(),
                 fact.detectedAt());
     }
 

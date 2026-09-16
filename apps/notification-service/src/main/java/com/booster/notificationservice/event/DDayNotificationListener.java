@@ -47,8 +47,11 @@ import java.time.format.DateTimeFormatter;
 @RequiredArgsConstructor
 public class DDayNotificationListener {
 
-    private static final DateTimeFormatter WHEN =
-            DateTimeFormatter.ofPattern("M월 d일 HH:mm").withZone(ZoneId.of("Asia/Seoul"));
+    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("M월 d일 HH:mm");
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("M월 d일");
+
+    /** 보낸 쪽이 시간대를 안 실어 줬을 때. 1차의 자료가 전부 한국이라 이 값이다 */
+    private static final ZoneId FALLBACK_ZONE = ZoneId.of("Asia/Seoul");
 
     private final SlackClient slackClient;
 
@@ -68,11 +71,20 @@ public class DDayNotificationListener {
     /**
      * 사람이 읽을 한 줄.
      *
-     * <p>{@code field} 를 아는 값만 풀고 <b>모르는 값은 그대로 싣는다.</b> 모르는
-     * 값에 예외를 던지면 d-day 가 칸을 하나 더하는 일이 <b>이 서비스의 배포를
-     * 기다리는 일</b>이 되고, 그동안 그 파티션의 뒤 알림이 전부 막힌다.
+     * <p><b>왜 보내는지({@code reason})로 먼저 가른다.</b> 일정이 바뀐 것과 기념일이
+     * 다가온 것은 문장이 다르다 — {@code field} 만 보면 기념일의 「D_DAY」가
+     * 「일정이 바뀌었습니다 (D_DAY)」로 나간다.
+     *
+     * <p>모르는 값은 <b>그대로 싣는다.</b> 모르는 값에 예외를 던지면 d-day 가 칸을
+     * 하나 더하는 일이 <b>이 서비스의 배포를 기다리는 일</b>이 되고, 그동안 그
+     * 파티션의 뒤 알림이 전부 막힌다.
      */
     private static String textOf(DDayNotificationEvent event) {
+        if (DDayNotificationEvent.REASON_ANNIVERSARY_DUE.equals(event.reason())) {
+            return "[D-day] " + event.subjectName() + " " + daysLeft(event)
+                    + on(event, DAY);
+        }
+
         String what = switch (event.field() == null ? "" : event.field()) {
             case "POSTPONED" -> "true".equalsIgnoreCase(event.newValue())
                     ? "순연됐습니다" : "순연이 풀렸습니다";
@@ -80,9 +92,49 @@ public class DDayNotificationListener {
             case "RELEASE_DATE" -> "개봉일이 바뀌었습니다";
             default -> "일정이 바뀌었습니다 (" + event.field() + ")";
         };
+        return "[D-day] " + event.subjectName() + " " + what + on(event, WHEN);
+    }
 
-        String when = event.occursAt() == null ? "" : " · " + WHEN.format(event.occursAt());
-        return "[D-day] " + event.subjectName() + " " + what + when;
+    /**
+     * 「7일 남았습니다」 · 「오늘입니다」.
+     *
+     * <p>기념일 알림의 {@code newValue} 가 <b>며칠 전에 보내는지</b>다 (C-10).
+     * 못 읽으면 날수를 빼고 보낸다 — 알림을 통째로 버리는 것보다 낫다.
+     */
+    private static String daysLeft(DDayNotificationEvent event) {
+        try {
+            int offset = Integer.parseInt(event.newValue());
+            return offset == 0 ? "오늘입니다" : offset + "일 남았습니다";
+        } catch (NumberFormatException | NullPointerException e) {
+            return "다가옵니다";
+        }
+    }
+
+    /**
+     * 「언제」를 <b>보낸 쪽이 알려 준 시간대로</b> 그린다.
+     *
+     * <p>우리 시간대로 그리면 안 된다. 기념일은 그 회원이 고른 시간대의 자정이고,
+     * 경기는 그 리그의 시간대다 — UTC+13 회원의 기념일 자정을 KST 로 그리면
+     * <b>날짜가 하루 이르게 나온다.</b> 그것이 d-day 가 고치려고 만들어진 고장이다.
+     */
+    private static String on(DDayNotificationEvent event, DateTimeFormatter formatter) {
+        if (event.occursAt() == null) {
+            return "";
+        }
+        return " · " + formatter.withZone(zoneOf(event)).format(event.occursAt());
+    }
+
+    private static ZoneId zoneOf(DDayNotificationEvent event) {
+        if (event.zoneId() == null || event.zoneId().isBlank()) {
+            return FALLBACK_ZONE;
+        }
+        try {
+            return ZoneId.of(event.zoneId());
+        } catch (RuntimeException e) {
+            /* 모르는 시간대 이름이 와도 알림은 나가야 한다 */
+            log.warn("[d-day] 모르는 시간대: {} — 기본값으로 그린다", event.zoneId());
+            return FALLBACK_ZONE;
+        }
     }
 
     /**

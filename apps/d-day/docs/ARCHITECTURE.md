@@ -457,6 +457,15 @@ public interface DomainOutbox {
 
 `sameDayRepeatIsFolded` 와 `repeatedTransitionOnAnotherDaySurvives` 가 둘을 갈라 문다.
 
+**기념일 쪽은 문서 그대로다** — `(anniversaryId, occurrenceDate, notifyOffset)`.
+경기와 반대인 까닭이 있다. 같은 발생일의 같은 알림 시점은 **언제 보내든 같은
+한 번**이고 두 번 가면 그냥 중복이다. 순연처럼 「같은 전이가 다시 일어나는」
+일이 없다.
+
+**그리고 한 겹이 더 있다** — `anniversary_occurrence.notified_at` 이다. 보낸
+표시를 **Outbox 에 적는 것과 같은 트랜잭션에서** 찍으므로, 멱등키에 닿기 전에
+이미 걸러진다. 멱등키는 그 뒤의 안전망이다.
+
 **`DateChange` 와 Outbox 가 같은 트랜잭션에 있는 것이 D-4 의 전부다.** 둘이 갈라지면
 "이력에는 있는데 알림은 안 갔다" 또는 그 반대가 생기고, 그것은 §9.7 의 `DateChange` 가
 존재하는 이유를 무너뜨린다.
@@ -1178,6 +1187,7 @@ if (isAdminBlockedPath(path)) {
 | ~~10~~ | ~~게이트웨이 1·2·3 + `docs/AUTH_FLOW.md`~~ | **끝남** — 테스트 15. `PATH_SERVICE_MAPPING` 을 순서 있는 목록으로 바꿨고, `shared/web/AdminOnly` 를 함께 세웠다 |
 | 11 | E-3 인기 · 부하 테스트 | |
 | ~~—~~ | ~~E-2 검색~~ | **끝남** — 주소 하나(`GET /search`)에 소스 여섯. **표가 하나도 안 늘었다** (SPEC §13) |
+| ~~—~~ | ~~C-5 · C-10 기념일 알림 + 롤포워드~~ | **끝남** — 투영을 읽는 스케줄러가 생겨 <b>투영이 원래 목적을 찾았다.</b> 「오늘」을 기념일마다의 시간대로 센다(E-1). 띄워서 실제로 나가는 것을 봤다 |
 
 **4를 5보다 앞에 두는 것이 ASTRO-CHECKPOINTS §1 의 요구다** — *"2층 없이 시작하면 날짜는 다 맞는데
 시각이 전부 틀린 상태로 완성됐다고 믿게 된다."* 그리고 5의 1층 검산점은 4가 있어야 성립한다.

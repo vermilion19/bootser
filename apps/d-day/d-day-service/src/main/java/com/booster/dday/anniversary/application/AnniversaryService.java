@@ -15,8 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 기념일 쓰기 — <b>여기가 트랜잭션이다.</b>
@@ -37,14 +39,15 @@ public class AnniversaryService {
 
     @Transactional
     public Anniversary register(Long memberId, AnniversaryCommand command,
-                                List<LocalDate> occurrenceDates, LocalDate expandedUntil) {
+                                List<LocalDate> occurrenceDates, LocalDate expandedUntil,
+                                LocalDate today) {
 
         Anniversary anniversary = anniversaries.save(Anniversary.of(
                 memberId, command.title(), command.anchorDate(), command.calendarType(),
                 command.leapPolicy(), command.recurrence(), command.countDirection(),
                 command.zone(), command.notifyOffsets()));
 
-        project(anniversary, occurrenceDates, expandedUntil);
+        project(anniversary, occurrenceDates, expandedUntil, today);
         return anniversary;
     }
 
@@ -57,7 +60,8 @@ public class AnniversaryService {
      */
     @Transactional
     public Anniversary edit(Long memberId, Long id, AnniversaryCommand command,
-                            List<LocalDate> occurrenceDates, LocalDate expandedUntil) {
+                            List<LocalDate> occurrenceDates, LocalDate expandedUntil,
+                            LocalDate today) {
 
         Anniversary anniversary = mine(memberId, id);
         anniversary.edit(command.title(), command.anchorDate(), command.calendarType(),
@@ -65,8 +69,80 @@ public class AnniversaryService {
                 command.zone(), command.notifyOffsets());
 
         occurrences.deleteByAnniversaryId(id);
-        project(anniversary, occurrenceDates, expandedUntil);
+        project(anniversary, occurrenceDates, expandedUntil, today);
         return anniversary;
+    }
+
+    /**
+     * 꼬리를 늘린다 (SCHEMA §5.2) — <b>다시 만들지 않고 빠진 것만 채운다.</b>
+     *
+     * <h2>{@link #edit} 처럼 통째로 다시 만들면 안 된다</h2>
+     *
+     * <p>투영 행에는 {@code notified_at} 이 있다. 지우고 다시 넣으면 <b>이미 보낸
+     * 알림이 「안 보낸 것」으로 되살아나</b> 다음 회차에 또 나간다 — 생일 알림을
+     * 두 번 받는 사람이 생기고, 그것을 우리가 알 방법이 없다.
+     *
+     * <p>고쳐 쓰기({@code save})도 안 된다. 같은 키로 만든 새 객체는
+     * {@code notifiedAt} 이 비어 있어 <b>병합하는 순간 그 값이 지워진다.</b>
+     * 그래서 <b>있는 것을 먼저 읽고 없는 것만 넣는다.</b>
+     *
+     * <p>{@link #edit} 이 통째로 다시 만드는 것은 괜찮다 — 거기서는 사람이 값을
+     * 바꾼 것이라 옛 알림 기록이 더 이상 맞지 않는다.
+     */
+    @Transactional
+    public void reproject(Long id, List<LocalDate> occurrenceDates, LocalDate expandedUntil,
+                          LocalDate today) {
+        Anniversary anniversary = anniversaries.findById(id).orElse(null);
+        if (anniversary == null) {
+            /* 늘리려는 사이에 사람이 지웠다. 정상이다 */
+            return;
+        }
+
+        Set<String> existing = new HashSet<>();
+        for (AnniversaryOccurrence occurrence :
+                occurrences.findByAnniversaryIdOrderByOccurrenceDate(id)) {
+            existing.add(keyOf(occurrence.getOccurrenceDate(), occurrence.getNotifyOffset()));
+        }
+
+        List<Integer> offsets = anniversary.getNotifyOffsets().projectionOffsets();
+        List<AnniversaryOccurrence> added = new ArrayList<>();
+
+        for (LocalDate date : occurrenceDates) {
+            for (int offset : offsets) {
+                if (alreadyPast(date, offset, today)
+                        || existing.contains(keyOf(date, (short) offset))) {
+                    continue;
+                }
+                added.add(AnniversaryOccurrence.of(id, anniversary.getMemberId(), date, offset));
+            }
+        }
+        occurrences.saveAll(added);
+        anniversary.expandedUntil(expandedUntil);
+    }
+
+    private static String keyOf(LocalDate date, short offset) {
+        return date + "#" + offset;
+    }
+
+    /**
+     * 알려야 할 날이 <b>이미 지났나.</b>
+     *
+     * <p>오늘이 생일인 사람이 「7일 전에 알려 줘」로 등록하면 그 줄의 알림 날짜는
+     * <b>일주일 전</b>이다. 만들어 두면 태어나자마자 「놓친 알림」이 되고, 그 수는
+     * 원래 <b>「스케줄러가 멈춰 있었다」를 뜻해야 하는 신호</b>다 — 등록 때문에
+     * 늘어나면 그 신호를 못 믿게 된다.
+     *
+     * <p>그래서 <b>나갈 수 없는 줄은 만들지 않는다.</b> 투영은 「알림으로 나갈
+     * 것들」이고, 영영 안 나갈 줄은 거기 속하지 않는다.
+     *
+     * <p><b>띄워 보고 찾았다.</b> 오늘이 기념일인 것을 D-7 알림과 함께 등록했더니
+     * 첫 회차부터 「놓침 1」이 찍혔다.
+     *
+     * <p>오프셋 0 은 여기 안 걸린다 — 알림 날짜가 곧 발생일이고 발생일은 언제나
+     * 오늘 이후다. 목록의 D-day 가 그 줄을 읽으므로 걸리면 안 된다.
+     */
+    private static boolean alreadyPast(LocalDate occurrenceDate, int offset, LocalDate today) {
+        return occurrenceDate.minusDays(offset).isBefore(today);
     }
 
     /**
@@ -136,13 +212,16 @@ public class AnniversaryService {
      * 받을지 말지는 {@code notify_offsets} 가 정하고, 담을지 말지는 정하지 않는다.
      */
     private void project(Anniversary anniversary, List<LocalDate> occurrenceDates,
-                         LocalDate expandedUntil) {
+                         LocalDate expandedUntil, LocalDate today) {
 
         List<Integer> offsets = anniversary.getNotifyOffsets().projectionOffsets();
         List<AnniversaryOccurrence> rows = new ArrayList<>(occurrenceDates.size() * offsets.size());
 
         for (LocalDate date : occurrenceDates) {
             for (int offset : offsets) {
+                if (alreadyPast(date, offset, today)) {
+                    continue;
+                }
                 rows.add(AnniversaryOccurrence.of(
                         anniversary.getId(), anniversary.getMemberId(), date, offset));
             }

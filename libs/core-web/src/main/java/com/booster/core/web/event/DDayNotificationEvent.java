@@ -30,6 +30,11 @@ import java.time.Instant;
  * @param subjectName 사람에게 보일 이름. {@code Hanwha Eagles vs NC Dinos}
  * @param field       무엇이 바뀌었나. {@code STARTS_AT} · {@code POSTPONED} · {@code RELEASE_DATE}
  * @param occursAt    그 일이 일어나는 시각. 모르면 {@code null}
+ * @param zoneId      {@code occursAt} 를 <b>어느 시간대로 그려야 하나</b>.
+ *                    KBO 경기는 {@code Asia/Seoul} 이고 기념일은 그 회원이 고른
+ *                    시간대다. <b>이것이 없으면 받는 쪽이 자기 시간대로 그리고,
+ *                    그 순간 날짜가 하루 어긋날 수 있다</b> — 이 서비스가 고치려고
+ *                    만들어진 바로 그 고장이다 (E-1). 모르면 {@code null}
  * @param detectedAt  우리가 알게 된 시각
  */
 public record DDayNotificationEvent(
@@ -42,12 +47,13 @@ public record DDayNotificationEvent(
         String oldValue,
         String newValue,
         Instant occursAt,
+        String zoneId,
         Instant detectedAt
 ) {
 
     /** 경기·개봉 일정이 바뀌었다 (D-4) */
     public static final String REASON_RELEASE_CHANGED = "RELEASE_CHANGED";
 
-    /** 기념일이 다가왔다 (C-5). 아직 내는 곳이 없다 */
+    /** 기념일이 다가왔다 (C-5). {@code AnniversaryNotifier} 가 낸다 */
     public static final String REASON_ANNIVERSARY_DUE = "ANNIVERSARY_DUE";
 }
