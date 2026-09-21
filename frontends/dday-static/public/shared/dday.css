@@ -150,6 +150,12 @@ td.len{font-weight:500}
 /* 섹션 머리말 아래 한 줄짜리 설명. .lede 는 첫 화면용이라 여백이 크다 */
 .note{font-size:13px;color:var(--ink-3);margin-bottom:14px;max-width:62ch}
 
+/* /today/ 의 박힌 요약이 방문자의 오늘과 어긋났을 때. 여느 주석(.note)과 같은
+   크기로 두되 색과 선으로 갈라 둔다 — 「이 화면의 한 부분이 오늘 것이 아니다」는
+   지나가며 읽고 넘길 문장이 아니다. 어긋난 카드 자체도 함께 흐려 둔다. */
+.note.drift{color:var(--local);border-left:2px solid var(--local);padding-left:8px}
+.now.stale .asof,.now.stale .pair{opacity:.72}
+
 /* 하늘 허브의 머리글만 62ch 를 풀어 준다. "절기와 삭망, 유성우, 그리고 음력
    달력입니다. 갈래를 골라 들어가면 3년치를 날짜순으로 봅니다." 가 680px 쯤인데
    62ch 는 그보다 100px 남짓 좁아서, 마지막 한 마디가 다음 줄로 혼자 떨어졌다.

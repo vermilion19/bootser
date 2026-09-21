@@ -36,6 +36,12 @@ export const YEARS = (now = new Date()) => {
    갈래로 내려갔다. 중첩 슬러그라 EXTRA 항목에 '/' 가 들어간다 — 아래 청소는
    맨 앞 'sky' 로 걸려 하위까지 통째로 지우므로 그대로 맞는다.
 
+   'today' 는 축 가운데 유일하게 **날짜가 자료인** 자리다. 나머지 축은 자료가 바뀔 때만
+   달라지는데 이 한 장은 하루가 지나면 낡는다 — 그래서 하루 한 번 다시 만들고
+   (.github/workflows/dday-static-today.yml), check-pages 가 --fresh 로 그것을 문다.
+   게이트 1번(미래 날짜가 미리 확정되는가)을 어기는 것이 아니다: 새로 받아 오는 자료가
+   없고, 이미 담은 자료에서 「오늘」이라는 잘라내기만 빌드 시각에 정해진다.
+
    'holiday' 와 'rank' 는 뒤에 붙은 축 둘이다.
      · /holiday/           이름 축의 허브 (어떤 이름을 몇 나라가 쓰나)
      · /holiday/{slug}/    이름 하나 (tools/holiday-names.mjs 가 정한다 — 아래 NAME_PAGE)
@@ -44,7 +50,7 @@ export const YEARS = (now = new Date()) => {
                            자료를 하나도 더 만들지 않는다(이름 축과 같은 방식)이고,
                            축 탭은 새로 늘리지 않고 'rank' 를 잡는다 —
                            /sky/term/ 이나 /holiday/{이름}/ 이 쓰는 그 관례다 */
-export const EXTRA = ['sky', 'sky/term', 'sky/moon', 'sky/meteor', 'sky/lunar',
+export const EXTRA = ['today', 'sky', 'sky/term', 'sky/moon', 'sky/meteor', 'sky/lunar',
     'sky/calendar', 'holiday', 'rank', 'weekday'];
 
 /* 이름 축의 낱장. **EXTRA 에 손으로 적지 않는다** — 몇 장이 될지는 자료가 정하고
@@ -69,6 +75,13 @@ export const kindOf = (slug) =>
    Authorities 가 섞여 있는데, 그건 공휴일이 아니라 관습일이거나 일부 직군만 쉬는 날이다.
    (미국 Lincoln's Birthday 가 Observance 로 들어온다) */
 export const isPublic = (h) => Array.isArray(h.types) && h.types.includes('Public');
+
+/* 시간대별 오늘. 하늘 표가 이미 ko=KST · en=UTC 로 갈려 있고 /today/ 한 장도 같은
+   규칙을 따른다 — 빌드가 도는 기계의 시간대(Actions 는 UTC)로 두 언어를 다 찍으면
+   한국 자정과 UTC 자정 사이 아홉 시간 동안 한국어 페이지가 어제를 가리킨다.
+   KST 는 서머타임이 없으므로 아홉 시간을 더하는 것으로 정확하다. */
+export const zoneToday = (zone, now = new Date()) =>
+    new Date(now.getTime() + (zone === 'kst' ? 9 * 3600e3 : 0)).toISOString().slice(0, 10);
 
 /* 오늘 날짜(로컬). toISOString() 은 UTC 라 KST 새벽에는 하루 전으로 찍힌다 —
    git 의 --date=short 는 로컬 기준이므로 sitemap 의 lastmod 가 어긋나 버린다. */

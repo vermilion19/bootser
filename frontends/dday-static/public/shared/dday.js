@@ -56,6 +56,10 @@
             todayNone: '오늘은 어느 나라도 공휴일이 아닙니다.',
             todayFail: '오늘 공휴일인 나라를 불러오지 못했습니다.',
             todayOut: '담긴 자료 범위 밖의 날짜입니다.',
+            todayDrift: function (built, now) {
+                return '위 요약은 ' + built + ' 기준으로 만든 것입니다. 이 기기의 오늘은 '
+                    + now + ' 이라, 아래 「오늘 공휴일인 나라」는 오늘 날짜로 다시 세었습니다.';
+            },
             regionOnly: function (n) { return '일부 지역 ' + n + '곳'; },
             name: function (c) { return c.ko || c.name; },
             holiday: function (h) { return h.n; },
@@ -104,6 +108,10 @@
             todayNone: 'No country has a public holiday today.',
             todayFail: 'Could not load today’s holidays.',
             todayOut: 'That date is outside the range of the data.',
+            todayDrift: function (built, now) {
+                return 'The summary above was built for ' + built + '. Today on this device is '
+                    + now + ', so the list of countries on holiday below has been recounted for today.';
+            },
             regionOnly: function (n) { return n + ' regions'; },
             name: function (c) { return c.name || c.ko; },
             holiday: function (h) { return h.e || h.n; },
@@ -845,6 +853,29 @@
         }).catch(function () { fail(T.todayFail); });
     }
 
+    /* --------------------------------------------- 오늘 한 장이 어긋났을 때
+       /today/ 는 이 사이트에서 유일하게 **날짜가 HTML 에 박혀 있는** 페이지다
+       (<body data-today>). 하루 한 번 다시 만들지만 세 자리에서 어긋날 수 있다 —
+       방문자의 시간대가 그 페이지의 시간대(ko=KST · en=UTC)와 다를 때, 캐시가
+       어제 것을 들고 있을 때, 그날 만드는 일이 실패했을 때.
+
+       그때 조용히 두면 사이트가 오늘 일이라며 어제를 말한다. 아래 목록(#tlist)은
+       initToday 가 이미 방문자의 오늘로 다시 세므로, 여기서는 **박힌 요약이 어느
+       날 것인지**를 화면에 적는다.
+
+       요약을 여기서 다시 계산하지는 않는다. 음력·절기를 내는 계산을 클라이언트에
+       한 벌 더 두면 두 벌이 갈라지고, 그러면 같은 날 같은 사이트가 두 답을 낸다. */
+    function initTodayPage(today) {
+        var built = document.body.getAttribute('data-today');
+        var note = $('#tdrift');
+        if (!built || !note) return;
+        var stale = built !== today;
+        note.hidden = !stale;
+        note.textContent = stale ? T.todayDrift(human(built), human(today)) : '';
+        var card = $('#tnow');
+        if (card) card.classList.toggle('stale', stale);
+    }
+
     /* ------------------------------------------------- 첫 화면 국가 검색
        선택기 안에도 검색이 있지만 그건 열어야 보인다. 첫 화면의 204줄짜리
        목록은 열려 있는 채로 눈앞에 있으니, 그 자리에서 바로 줄여야 한다. */
@@ -904,6 +935,7 @@
        한다** — 자국을 지우는 일은 markRows · paintBreaks · paintCalendar 안에 있다. */
     function paint(today) {
         initToday();
+        initTodayPage(today);
 
         if (document.body.getAttribute('data-cc')) {
             paintNow(today, paintTables(today), paintBreaks(today));
@@ -957,7 +989,7 @@
         epochDay: epochDay, todayIso: todayIso, human: human, shortHuman: shortHuman,
         flag: flag, skyIcon: skyIcon, classify: classify, classifyBreaks: classifyBreaks,
         verdictOf: verdictOf, detect: detect, searchKey: searchKey,
-        paintCalendar: paintCalendar,
+        paintCalendar: paintCalendar, initTodayPage: initTodayPage,
         /* 날짜를 받아 화면 전체를 다시 칠한다. 브라우저는 인자 없이 부르고,
            검사기는 날짜를 넣어 「두 번째 칠이 첫 칠의 자국을 지우나」를 본다. */
         repaint: repaint

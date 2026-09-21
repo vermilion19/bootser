@@ -218,6 +218,7 @@ const SKY_CARDS = [
 
 /* 국가 축도 하늘도 아닌 축 둘. /holiday/ 아래의 낱장은 아래에서 원화(NAMES)로 만든다. */
 const AXIS_CARDS = [
+    ['today',      'TODAY',   'WHAT DAY IS IT TODAY'],
     [NAME_ROOT,    'HOLIDAY', 'HOLIDAYS BY NAME'],
     ['rank',       'RANK',    'COUNTRIES COMPARED'],
     ['weekday',    'WEEKDAY', 'HOLIDAYS BY WEEKDAY'],

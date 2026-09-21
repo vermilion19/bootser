@@ -8,6 +8,16 @@
 /fonts/fonts.css
   Cache-Control: public, max-age=86400
 
+# /today/ 한 장만 하루가 지나면 낡는다. 나머지 페이지는 HTML 에 날짜가 없고
+# D-day 를 브라우저가 붙이므로 오래 캐시해도 되지만, 이 한 장은 박아 둔 요약이
+# 그날 것이다 — CDN 이 어제 것을 들고 있으면 사이트가 오늘 일이라며 어제를 말한다.
+# 5분으로 둔다. 어긋나도 dday.js 가 화면에 그렇게 적지만(todayDrift), 그건
+# 마지막 그물이지 캐시를 길게 둘 근거가 아니다.
+/today/
+  Cache-Control: public, max-age=300
+/en/today/
+  Cache-Control: public, max-age=300
+
 # 공유 카드도 국가 목록이 바뀔 때만 달라진다. 다만 이름이 고정(card/{cc}.png)이라
 # immutable 은 아니다 — 하루 두고 CDN 이 되받게 한다.
 /card/*
