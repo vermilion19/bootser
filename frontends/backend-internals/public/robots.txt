@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
 
+User-agent: Yeti
+Allow: /
+
 Sitemap: https://lab.vermilion19.com/sitemap.xml
