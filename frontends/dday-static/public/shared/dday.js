@@ -56,10 +56,39 @@
             todayNone: '오늘은 어느 나라도 공휴일이 아닙니다.',
             todayFail: '오늘 공휴일인 나라를 불러오지 못했습니다.',
             todayOut: '담긴 자료 범위 밖의 날짜입니다.',
-            todayDrift: function (built, now) {
-                return '위 요약은 ' + built + ' 기준으로 만든 것입니다. 이 기기의 오늘은 '
-                    + now + ' 이라, 아래 「오늘 공휴일인 나라」는 오늘 날짜로 다시 세었습니다.';
+            /* 오늘 한 장(/today/)의 제목줄·요약·카드. HTML 에는 날짜가 한 글자도
+               없고 이 말들이 그 자리를 채운다 — gen-pages 의 todayH1·todaySum 은
+               자바스크립트가 꺼졌을 때 남는 틀이고, 날짜가 붙은 쪽은 여기다. */
+            todayH1: function (iso) {
+                return STR.ko.date(parts(iso)) + ', 오늘은 무슨 날인가';
             },
+            todayAsOf: function (d) { return d + ' 기준'; },
+            todaySum: function (f) {
+                return STR.ko.date(parts(f.iso)) + ' ' + STR.ko.dow[f.w] + '요일, 올해 '
+                    + f.nth + '번째 날이고 ' + f.left + '일 남았습니다.'
+                    + (f.n ? ' 오늘 공휴일인 나라는 ' + f.n + '개국이고'
+                        : ' 오늘 공휴일인 나라는 없고')
+                    + (f.lunar ? ', 음력으로는 ' + (f.lunar.leap ? '윤' : '')
+                        + f.lunar.m + '월 ' + f.lunar.d + '일입니다.' : '.')
+                    + (f.nextTerm ? ' 다음 절기는 ' + STR.ko.short(parts(f.nextTerm.d))
+                        + ' ' + f.nextTerm.n + '입니다.' : '');
+            },
+            todayVerdict: function (n) { return '오늘 쉬는 나라 ' + n + '개국'; },
+            todayVerdictNone: '오늘은 어느 나라도 공휴일이 아닙니다',
+            todayNoCount: '오늘 쉬는 나라를 세지 못했습니다',
+            /* 한국어 화면이 서 있는 나라. gen-pages 의 L.ko.hereCc 와 같아야 한다 —
+               시간대를 KST 로 둔 것과 같은 판단이고, 영어 쪽은 설 자리가 없어 null 이다. */
+            hereCc: 'KR',
+            todayHereOff: function (names) {
+                return '대한민국은 오늘 ' + names.join(' · ') + '입니다';
+            },
+            tdLunar: '음력',
+            tdLunarDay: function (l) { return (l.leap ? '윤' : '') + l.m + '월 ' + l.d + '일'; },
+            tdHere: '대한민국 다음 공휴일',
+            tdToday: '오늘',
+            tdYear: '올해',
+            tdYearNth: function (f) { return f.nth + '일째 · ' + f.left + '일 남음'; },
+            todayDd: function (n) { return n === 0 ? 'D-day' : 'D-' + n; },
             regionOnly: function (n) { return '일부 지역 ' + n + '곳'; },
             name: function (c) { return c.ko || c.name; },
             holiday: function (h) { return h.n; },
@@ -108,10 +137,43 @@
             todayNone: 'No country has a public holiday today.',
             todayFail: 'Could not load today’s holidays.',
             todayOut: 'That date is outside the range of the data.',
-            todayDrift: function (built, now) {
-                return 'The summary above was built for ' + built + '. Today on this device is '
-                    + now + ', so the list of countries on holiday below has been recounted for today.';
+            /* 산문에는 줄임말이 어울리지 않는다 — 표의 머리글자(dow · mon)와 자리가
+               다르다. 제목줄과 요약만 이 긴 쪽을 쓰고, 카드의 줄들은 짧은 쪽이다. */
+            dowFull: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            monFull: ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'],
+            longDate: function (p) { return STR.en.monFull[p.m - 1] + ' ' + p.d + ', ' + p.y; },
+            todayH1: function (iso) {
+                return STR.en.longDate(parts(iso)) + ' — what day is it?';
             },
+            todayAsOf: function (d) { return 'As of ' + d; },
+            todaySum: function (f) {
+                return STR.en.dowFull[f.w] + ', ' + STR.en.longDate(parts(f.iso)) + ' — day '
+                    + f.nth + ' of the year, with ' + f.left + ' to go.'
+                    + (f.n ? ' It is a public holiday in ' + f.n
+                        + (f.n === 1 ? ' country' : ' countries')
+                        : ' No country has a public holiday today')
+                    + (f.lunar ? ', and it is day ' + f.lunar.d + ' of '
+                        + (f.lunar.leap ? 'the leap ' : '') + 'lunar month ' + f.lunar.m + '.' : '.')
+                    + (f.nextTerm ? ' The next solar term is ' + f.nextTerm.n + ' on '
+                        + STR.en.short(parts(f.nextTerm.d)) + '.' : '');
+            },
+            todayVerdict: function (n) {
+                return n === 1 ? '1 country is off today' : n + ' countries are off today';
+            },
+            todayVerdictNone: 'No country has a public holiday today',
+            todayNoCount: 'Could not count the countries on holiday today',
+            hereCc: null,
+            todayHereOff: function (names) { return names.join(' · '); },
+            tdLunar: 'Lunar date',
+            tdLunarDay: function (l) {
+                return (l.leap ? 'Leap m' : 'M') + 'onth ' + l.m + ', day ' + l.d;
+            },
+            tdHere: '',
+            tdToday: 'Today',
+            tdYear: 'This year',
+            tdYearNth: function (f) { return 'Day ' + f.nth + ' · ' + f.left + ' to go'; },
+            todayDd: function (n) { return n === 0 ? 'D-day' : 'D-' + n; },
             regionOnly: function (n) { return n + ' regions'; },
             name: function (c) { return c.name || c.ko; },
             holiday: function (h) { return h.e || h.n; },
@@ -209,12 +271,41 @@
     var listCache = null;
     function countries() {
         if (!listCache) {
-            listCache = fetch('/data/countries.json').then(function (r) {
+            listCache = fetch('\u002Fdata/countries.json').then(function (r) {
                 if (!r.ok) throw new Error('HTTP ' + r.status);
                 return r.json();
             });
         }
         return listCache;
+    }
+
+    /* 나라별 공휴일 파일. /today/ 에서는 두 자리가 같은 나라를 물을 수 있다 —
+       「대한민국 다음 공휴일」 줄과 방문자 지역 카드(#home). 한국에서 한국어
+       화면을 여는 흔한 경우가 바로 그 겹침이라, 여기서 한 벌만 받아 둔다. */
+    var byCcCache = {};
+    function holidaysOf(cc) {
+        if (!byCcCache[cc]) {
+            byCcCache[cc] = fetch('\u002Fdata/' + cc + '.json').then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            });
+        }
+        return byCcCache[cc];
+    }
+
+    /* 하늘 자료도 한 벌만 받는다. /today/ 에서는 두 자리가 같이 쓴다 —
+       첫 화면 꼴의 「다가오는」 목록(initSkyHome)과 요약 카드(initTodayPage).
+       따로 받으면 같은 파일을 두 번 받고, 더 나쁘게는 **두 번이 서로 다른
+       응답일 수 있다** (매월 1일 배포가 그 사이에 끼면). */
+    var skyCache = null;
+    function skyData() {
+        if (!skyCache) {
+            skyCache = fetch('\u002Fdata/sky.json').then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            });
+        }
+        return skyCache;
     }
 
     /* ------------------------------------------------------------- 분류
@@ -586,10 +677,7 @@
         if (!list) return;
 
         var today = todayIso();
-        fetch('/data/sky.json').then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-        }).then(function (sky) {
+        skyData().then(function (sky) {
             var zone = T.zone;
             /* 하늘 페이지 카드와 같은 규칙을 쓴다 — "다음" 은 앞으로 올 것이고,
                오늘 것은 그 페이지의 오늘 칸이 맡는다. 두 화면이 다른 규칙을 쓰면
@@ -735,10 +823,7 @@
         countries().then(function (all) {
             var cc = detect(all.map(function (c) { return c.code; }));
             if (!cc) return;                          /* 카드는 hidden 인 채로 둔다 */
-            return fetch('\u002Fdata/' + cc + '.json').then(function (r) {
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.json();
-            }).then(function (data) { renderHomeCard(home, data); });
+            return holidaysOf(cc).then(function (data) { renderHomeCard(home, data); });
         }).catch(function () { /* 조용히 접는다 — 아래 국가 목록으로 갈 수 있다 */ });
     }
 
@@ -790,11 +875,15 @@
     function initToday() {
         var list = $('#tlist');
         var note = $('#tnote');
-        if (!list) return;
+        if (!list) return Promise.resolve(null);
 
         var today = todayIso();
         var month = today.slice(0, 7);
 
+        /* 몇 나라인지를 돌려준다 — /today/ 의 요약 카드가 그 수를 쓴다.
+           거기서 다시 세면 같은 화면의 두 자리가 다른 수를 적을 수 있다.
+           0 과 null 을 가른다: 0 은 「오늘 쉬는 나라가 없다」 이고,
+           null 은 「세지 못했다」 다. 카드가 그 둘에 다른 말을 적는다. */
         function fail(msg) {
             list.innerHTML = '';
             if (note) { note.hidden = false; note.textContent = msg; }
@@ -809,7 +898,7 @@
             if (window.GLOBE && window.GLOBE.mark) window.GLOBE.mark(codes);
         }
 
-        Promise.all([
+        return Promise.all([
             countries(),
             fetch('\u002Fdata/month/' + month + '.json').then(function (r) {
                 if (r.status === 404) return null;        /* 자료 범위 밖의 달 */
@@ -818,10 +907,10 @@
             })
         ]).then(function (both) {
             var all = both[0], data = both[1];
-            if (!data) { fail(T.todayOut); return; }
+            if (!data) { fail(T.todayOut); return null; }
 
             var rows = (data.d && data.d[today]) || [];
-            if (!rows.length) { fail(T.todayNone); return; }
+            if (!rows.length) { fail(T.todayNone); return 0; }
 
             var byCode = {};
             all.forEach(function (c) { byCode[c.code] = c; });
@@ -850,30 +939,142 @@
             if (note) note.hidden = true;
             var cap = $('#tcap');
             if (cap) cap.textContent = T.todayCapN(items.length);
-        }).catch(function () { fail(T.todayFail); });
+            return items.length;
+        }).catch(function () { fail(T.todayFail); return null; });
     }
 
-    /* --------------------------------------------- 오늘 한 장이 어긋났을 때
-       /today/ 는 이 사이트에서 유일하게 **날짜가 HTML 에 박혀 있는** 페이지다
-       (<body data-today>). 하루 한 번 다시 만들지만 세 자리에서 어긋날 수 있다 —
-       방문자의 시간대가 그 페이지의 시간대(ko=KST · en=UTC)와 다를 때, 캐시가
-       어제 것을 들고 있을 때, 그날 만드는 일이 실패했을 때.
+    /* ------------------------------------------- 오늘 한 장의 제목줄·요약·카드
+       /today/ 의 날짜는 **HTML 에 없다.** 한동안은 그날의 요약을 박아 두고 하루
+       한 번 다시 만들었다 — 스니펫은 렌더 전 HTML 에서 뽑히니 「오늘은 무슨 날」에
+       답하려면 답이 원본에 있어야 한다는 판단이었다. 그 값이 매일 한 건씩 쌓이는
+       커밋이었고, 작업이 하루라도 걸러지면(GitHub 은 schedule 을 조용히 거른다)
+       박아 둔 답이 틀린 채로 남았다. 그래서 나머지 548장이 쓰는 규칙으로 돌아왔다.
 
-       그때 조용히 두면 사이트가 오늘 일이라며 어제를 말한다. 아래 목록(#tlist)은
-       initToday 가 이미 방문자의 오늘로 다시 세므로, 여기서는 **박힌 요약이 어느
-       날 것인지**를 화면에 적는다.
+       **계산이 두 벌로 갈라질 걱정은 이제 없다.** 예전에는 생성기와 여기가
+       같은 것을 따로 세었고(그래서 여기서는 요약을 다시 세지 않고 「어느 날
+       것인지」만 적었다), 지금은 재는 자리가 여기 하나뿐이다.
 
-       요약을 여기서 다시 계산하지는 않는다. 음력·절기를 내는 계산을 클라이언트에
-       한 벌 더 두면 두 벌이 갈라지고, 그러면 같은 날 같은 사이트가 두 답을 낸다. */
-    function initTodayPage(today) {
-        var built = document.body.getAttribute('data-today');
-        var note = $('#tdrift');
-        if (!built || !note) return;
-        var stale = built !== today;
-        note.hidden = !stale;
-        note.textContent = stale ? T.todayDrift(human(built), human(today)) : '';
-        var card = $('#tnow');
-        if (card) card.classList.toggle('stale', stale);
+       천문 계산을 새로 하는 것이 아니다. sky.json 에 절기·삭망·유성우의 날짜와
+       음력 달의 초하루가 이미 굳어 있고, 여기서 하는 일은 그 가운데 오늘에
+       해당하는 것을 고르는 날짜 산수뿐이다 — 표를 칠하는 classify 가 쓰는 그 규칙.
+
+       「오늘 쉬는 나라」의 수는 initToday 가 세어 넘겨준다. 여기서 다시 세면
+       같은 화면의 두 자리가 다른 수를 적을 수 있다. */
+    function initTodayPage(today, offCount) {
+        var pair = $('#tpair');
+        var verdict = $('#tverdict');
+        var asof = $('#tasof');
+        if (!pair || !verdict || !asof) return Promise.resolve();   /* /today/ 가 아니다 */
+
+        var h1 = $('#th1'), sum = $('#tsum');
+        var n = epochDay(today);
+        var y = +today.slice(0, 4);
+        var nth = n - epochDay(y + '-01-01') + 1;
+        var left = epochDay(y + '-12-31') - n;
+
+        /* 자료를 기다리지 않아도 되는 것부터 적는다. 네트워크가 죽어도 이 두 줄은
+           맞고, 그래야 카드가 날짜조차 없는 채로 남지 않는다. */
+        asof.textContent = T.todayAsOf(human(today));
+        if (h1) h1.textContent = T.todayH1(today);
+
+        return Promise.all([
+            skyData().catch(function () { return null; }),
+            hereHolidays(),
+            offCount
+        ]).then(function (got) {
+            fillTodayCard(today, n, nth, left, got[0], got[1], got[2],
+                { pair: pair, verdict: verdict, sum: sum });
+        });
+    }
+
+    /* 한국어 화면이 서 있는 나라의 공휴일. 영어 화면에는 기준으로 삼을 나라가
+       없어 T.hereCc 가 null 이고, 그 자리는 #home 카드(브라우저 지역)가 맡는다.
+       못 받아도 카드의 나머지는 서야 하므로 실패를 null 로 삼킨다. */
+    function hereHolidays() {
+        if (!T.hereCc) return Promise.resolve(null);
+        return holidaysOf(T.hereCc).catch(function () { return null; });
+    }
+
+    function fillTodayCard(today, n, nth, left, sky, here, count, el) {
+        var zone = T.zone;
+
+        /* 하늘 한 갈래. 표를 칠하는 classify 를 그대로 쓴다 — 여기서 「다음」을
+           고르는 규칙을 새로 쓰면 같은 날 이 카드와 /sky/ 가 다른 답을 낸다. */
+        function pick(items) {
+            if (!items || !items.length) return { today: null, next: null };
+            var got = classify(items.map(function (e) {
+                return { d: e[zone], e: e };
+            }), today);
+            return {
+                today: got.todays.length ? got.todays[0].item.e : null,
+                next: got.next ? { e: got.next.item.e, dd: got.next.diff } : null
+            };
+        }
+        var term = pick(sky && sky.terms);
+        var moon = pick(sky && sky.moons);
+        var shower = pick(sky && sky.showers);
+
+        /* 음력. sky.json 의 lunar 는 「초하루가 든 날과 그 달의 길이」라,
+           오늘이 든 달을 찾아 며칠째인지 세면 그날의 음력 날짜가 나온다.
+           자료 밖이면 줄을 통째로 비운다 — 없는 값을 지어내느니 한 줄이 없는 편이 낫다. */
+        var lunar = null;
+        ((sky && sky.lunar) || []).forEach(function (e) {
+            if (lunar || n < epochDay(e.s) || n >= epochDay(e.s) + e.n) return;
+            lunar = { m: e.m, leap: !!e.leap, d: n - epochDay(e.s) + 1 };
+        });
+
+        /* 기준 나라의 오늘과 다음. 날짜 문자열은 고정 폭이라 그냥 견주면 된다. */
+        var hereOff = [], hereNext = null;
+        ((here && here.days) || []).slice().sort(function (a, b) {
+            return a.d < b.d ? -1 : a.d > b.d ? 1 : 0;
+        }).forEach(function (x) {
+            if (x.d === today) hereOff.push(x.n);
+            else if (x.d > today && !hereNext) {
+                hereNext = { d: x.d, n: x.n, dd: epochDay(x.d) - n };
+            }
+        });
+
+        el.verdict.textContent =
+            (count === null ? T.todayNoCount
+                : count ? T.todayVerdict(count) : T.todayVerdictNone)
+            + (hereOff.length ? ' · ' + T.todayHereOff(hereOff) : '');
+        el.verdict.className = 'verdict' + (count || hereOff.length ? ' rest' : '');
+
+        /* 카드 한 줄. 자리가 비면 줄을 아예 두지 않는다 — 「—」 를 찍어 두면
+           자료가 빠진 것인지 오늘 그런 것이 없는 것인지 화면에서 갈리지 않는다. */
+        var rows = [];
+        function row(label, value, dd) {
+            if (!label || !value) return;
+            rows.push('<dt>' + esc(label) + '</dt><dd>' + esc(value)
+                + (dd === undefined || dd === null
+                    ? '' : ' <span class="dd">' + esc(T.todayDd(dd)) + '</span>')
+                + '</dd>');
+        }
+        var at = function (e) { return T.short(parts(e[zone])); };
+
+        if (lunar) row(T.tdLunar, T.tdLunarDay(lunar));
+        if (hereNext) {
+            row(T.tdHere, T.short(parts(hereNext.d)) + ' ' + hereNext.n, hereNext.dd);
+        }
+        if (term.today) row(T.tdToday, T.skyName(term.today), 0);
+        if (term.next) row(T.dtTerm, at(term.next.e) + ' ' + T.skyName(term.next.e), term.next.dd);
+        if (moon.next) {
+            row(moon.next.e.f ? T.dtFull : T.dtNew, at(moon.next.e), moon.next.dd);
+        }
+        if (shower.next) {
+            row(T.dtShower, at(shower.next.e) + ' ' + T.showerName(T.skyName(shower.next.e)),
+                shower.next.dd);
+        }
+        row(T.tdYear, T.tdYearNth({ nth: nth, left: left }));
+        el.pair.innerHTML = rows.join('');
+
+        if (el.sum) {
+            el.sum.textContent = T.todaySum({
+                iso: today, w: dow(today), nth: nth, left: left, n: count, lunar: lunar,
+                nextTerm: term.next
+                    ? { d: term.next.e[zone], n: T.skyName(term.next.e) } : null
+            });
+        }
     }
 
     /* ------------------------------------------------- 첫 화면 국가 검색
@@ -934,8 +1135,8 @@
     /* 날짜 하나를 받아 화면 전체를 그 날짜로 칠한다. **몇 번을 불러도 같아야
        한다** — 자국을 지우는 일은 markRows · paintBreaks · paintCalendar 안에 있다. */
     function paint(today) {
-        initToday();
-        initTodayPage(today);
+        /* 두 자리가 같은 수를 적어야 한다 — 목록을 세는 쪽이 그 수를 카드로 넘긴다 */
+        initTodayPage(today, initToday());
 
         if (document.body.getAttribute('data-cc')) {
             paintNow(today, paintTables(today), paintBreaks(today));

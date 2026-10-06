@@ -21,7 +21,7 @@
    ============================================================ */
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { BASE, PUB, DATA, YEARS, EXTRA, NAME_PAGE, today, zoneToday } from './config.mjs';
+import { BASE, PUB, DATA, YEARS, EXTRA, NAME_PAGE, today } from './config.mjs';
 import { CARDINAL } from './astro.mjs';
 import { CARD_W, CARD_H, CARD_DIR } from './card-art.mjs';
 import { NORM, NAMES, MIN, NAME_ROOT } from './holiday-names.mjs';
@@ -122,8 +122,6 @@ const fit = (base, extra, limit = 160) =>
 
 const KO_DOW = ['일', '월', '화', '수', '목', '금', '토'];
 const EN_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-/* 산문에는 줄임말이 어울리지 않는다 — 표의 머리글자(EN_DOW)와 자리가 다르다. */
-const EN_DOW_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const L = {
     ko: {
@@ -171,56 +169,32 @@ const L = {
         globeClose: '지구본 접기',
 
         /* --- 오늘 한 장 (/today/) -------------------------------------------
-           이 축만 날짜가 자료다. 나머지 페이지는 "표에 날짜를 적어 두고 D-day 는
-           브라우저가 붙인다" 로 낡지 않게 해 두었는데, 「오늘은 무슨 날」에 답하려면
-           그 답이 원본 HTML 안에 있어야 한다 — 스니펫은 대개 렌더 전 HTML 에서 뽑고,
-           렌더 큐는 며칠씩 밀린다. 그래서 여기만 하루 한 번 다시 만든다.
+           **여기에는 날짜가 없다.** 한동안은 그날의 요약을 박아 두고 하루 한 번
+           다시 만들었는데(스니펫이 렌더 전 HTML 에서 뽑히니까), 그 값이 매일 한 건씩
+           쌓이는 커밋이었다. 지금은 나머지 548장과 같다 — 틀만 두고 dday.js 가
+           방문자의 오늘로 채운다. 아래 말은 전부 날짜에 매이지 않은 것들이다.
 
-           첫 화면과 제목이 겹치지 않게 **날짜를 앞에 둔다.** 첫 화면은 날짜 없는
-           허브('오늘은 무슨 날 — 204개국…')이고 이쪽은 그날 하루다. 겹치면 둘이
-           서로 잡아먹는다 — /sky/ 를 갈래로 쪼갤 때 배운 것과 같다. */
-        todayTitle: (f) => `${f.y}년 ${f.m}월 ${f.d}일(${KO_DOW[f.w]}) 오늘은 무슨 날 — 공휴일·절기·음력`,
-        todayDesc: (f) => fit(fit(
-            `${f.y}년 ${f.m}월 ${f.d}일 ${KO_DOW[f.w]}요일. ${f.n ? `오늘 공휴일인 나라는 ${f.n}개국입니다.` : '오늘은 어느 나라도 공휴일이 아닙니다.'}`,
-            f.here ? ` 대한민국은 ${f.here.off.length ? `${f.here.off[0]}로 쉽니다.` : `평일이고 다음 공휴일은 ${DATE_ONE.ko(f.here.next.d)} ${f.here.next.n}입니다.`}` : ''),
-            f.lunar ? ` 음력 ${f.lunar.leap ? '윤' : ''}${f.lunar.m}월 ${f.lunar.d}일입니다.` : ''),
-        todayH1: (f) => `${f.y}년 ${f.m}월 ${f.d}일, 오늘은 무슨 날인가`,
-        todayLede: '오늘 쉬는 나라와 오늘의 음력·절기입니다. 이 한 장은 하루에 한 번 다시 만들고, 날짜가 바뀌면 화면에서 다시 셉니다.',
-        /* 스니펫에 담길 문장. 날짜에서 바로 나오는 것(며칠째·남은 날)과 자료에서
-           나오는 것(쉬는 나라 수·음력·다음 절기)만 담는다 — 셋 다 check-pages 가
-           같은 자료로 다시 세어 견준다. */
-        todaySum: (f) => `${f.y}년 ${f.m}월 ${f.d}일 ${KO_DOW[f.w]}요일, 올해 ${f.nth}번째 날이고 ${f.left}일 남았습니다.`
-            + ` ${f.n ? `오늘 공휴일인 나라는 ${f.n}개국이고` : '오늘 공휴일인 나라는 없고'}`
-            + `${f.lunar ? `, 음력으로는 ${f.lunar.leap ? '윤' : ''}${f.lunar.m}월 ${f.lunar.d}일입니다.` : '.'}`
-            + (f.nextTerm ? ` 다음 절기는 ${DATE_ONE.ko(f.nextTerm.d)} ${f.nextTerm.n}입니다.` : ''),
+           첫 화면과 제목이 겹치면 둘이 서로 잡아먹는데(/sky/ 를 갈래로 쪼갤 때
+           배운 것), 가르던 것이 날짜였으므로 가르는 자리를 **물음**으로 옮겼다 —
+           첫 화면은 '오늘은 무슨 날'(허브), 이쪽은 '오늘 쉬는 나라'(그날의 목록). */
+        todayTitle: '오늘 쉬는 나라 — 세계 공휴일과 오늘의 절기·음력',
+        todayDesc: '오늘 공휴일인 나라를 한자리에 모았습니다. 오늘의 음력 날짜와 다음 절기·삭·보름·유성우까지, 담긴 자료에서 그날에 맞춰 셉니다.',
+        /* 화면이 채우기 전에 서 있는 말. 자바스크립트가 꺼져 있으면 이대로 남으므로,
+           「비어 있다」가 아니라 **무엇이 올 자리인지**를 적는다. */
+        todayH1: '오늘 쉬는 나라와 오늘의 하늘',
+        todayLede: '오늘 쉬는 나라와 오늘의 음력·절기입니다. 날짜는 이 화면에서 정하므로, 자정을 넘겨도 스스로 다시 셉니다.',
+        todaySum: '날짜와 요일, 오늘 쉬는 나라의 수, 음력과 다음 절기를 이 화면에서 셉니다.',
         /* 한국어 화면이 서 있는 자리. 시간대가 KST 인 것과 같은 판단이다 —
-           en 쪽은 null 이고 그 자리는 #home 카드(브라우저 지역)가 맡는다. */
+           en 쪽은 null 이고 그 자리는 #home 카드(브라우저 지역)가 맡는다.
+           여기를 읽어 카드를 채우는 것은 dday.js 의 STR.ko.hereCc 다. */
         hereCc: 'KR',
         todayCrumb: '오늘',
         appToday: '오늘',
-        todayHuman: (f) => `${f.y}년 ${f.m}월 ${f.d}일 (${KO_DOW[f.w]})`,
-        todayAsOf: (h) => `${h} 기준`,
-        /* 표시가 낡았을 때. 하루 한 번 다시 만들지만 CDN 과 시간대가 있어서
-           방문자의 오늘과 어긋날 수 있다 — 그때 조용히 두면 사이트가 거짓말을 한다. */
-        todayDrift: (built, now) => `아래 요약은 ${built} 기준입니다. 이 기기의 오늘은 ${now} 이라, 「오늘 공휴일인 나라」는 오늘 날짜로 다시 세었습니다.`,
-        todayCapN: (n) => `전 세계 · ${n}곳`,
-        todayVerdict: (n) => `오늘 쉬는 나라 ${n}개국`,
-        todayVerdictNone: '오늘은 어느 나라도 공휴일이 아닙니다',
-        todayHereOff: (names) => `대한민국은 오늘 ${names.join(' · ')}입니다`,
-        todayHereOn: '대한민국은 오늘 평일입니다',
-        tdLunar: '음력',
-        tdLunarDay: (f) => `${f.leap ? '윤' : ''}${f.m}월 ${f.d}일`,
-        tdYear: '올해',
-        tdYearNth: (f) => `${f.nth}일째 · ${f.left}일 남음`,
-        tdHere: '대한민국 다음 공휴일',
-        tdToday: '오늘',
-        todayDd: (n) => (n === 0 ? 'D-day' : `D-${n}`),
         todaySkyH2: '오늘의 하늘',
         todaySkyCap: '한국 표준시',
         todayOffH2: '오늘 공휴일인 나라',
-        todayNoneNote: '오늘은 담긴 204개국 가운데 어느 나라도 공휴일이 아닙니다.',
         todayLink: '오늘은 무슨 날',
-        todayNote: '이 한 장은 매일 다시 만듭니다. 날짜와 요일, 음력과 절기는 담긴 자료에서 그대로 나온 것이고, 새로 받아 오는 자료는 없습니다.',
+        todayNote: '이 한 장은 날짜를 박아 두지 않습니다. 날짜와 요일, 음력과 절기는 담긴 자료에서 이 화면이 그날에 맞춰 세는 것이고, 새로 받아 오는 자료는 없습니다.',
         title: (c, y) => `${y}년 ${c.ko} 공휴일 — 날짜와 D-day`,
         /* 뒷문장이 204개 페이지에서 똑같으면 구글이 무시하고 본문에서 스니펫을
            자체 생성한다 — CTR 통제권을 잃는다. 나라마다 실제로 다른 사실을 넣는다. */
@@ -534,40 +508,19 @@ const L = {
            영어 쪽에는 나라 한 곳을 박지 않는다. 한국어 화면은 KST 로 서 있어서
            "대한민국은 오늘 쉬나" 가 그 자리의 사실이지만, 영어 화면은 UTC 로 서 있고
            기준이 될 나라가 없다 — 그 자리는 #home 카드(브라우저 지역)가 맡는다. */
-        todayTitle: (f) => `What day is it today — ${EN_MONTH[f.m - 1]} ${f.d}, ${f.y}`,
-        todayDesc: (f) => fit(
-            `${EN_DOW_FULL[f.w]}, ${EN_MONTH[f.m - 1]} ${f.d}, ${f.y}. ${f.n ? `It is a public holiday in ${f.n} countries.` : 'No country has a public holiday today.'}`,
-            f.nextTerm ? ` The next solar term is ${f.nextTerm.n} on ${DATE_ONE.en(f.nextTerm.d)}.` : ''),
-        todayH1: (f) => `${EN_MONTH[f.m - 1]} ${f.d}, ${f.y} — what day is it?`,
-        todayLede: 'Which countries are off today, and where today sits in the lunisolar calendar and the solar terms. This page is rebuilt once a day, and recounted in the browser when the date moves.',
-        todaySum: (f) => `${EN_DOW_FULL[f.w]}, ${EN_MONTH[f.m - 1]} ${f.d}, ${f.y} — day ${f.nth} of the year, with ${f.left} to go.`
-            + ` ${f.n ? `It is a public holiday in ${f.n} countries` : 'No country has a public holiday today'}`
-            + `${f.lunar ? `, and it is day ${f.lunar.d} of ${f.lunar.leap ? 'the leap ' : ''}lunar month ${f.lunar.m}.` : '.'}`
-            + (f.nextTerm ? ` The next solar term is ${f.nextTerm.n} on ${DATE_ONE.en(f.nextTerm.d)}.` : ''),
+        todayTitle: 'Which countries are on holiday today — sky and lunar date',
+        todayDesc: 'Every country with a public holiday today, in one place — plus today’s lunar date and the next solar term, new moon, full moon and meteor shower.',
+        todayH1: 'Who is off today, and what the sky is doing',
+        todayLede: 'Which countries are off today, and where today sits in the lunisolar calendar and the solar terms. The date is decided in your browser, so the page recounts itself past midnight.',
+        todaySum: 'The date, the weekday, how many countries are off, the lunar date and the next solar term are all counted here on the page.',
         hereCc: null,
         todayCrumb: 'Today',
         appToday: 'Today',
-        todayHuman: (f) => `${EN_DOW_FULL[f.w]}, ${EN_MONTH[f.m - 1]} ${f.d}, ${f.y}`,
-        todayAsOf: (h) => `As of ${h}`,
-        todayDrift: (built, now) => `The summary below was built for ${built}. Today on this device is ${now}, so the list of countries on holiday has been recounted for today.`,
-        todayCapN: (n) => `Around the world · ${n}`,
-        todayVerdict: (n) => `${n} countries are off today`,
-        todayVerdictNone: 'No country has a public holiday today',
-        todayHereOff: (names) => names.join(' · '),
-        todayHereOn: '',
-        tdLunar: 'Lunar date',
-        tdLunarDay: (f) => `${f.leap ? 'Leap m' : 'M'}onth ${f.m}, day ${f.d}`,
-        tdYear: 'This year',
-        tdYearNth: (f) => `Day ${f.nth} · ${f.left} to go`,
-        tdHere: '',
-        tdToday: 'Today',
-        todayDd: (n) => (n === 0 ? 'D-day' : `D-${n}`),
         todaySkyH2: 'The sky today',
         todaySkyCap: 'UTC',
         todayOffH2: 'Countries on holiday today',
-        todayNoneNote: 'None of the 204 countries in the data has a public holiday today.',
         todayLink: 'What day is it today',
-        todayNote: 'This page is rebuilt every day. The date, the weekday, the lunar date and the solar terms all come out of the data already here — nothing new is fetched.',
+        todayNote: 'No date is baked into this page. The date, the weekday, the lunar date and the solar terms are all counted here from data already present — nothing new is fetched.',
         title: (c, y) => `${c.name} Public Holidays ${y}`,
         /* fit 을 사슬로 건다 — 국가명이 44자인 곳(SH)이 있어서 한 벌로 쓰면 넘친다.
            덜 중요한 절이 먼저 빠지고, 나라가 하나 늘어도 다시 재지 않아도 된다. */
@@ -2437,123 +2390,29 @@ ${foot(t, generated)}
 </html>
 `;
 }
-
 /* ================================================================ 오늘 한 장
-   /today/ — 이 저장소에서 **날짜 자체가 자료인** 유일한 페이지다.
+   /today/ — 「오늘은 무슨 날」 한 장.
 
-   나머지 544장은 "표에 날짜를 적어 두고 D-day 는 브라우저가 붙인다" 로 낡지 않게
-   해 두었다. 그 규칙 덕분에 몇 달 전에 배포해 두어도 표시가 맞는데, 대신 **원본
-   HTML 에는 오늘에 관한 문장이 한 줄도 없다** — 첫 화면의 「오늘 공휴일인 나라」는
-   배포되는 HTML 에서 "확인하는 중…" 다섯 글자다. 스니펫은 대개 렌더 전 HTML 에서
-   뽑히고 렌더 큐는 며칠씩 밀리므로, 「오늘은 무슨 날」로 들어올 자리가 없었다.
+   **여기에는 날짜가 한 글자도 박히지 않는다.** 예전에는 그날의 요약을 HTML 에
+   박아 두고 하루 한 번 다시 만들었다 — 스니펫은 렌더 전 HTML 에서 뽑히니
+   「오늘은 무슨 날」에 답하려면 답이 원본에 있어야 한다는 판단이었다. 그 대가가
+   **매일 한 건씩 쌓이는 커밋**이었다. 자료는 그대로인데 이력만 길어졌고,
+   하루라도 작업이 걸러지면(GitHub 은 schedule 을 조용히 거른다) 박아 둔 답이
+   틀린 채로 남았다.
 
-   그래서 이 한 장만 하루에 한 번 다시 만든다(.github/workflows/dday-static-today.yml).
-   **게이트 1번을 어기는 것이 아니다.** 새로 받아 오는 자료가 없고, 이미 담은
-   자료에서 「오늘」이라는 잘라내기만 빌드 시각에 정해진다. 자료가 바뀌는 것이 아니라
-   보는 자리가 하루씩 미끄러질 뿐이다.
+   그래서 나머지 548장이 쓰는 규칙으로 돌아왔다 — 틀만 두고 dday.js 가 채운다.
+   이제 이 생성기는 자료가 안 바뀌면 550장 전부가 바이트까지 그대로다.
+   잃는 것은 스니펫 하나이고, 그건 사람이 보는 화면에는 없던 자리다.
 
-   낡을 수 있는 자리를 셋으로 막는다.
-     · 시간대  — ko 는 KST, en 은 UTC 로 따로 찍는다(config 의 zoneToday).
-                 한 시간대로 둘 다 찍으면 아홉 시간 동안 한쪽이 어제를 가리킨다.
-     · 캐시    — _headers 가 이 경로만 5분이다. 다른 경로는 하루다.
-     · 어긋남  — 그래도 어긋나면 dday.js 가 화면에 그렇게 적고(todayDrift),
-                 「오늘 공휴일인 나라」는 방문자의 오늘로 다시 센다.
-   ============================================================ */
+   채우는 자리에는 전부 **id** 를 둔다 (#th1 · #tsum · #tasof · #tverdict · #tpair).
+   클래스로만 잡으면 하니스의 DOM 스텁이 그 자리를 못 찾아 검사가 눈을 감는다 —
+   check-pages 의 16.5 가 화면을 돌려 놓고 바로 이 다섯 자리를 읽는다.
 
-/* 그 달의 날짜 색인. 첫 화면의 dday.js 가 받아 쓰는 것과 **같은 파일**이다 —
-   여기서 204개 파일을 다시 훑어 세면 같은 날 두 화면이 다른 수를 적을 수 있다. */
-function monthIndex(iso) {
-    const file = join(DATA, 'month', `${iso.slice(0, 7)}.json`);
-    return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
-}
+   #tcap · #tnote · #tlist 는 손대지 않았다. 첫 화면이 쓰는 그 세 자리 그대로이고,
+   dday.js 의 initToday 가 두 화면을 같은 코드로 채운다. */
 
-/* 하루치 사실. 전부 이미 담긴 자료에서 나온다 — check-pages 가 같은 자료를
-   제 손으로 다시 세어 견주므로, 여기가 틀리면 그쪽에서 물린다. */
-function todayFacts(t, iso, { sky, byCode, byData }) {
-    const n = epochDay(iso);
-    const y = +iso.slice(0, 4);
-    const month = monthIndex(iso);
-    const rows = (month && month.d && month.d[iso]) || [];
-
-    /* 보이는 이름순. 첫 화면의 initToday 와 같은 규칙이다 — 두 자리가 다른
-       순서로 늘어놓으면 같은 목록이 화면마다 달라 보인다. */
-    const off = rows
-        .map((h) => {
-            const c = byCode.get(h.c) || { code: h.c, ko: h.c, name: h.c };
-            return { h, c, label: t.name(c) };
-        })
-        .sort((a, b) => a.label.localeCompare(b.label, t.lang));
-
-    /* 음력. sky.json 의 lunar 는 「초하루가 든 날과 그 달의 길이」라, 오늘이 든
-       달을 찾아 며칠째인지 세면 그날의 음력 날짜가 나온다. 자료 밖이면 칸을
-       통째로 비운다 — 없는 값을 지어내느니 한 줄이 없는 편이 낫다. */
-    const lm = (sky.lunar || []).find((e) => n >= epochDay(e.s) && n < epochDay(e.s) + e.n);
-    const lunar = lm ? { y: lm.y, m: lm.m, leap: !!lm.leap, d: n - epochDay(lm.s) + 1 } : null;
-
-    /* 하늘. 날짜는 언어의 시간대로 읽는다 — 표(skyDate)가 쓰는 그 규칙이다. */
-    const at = (e) => skyDate(e, t);
-    const onToday = (list) => (list || []).filter((e) => at(e) === iso);
-    const next = (list) => (list || [])
-        .filter((e) => epochDay(at(e)) > n)
-        .sort((a, b) => epochDay(at(a)) - epochDay(at(b)))[0] || null;
-    const ev = (e, name) => (e ? { d: at(e), n: name(e), dd: epochDay(at(e)) - n } : null);
-
-    const termName = (e) => (t.lang === 'en' ? e.e : e.n);
-    const showerName = (e) => t.showerName(t.lang === 'en' ? e.e : e.n);
-    const moonName = (e) => (e.f ? t.fullMoon : t.newMoon);
-
-    /* 기준 나라. 한국어 화면만이다 — 영어 화면에는 기준으로 삼을 나라가 없다. */
-    let here = null;
-    const hd = t.hereCc ? byData.get(t.hereCc) : null;
-    if (hd) {
-        const days = hd.days.slice().sort((a, b) => a.d.localeCompare(b.d));
-        const nx = days.find((x) => x.d > iso);
-        here = {
-            cc: hd.code,
-            off: days.filter((x) => x.d === iso).map((x) => x.n),
-            next: nx ? { d: nx.d, n: nx.n, dd: epochDay(nx.d) - n } : null,
-        };
-        /* 오늘도 아니고 다음도 자료 밖이면 문장이 설 수 없다 — 칸을 비운다 */
-        if (!here.next && !here.off.length) here = null;
-    }
-
-    return {
-        iso, y, m: +iso.slice(5, 7), d: +iso.slice(8, 10), w: dow(iso),
-        nth: n - epochDay(`${y}-01-01`) + 1,
-        left: epochDay(`${y}-12-31`) - n,
-        n: off.length, off, lunar, here,
-        term: ev(onToday(sky.terms)[0], termName),
-        nextTerm: ev(next(sky.terms), termName),
-        moon: ev(onToday(sky.moons)[0], moonName),
-        nextMoon: ev(next(sky.moons), moonName),
-        shower: ev(onToday(sky.showers)[0], showerName),
-        nextShower: ev(next(sky.showers), showerName),
-    };
-}
-
-/* 카드 한 줄. 자리가 비면 줄을 아예 두지 않는다 — 「—」 를 찍어 두면 자료가
-   빠진 것인지 오늘 그런 것이 없는 것인지 화면에서 갈리지 않는다. */
-const tdRow = (label, value, dd) =>
-    `      <dt>${esc(label)}</dt><dd>${value}`
-    + `${dd === undefined || dd === null ? '' : ` <span class="dd">${esc(dd)}</span>`}</dd>`;
-
-/* 오늘 쉬는 나라 한 줄. **dday.js 의 initToday 와 같은 모양이어야 한다** —
-   날짜가 어긋나면 저쪽이 이 목록을 통째로 다시 그리는데, 모양이 다르면 그
-   순간 줄이 달라 보인다. check-pages 가 두 벌을 견준다. */
-const offRow = (t, it) => {
-    const sub = t.lang === 'en' ? (it.h.e ? it.h.n : '') : (it.h.e || '');
-    const name = t.lang === 'en' ? (it.h.e || it.h.n) : it.h.n;
-    return `      <li><span class="who">${flag(it.c.code)}`
-        + `<a href="${t.dir}/${it.c.code.toLowerCase()}/">${esc(it.label)}</a></span>`
-        + `<span class="what">${esc(name)}`
-        + `${sub ? `<span class="en">${esc(sub)}</span>` : ''}`
-        + `${it.h.r ? `<span class="local" title="${esc(it.h.r.join(', '))}">${esc(t.localBadge(it.h.r.length))}</span>` : ''}`
-        + `</span></li>`;
-};
-
-function todayPage(t, f, generated) {
+function todayPage(t, generated) {
     const slug = 'today/';
-    const human = t.todayHuman(f);
 
     const crumbs = {
         '@context': 'https://schema.org',
@@ -2564,56 +2423,31 @@ function todayPage(t, f, generated) {
         ],
     };
 
-    const pairs = [
-        f.lunar ? tdRow(t.tdLunar, esc(t.tdLunarDay(f.lunar))) : '',
-        f.here && f.here.next && t.tdHere
-            ? tdRow(t.tdHere, `${esc(DATE_ONE[t.lang](f.here.next.d))} ${esc(f.here.next.n)}`,
-                t.todayDd(f.here.next.dd))
-            : '',
-        f.term ? tdRow(t.tdToday, esc(f.term.n), t.todayDd(0)) : '',
-        f.nextTerm ? tdRow(t.dtTerm, `${esc(DATE_ONE[t.lang](f.nextTerm.d))} ${esc(f.nextTerm.n)}`,
-            t.todayDd(f.nextTerm.dd)) : '',
-        f.nextMoon ? tdRow(f.nextMoon.n === t.fullMoon ? t.dtFull : t.dtNew,
-            esc(DATE_ONE[t.lang](f.nextMoon.d)), t.todayDd(f.nextMoon.dd)) : '',
-        f.nextShower ? tdRow(t.dtShower,
-            `${esc(DATE_ONE[t.lang](f.nextShower.d))} ${esc(f.nextShower.n)}`,
-            t.todayDd(f.nextShower.dd)) : '',
-        tdRow(t.tdYear, esc(t.tdYearNth(f))),
-    ].filter(Boolean).join('\n');
-
-    const hereLine = f.here && f.here.off.length
-        ? ` · ${esc(t.todayHereOff(f.here.off))}` : '';
-
-    return `${head(t, { title: t.todayTitle(f), desc: t.todayDesc(f), slug, card: 'today',
+    return `${head(t, { title: t.todayTitle, desc: t.todayDesc, slug, card: 'today',
         alt: `${t.todayCrumb} — ${SITE}`, app: t.appToday })}
-<body data-today="${f.iso}">
+<body>
 
 ${top(t, { slug, axis: 'today', label: esc(t.pickerLabel) })}
 
 <main class="wrap">
 
-  <h1>${esc(t.todayH1(f))}</h1>
+  <h1 id="th1">${esc(t.todayH1)}</h1>
   <p class="lede">${esc(t.todayLede)}</p>
-  <p class="sum">${esc(t.todaySum(f))}</p>
-  <p class="note drift" id="tdrift" hidden></p>
+  <p class="sum" id="tsum">${esc(t.todaySum)}</p>
 
   <div class="now" id="tnow">
-    <div class="asof" id="tasof">${esc(t.todayAsOf(human))}</div>
-    <div class="verdict">${esc(f.n ? t.todayVerdict(f.n) : t.todayVerdictNone)}${hereLine}</div>
-    <dl class="pair">
-${pairs}
-    </dl>
+    <div class="asof" id="tasof"></div>
+    <div class="verdict" id="tverdict"></div>
+    <dl class="pair" id="tpair"></dl>
   </div>
 
   <div class="now" id="home" hidden></div>
 
   <section id="today">
-    <span class="cap" id="tcap">${esc(f.n ? t.todayCapN(f.n) : t.todayCap)}</span>
+    <span class="cap" id="tcap">${esc(t.todayCap)}</span>
     <h2>${esc(t.todayOffH2)}</h2>
-    <p class="pending" id="tnote"${f.n ? ' hidden' : ''}>${esc(f.n ? t.todayWait : t.todayNoneNote)}</p>
-    <ul class="worldwide" id="tlist">
-${f.off.map((it) => offRow(t, it)).join('\n')}
-    </ul>
+    <p class="pending" id="tnote">${esc(t.todayWait)}</p>
+    <ul class="worldwide" id="tlist"></ul>
   </section>
 
   <section id="sky">
@@ -2841,9 +2675,6 @@ const coverYear = all.some((d) => d.days.some((x) => x.d.startsWith(String(MID))
     : Math.min(...all.flatMap((d) => d.days.map((x) => +x.d.slice(0, 4))));
 
 const byCode = new Map(index.map((c) => [c.code, c]));
-/* 나라별 자료 자체. /today/ 의 「대한민국 다음 공휴일」이 이걸 본다 — 첫 화면의
-   국가 목록(byCode)은 이름과 코드뿐이라 날짜가 없다. */
-const byData = new Map(all.map((d) => [d.code, d]));
 const names = nameIndex(all, coverYear);
 const together = togetherIndex(all, coverYear, names);
 const rank = rankIndex(all, coverYear);
@@ -2880,14 +2711,12 @@ for (const lang of ['ko', 'en']) {
         count++;
     }
 
-    /* 오늘 한 장. **날짜가 자료인 유일한 페이지**라 하루 한 번 다시 만든다 —
-       다른 페이지는 이 생성기를 다시 돌려도 바이트가 그대로다(자료가 안 바뀌었으면)
-       ㄴ 그래서 매일 도는 워크플로의 커밋에는 이 두 장과 sitemap 만 담긴다.
-       날짜는 언어의 시간대로 따로 찍는다 — ko 는 KST, en 은 UTC. */
+    /* 오늘 한 장. 날짜를 박지 않으므로 다른 544장과 같다 — 자료가 그대로면
+       이 생성기를 몇 번 돌려도 바이트가 같다. 그래서 날마다 도는 워크플로가
+       필요 없고, 따로 넘길 「오늘」도 없다. 채우는 일은 dday.js 가 한다. */
     const todayDir = join(root, 'today');
     mkdirSync(todayDir, { recursive: true });
-    const tf = todayFacts(t, zoneToday(t.zone), { sky, byCode, byData });
-    writeFileSync(join(todayDir, 'index.html'), todayPage(t, tf, generated));
+    writeFileSync(join(todayDir, 'index.html'), todayPage(t, generated));
     count++;
 
     /* 나라끼리 견주기 — 한 장이다. 표를 여럿 이고 있어도 물음이 하나라 나누지 않는다. */

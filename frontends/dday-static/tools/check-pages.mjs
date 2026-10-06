@@ -36,10 +36,12 @@
     16. 페이지마다 웹 앱 선언(manifest)이 있고, start_url 이 그 페이지 자신이며
         scope 가 사이트 전체인가 — 그리고 상태 표시줄 색이 base.css 의 --paper 와 같나
         (「홈 화면에 추가」로 뽑아 둔 창의 계약이다. 화면으로는 거의 안 갈린다)
-    16.5. /today/ 한 장이 그날 자료와 같은 말을 하나 — 쉬는 나라 집합 · 음력 ·
-        다음 절기 · 기준 나라의 다음 공휴일. 그리고 박아 둔 날짜가 오늘인가
-        (--fresh 를 주면 실패, 안 주면 주의 — 어제 만든 저장소로 일할 때 시끄럽지
-        않게 두되, 배포 직전에는 반드시 문다)
+    16.5. /today/ 의 틀에 날짜가 한 글자도 없나 — 박아 두면 생성기가 날마다 다른
+        바이트를 내고 커밋이 날마다 생긴다. 그 고장은 하루를 묵혀야 보인다
+    16.6. 그 틀을 dday.js 가 채운 뒤의 숫자가 자료와 같나 — 쉬는 나라 집합 ·
+        음력 · 다음 절기 · 기준 나라의 다음 공휴일 (화면을 돌려 놓고 본다)
+    16.7. 날이 바뀌면 그 카드가 따라오나 — 자정을 넘긴 창이 어제에 머물면
+        화면은 조용하고 틀린 값만 남는다
     17. 날짜가 바뀌었을 때 다시 칠하고, 그 두 번째 칠이 첫 칠의 자국을 지우나 —
         그리고 다시 칠할 계기(visibilitychange · pageshow)가 실제로 걸려 있나
         (홈 화면 앱은 몇 주씩 살아 있다. 탭이었을 때는 없던 갈림길이다)
@@ -49,7 +51,7 @@
 import { boot, pages, PUB, DATA } from './harness.mjs';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, sep } from 'node:path';
-import { BASE, EXTRA, YEARS, today, zoneToday, HERE, kindOf, NAME_PAGE } from './config.mjs';
+import { BASE, EXTRA, YEARS, today, HERE, kindOf, NAME_PAGE } from './config.mjs';
 import { NORM, NAMES, MIN, NAME_ROOT } from './holiday-names.mjs';
 import { pngSize } from './png.mjs';
 import { FONT_DIR, FONT_CSS, LICENSE_FILE, codepoints, parseFaces, parseRanges, used, parseName, hash8 } from './fonts.mjs';
@@ -61,14 +63,10 @@ import { ICONS, ICON_DIR, ICON_PATH, skyIconOf, skyIconImg, validate as skyArtWr
    다른 질문(그 날의 월·일이 1/1인가)을 던지고, 분점은 손으로 적은 고정값을 쓴다. */
 import { CALS, CAL_BY_ID, NY_CALS, ERA_CALS, noonOf, yearOf } from './calendars.mjs';
 
-/* /today/ 한 장만 날짜가 자료다. 박아 둔 날짜가 오늘이 아닌 것은 저장소를 하루
-   묵혀 두면 늘 참이라 평소에는 주의로 두고, 배포 직전(워크플로)에만 실패로 올린다. */
-const FRESH = process.argv.includes('--fresh');
-
-/* 산문 안의 영어 달 이름. gen-pages 의 EN_MONTH 를 가져오지 않는다 — 생성기를
-   import 하는 순간 550개 HTML 이 다시 쓰이고, 같은 표를 보면 같이 틀려도 통과한다. */
-const EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'];
+/* 영어 화면의 짧은 달 이름. dday.js 의 STR.en.mon 을 가져오지 않는다 — 그 파일을
+   import 하는 순간 검사와 구현이 같은 표를 보게 되고, 같이 틀려도 통과한다. */
+const EN_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const fail = [], warn = [];
 const bad = (p, m) => fail.push(`${p}: ${m}`);
@@ -90,9 +88,12 @@ const ICON_LINKS = [
 const NEED_IDS = {
     country: ['picker', 'now', 'next', 'prev'],
     /* 오늘 한 장은 첫 화면의 세 손잡이(#tlist · #skylist · #home)를 그대로 쓴다 —
-       같은 코드가 채우므로 두 화면이 다른 답을 낼 수 없다. #tdrift · #tnow 는
-       이 페이지에만 있는 것으로, 박아 둔 날짜가 어긋났을 때 쓰인다. */
-    today: ['picker', 'home', 'tcap', 'tnote', 'tlist', 'sky', 'skylist', 'tnow', 'tdrift'],
+       같은 코드가 채우므로 두 화면이 다른 답을 낼 수 없다. 뒤의 다섯은 이 페이지
+       에만 있고, **배포되는 HTML 에서는 비어 있다** — dday.js 가 거기에 날짜와
+       요약을 적는다. 하나라도 이름이 어긋나면 그 자리는 영영 빈 채로 남는데,
+       에러가 나지 않아 화면으로는 "뭔가 허전하다" 로만 보인다. */
+    today: ['picker', 'home', 'tcap', 'tnote', 'tlist', 'sky', 'skylist',
+        'tnow', 'th1', 'tsum', 'tasof', 'tverdict', 'tpair'],
     home: ['picker', 'home', 'tcap', 'tnote', 'tlist', 'csearch', 'clist', 'cnone', 'sky', 'skylist'],
     /* 하늘 허브는 표도 카드도 없다. 첫 화면과 같은 #skylist 하나로 굴러간다. */
     sky: ['picker', 'skylist'],
@@ -1633,151 +1634,55 @@ for (const { page, lang, slug, kind, label } of ALL) {
     }
 
     /* ------------------------------------------------------------ 오늘 한 장
-       이 저장소에서 **날짜 자체가 자료인** 유일한 페이지다. 나머지는 "표에 날짜를
-       적어 두고 D-day 는 브라우저가 붙인다" 라서 낡지 않는데, 이 한 장은 박아 둔
-       요약이 그날 것이다. 그래서 볼 것이 둘로 갈린다.
+       **여기에는 날짜가 한 글자도 없어야 한다.** 한동안은 그날의 요약을 박아 두고
+       하루 한 번 다시 만들었다 — 스니펫은 렌더 전 HTML 에서 뽑히니 「오늘은 무슨 날」에
+       답하려면 답이 원본에 있어야 한다는 판단이었다. 그 값이 **매일 한 건씩 쌓이는
+       커밋**이었고, 하루라도 작업이 걸러지면 박아 둔 답이 틀린 채로 남았다.
+       지금은 나머지 548장과 같다 — 틀만 두고 dday.js 가 방문자의 오늘로 채운다.
 
-         ① 박아 둔 사실이 자료와 같은가   — 언제 돌려도 참이어야 한다 (실패)
-         ② 박아 둔 날짜가 오늘인가        — 배포 직전에만 참이어야 한다 (--fresh)
+       그래서 여기서 보는 것은 **틀이 비어 있나** 하나다. 누가 다시 박아 두면
+       생성기가 날마다 다른 바이트를 내고 커밋이 되살아나는데, 그 고장은 하루를
+       묵혀야 보인다 — 박은 그날 안에는 값이 맞으니까. 여기서 미리 잡는 이유다.
 
-       ②를 늘 실패로 두면 어제 만든 저장소를 열어 놓고 일하는 동안 내내 빨갛다.
-       늘 주의로 두면 매일 도는 워크플로가 만들기에 실패해도 조용히 넘어간다.
-       그래서 깃발로 갈랐다 — 워크플로는 --fresh 로 부른다.
-
-       기대값은 여기서 **자료를 놓고 다시 센다.** gen-pages 의 todayFacts 를
-       가져다 쓰면 둘이 같이 틀려도 통과한다. */
+       채워진 뒤의 숫자가 자료와 같은지는 화면을 돌려 놓고 본다(아래 16.6). */
     if (kind === 'today') {
-        const built = (html.match(/<body data-today="(\d{4}-\d{2}-\d{2})">/) || [])[1];
-        if (!built) {
-            bad(label, '<body data-today="YYYY-MM-DD"> 가 없다 — dday.js 가 어긋남을 못 본다');
-            continue;
+        if (/<body[^>]*\bdata-today=/.test(html)) {
+            bad(label, '<body data-today> 가 돌아왔다 — 날짜를 박으면 커밋이 날마다 생긴다');
         }
 
-        /* 시간대. 하늘 표와 같은 규칙이다 — ko 는 KST, en 은 UTC.
-           한 시간대로 두 벌을 다 찍으면 아홉 시간 동안 한쪽이 어제를 가리킨다. */
-        const zone = lang === 'en' ? 'utc' : 'kst';
-        const fresh = zoneToday(zone);
-        if (built !== fresh) {
-            (FRESH ? bad : soft)(label,
-                `박아 둔 날짜가 ${built} 다 — ${zone.toUpperCase()} 의 오늘은 ${fresh} 다`
-                + (FRESH ? '' : ' (gen-pages 를 다시 돌릴 것 · 배포는 --fresh 가 막는다)'));
+        /* 채울 자리는 빈 채로 나와야 한다. 생성기가 무언가 적어 두었다면 그것이
+           곧 날짜에 매인 값이고, dday.js 가 덮기 전까지 틀린 것이 눈에 보인다. */
+        for (const [id, re] of [
+            ['tasof', /<div class="asof" id="tasof"><\/div>/],
+            ['tverdict', /<div class="verdict" id="tverdict"><\/div>/],
+            ['tpair', /<dl class="pair" id="tpair"><\/dl>/],
+            ['tlist', /<ul class="worldwide" id="tlist">\s*<\/ul>/],
+        ]) {
+            if (!re.test(html)) bad(label, `#${id} 가 빈 채로 나오지 않았다 — 생성기가 무언가 박았다`);
         }
 
-        const nAt = epochDayRef(built);
-        const by = +built.slice(0, 4);
-        const oneDate = (iso) => (lang === 'en'
-            ? `${+iso.slice(8)} ${EN_MONTHS[+iso.slice(5, 7) - 1]}`
-            : `${+iso.slice(5, 7)}월 ${+iso.slice(8)}일`);
-
-        /* ── 1. 오늘 쉬는 나라. 첫 화면의 dday.js 가 받는 것과 같은 색인을 본다 */
-        const mFile = join(DATA, 'month', `${built.slice(0, 7)}.json`);
-        const mData = existsSync(mFile) ? JSON.parse(readFileSync(mFile, 'utf8')) : null;
-        const offRows = (mData && mData.d && mData.d[built]) || [];
-
-        const shown = [...html.matchAll(
-            /<li><span class="who"><img class="flag" src="\/flags\/([a-z]{2})\.svg"[^>]*><a href="([^"]+)">([^<]+)<\/a><\/span>/g
-        )].map((m) => ({ cc: m[1].toUpperCase(), href: m[2], name: m[3] }));
-
-        const wantSet = offRows.map((h) => h.c).sort().join(',');
-        const gotSet = shown.map((x) => x.cc).sort().join(',');
-        if (wantSet !== gotSet) {
-            bad(label, `오늘 쉬는 나라가 [${gotSet}] 다 — 자료는 [${wantSet}]`);
-        }
-        for (const x of shown) {
-            const href = `${dir}/${x.cc.toLowerCase()}/`;
-            if (x.href !== href) bad(label, `${x.cc} 링크가 ${x.href} — ${href} 이어야 한다`);
-            if (x.name !== esc(shownName(x.cc, lang))) {
-                bad(label, `${x.cc} 에 적힌 이름이 "${x.name}" 다 (기대 "${esc(shownName(x.cc, lang))}")`);
-            }
-        }
-        /* 보이는 이름순. dday.js 가 다시 그릴 때 그 순서라, 어긋나면 날짜가
-           바뀌는 순간 목록이 통째로 뒤집혀 보인다. */
-        if (!inShownOrder(shown.map((x) => x.cc), lang)) {
-            bad(label, '오늘 쉬는 나라가 보이는 이름순이 아니다');
-        }
-        /* 머리 칸의 수. 목록과 갈라지면 화면이 스스로 모순된다 */
-        const cap = (html.match(/<span class="cap" id="tcap">([^<]*)<\/span>/) || [])[1] || '';
-        const capN = (cap.match(/(\d+)/) || [])[1];
-        if (offRows.length && +capN !== offRows.length) {
-            bad(label, `머리 칸이 "${cap}" 인데 자료는 ${offRows.length}개국이다`);
-        }
-        if (!offRows.length && capN) bad(label, `쉬는 나라가 없는데 머리 칸에 수가 있다: "${cap}"`);
-
-        /* ── 2. 음력. sky.json 의 lunar 를 놓고 며칠째인지 다시 센다 */
-        const lm = (SKY.lunar || []).find((e) =>
-            nAt >= epochDayRef(e.s) && nAt < epochDayRef(e.s) + e.n);
-        const lunarDay = lm ? nAt - epochDayRef(lm.s) + 1 : null;
-
-        /* ── 3. 다음 절기. 시간대로 읽고 오늘 뒤 첫 것 */
-        const atOf = (e) => (zone === 'kst' ? e.kst : e.utc);
-        const nextTerm = (SKY.terms || [])
-            .filter((e) => epochDayRef(atOf(e)) > nAt)
-            .sort((a, b) => epochDayRef(atOf(a)) - epochDayRef(atOf(b)))[0] || null;
-        const termName = nextTerm ? (lang === 'en' ? nextTerm.e : nextTerm.n) : '';
-
-        /* ── 4. 요약 문장. 숫자를 문맥에 붙여 본다 — "문장 어딘가에 있나" 로 보면
-           날짜의 21 이 나라 수 21 을 대신 물어 준다(국가 페이지에서 실제로 겪었다). */
-        const sum = (html.match(/<p class="sum">([^<]*)<\/p>/) || [])[1] || '';
-        if (!sum) bad(label, '요약 문장(<p class="sum">)이 없다');
-        else {
-            const nth = nAt - epochDayRef(`${by}-01-01`) + 1;
-            const left = epochDayRef(`${by}-12-31`) - nAt;
-            const pats = lang === 'ko'
-                ? [[`올해 ${nth}번째 날이고 ${left}일 남았습니다`, '날짜 자리'],
-                   [offRows.length ? `나라는 ${offRows.length}개국이고` : '나라는 없고', '쉬는 나라 수'],
-                   ...(lm ? [[`음력으로는 ${lm.leap ? '윤' : ''}${lm.m}월 ${lunarDay}일입니다`, '음력']] : []),
-                   ...(nextTerm ? [[`다음 절기는 ${oneDate(atOf(nextTerm))} ${termName}입니다`, '다음 절기']] : [])]
-                : [[`day ${nth} of the year, with ${left} to go`, '날짜 자리'],
-                   [offRows.length ? `public holiday in ${offRows.length} countries`
-                       : 'No country has a public holiday today', '쉬는 나라 수'],
-                   ...(lm ? [[`day ${lunarDay} of ${lm.leap ? 'the leap ' : ''}lunar month ${lm.m}`, '음력']] : []),
-                   ...(nextTerm ? [[`The next solar term is ${termName} on ${oneDate(atOf(nextTerm))}`, '다음 절기']] : [])];
-            for (const [w, what] of pats) {
-                if (!sum.includes(w)) bad(label, `요약의 ${what} 가 자료와 다르다 — "${w}" 이 없다: "${sum}"`);
+        /* 본문에 날짜꼴이 없나. 각주는 빼고 본다 — 거기 적힌 '갱신 2026-09-01' 은
+           자료를 받아 온 날이라 자료가 바뀔 때만 움직인다(그건 커밋이 날 만한 일이다).
+           머리(title·description·og)도 같이 본다. 스니펫에 날짜가 돌아오면
+           그 한 줄 때문에 이 페이지만 날마다 달라진다. */
+        const head = (html.match(/<head>[\s\S]*?<\/head>/) || [''])[0];
+        const main = (html.match(/<main class="wrap">([\s\S]*?)<div class="foot">/) || ['', ''])[1];
+        for (const [what, text] of [['머리', head], ['본문', main]]) {
+            const hit = text.match(/\d{4}-\d{2}-\d{2}|\b(19|20)\d{2}\b/);
+            if (hit) {
+                bad(label, `${what}에 날짜가 있다: "${hit[0]}" — 이 한 장은 날짜를 박지 않는다`);
             }
         }
 
-        /* ── 5. 카드의 D-day. 날짜에서 바로 나오는 값이라 어긋나면 산수가 틀린 것이다 */
-        if (nextTerm) {
-            const dd = epochDayRef(atOf(nextTerm)) - nAt;
-            const row = `<dd>${esc(oneDate(atOf(nextTerm)))} ${esc(termName)} <span class="dd">D-${dd}</span></dd>`;
-            if (!html.includes(row)) bad(label, `다음 절기 줄이 자료와 다르다 — ${row} 이 없다`);
-        }
-
-        /* ── 6. 기준 나라(한국어 화면만). 그 나라 자료에서 다음 공휴일을 다시 찾는다 */
-        if (lang === 'ko') {
-            const kr = JSON.parse(readFileSync(join(DATA, 'KR.json'), 'utf8'));
-            const nx = kr.days.slice().sort((a, b) => a.d.localeCompare(b.d))
-                .find((x) => x.d > built);
-            if (nx) {
-                const dd = epochDayRef(nx.d) - nAt;
-                const row = `<dt>대한민국 다음 공휴일</dt><dd>${esc(oneDate(nx.d))} ${esc(nx.n)}`
-                    + ` <span class="dd">D-${dd}</span></dd>`;
-                if (!html.includes(row)) bad(label, `대한민국 다음 공휴일 줄이 자료와 다르다 — ${row} 이 없다`);
-            }
-        }
-
-        /* ── 7. description 의 나라 수. 화면과 검색결과가 다른 말을 하면 안 된다 */
-        {
-            const d = (html.match(/name="description" content="([^"]*)"/) || [])[1] || '';
-            const re = lang === 'ko' ? /나라는 (\d+)개국/ : /public holiday in (\d+) countries/;
-            const m = d.match(re);
-            if (m && +m[1] !== offRows.length) {
-                bad(label, `description 의 쉬는 나라 수가 ${m[1]} 이다 — 자료는 ${offRows.length}`);
-            }
-            if (!m && offRows.length) bad(label, `description 에 쉬는 나라 수가 없다 — "${d}"`);
-        }
-
-        /* ── 8. 첫 화면과 제목이 겹치지 않나.
-           둘 다 「오늘은 무슨 날」을 노리는 자리라, 제목까지 같으면 구글이 둘 중
-           하나만 남기고 서로 잡아먹는다 — /sky/ 를 갈래로 쪼갤 때 배운 것이다.
-           첫 화면은 날짜 없는 허브, 이쪽은 그날 하루. 날짜가 그 경계다. */
+        /* 첫 화면과 제목이 겹치지 않나. 둘 다 「오늘」을 노리는 자리라 제목까지
+           같으면 구글이 하나만 남기고 서로 잡아먹는다 — /sky/ 를 갈래로 쪼갤 때
+           배운 것이다. 가르던 것이 날짜였으므로, 날짜를 뺀 지금은 **물음**이
+           갈라야 한다 — 첫 화면은 '오늘은 무슨 날', 이쪽은 '오늘 쉬는 나라'. */
         {
             const homeHtml = readFileSync(join(PUB, lang === 'en' ? 'en' : '', 'index.html'), 'utf8');
             const homeTitle = (homeHtml.match(/<title>([^<]*)<\/title>/) || [])[1] || '';
             const mine = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || '';
             if (homeTitle === mine) bad(label, '첫 화면과 title 이 같다 — 두 장이 서로 잡아먹는다');
-            if (!mine.includes(String(by))) bad(label, `title 에 날짜가 없다: "${mine}"`);
         }
         continue;
     }
@@ -4221,98 +4126,199 @@ for (const [file, lang, needle] of [
     }
 }
 
-/* --------------------------------- 16.6. 오늘 한 장 — 박은 것과 그리는 것
-   /today/ 의 「오늘 공휴일인 나라」는 같은 목록을 **두 벌**이 만든다. 하나는
-   gen-pages 가 HTML 에 박아 두고(크롤러와 자바스크립트 없는 화면이 읽는다),
-   하나는 dday.js 의 initToday 가 방문자의 오늘로 다시 그린다(날짜가 어긋날 때
-   맞는 답을 내는 자리다).
+/* ------------------------------------- 16.6. 오늘 한 장 — 화면이 채운 숫자
+   /today/ 의 제목줄·요약·카드·목록은 **HTML 에 없다.** 예전에는 생성기가 박아
+   두었고 그래서 배포된 글자를 그냥 읽으면 되었는데, 지금은 dday.js 가 채운다.
+   그러니 읽으려면 화면을 돌려야 한다 — 하니스로 페이지를 구동하고 DOM 을 본다.
 
-   두 벌이 같은 모양을 내야 한다. 어긋나면 페이지를 연 다음 순간 목록이
-   **눈앞에서 다시 조판된다** — 국기가 움직이거나 곁줄이 생겼다 없어진다.
-   화면으로는 "뭔가 깜빡였다" 로만 보이고 어디서도 에러가 나지 않는다.
+   기대값은 여기서 **자료를 놓고 다시 센다.** dday.js 의 셈을 가져다 쓰면 둘이
+   같이 틀려도 통과한다. 날짜 산수(며칠째·남은 날·D-day)도 손으로 다시 한다.
 
-   두 날짜가 같을 때만 견준다. 하니스가 도는 기계의 시간대가 KST 가 아니면
-   (Actions 는 UTC 다) 한국어 페이지에 박힌 날짜와 이 기계의 오늘이 다를 수
-   있고, 그때 두 목록이 다른 것은 고장이 아니라 그 기능 자체다. */
+   예전의 16.6 은 「박은 목록과 그린 목록이 같나」였다. 두 벌이 없어졌으니 그
+   물음도 없어졌다 — 대신 **그린 것 하나가 자료와 같나**를 본다. */
 {
     const before = fail.length;
-    let compared = 0;
+    const tick = () => new Promise((res) => setImmediate(res));
+
     for (const page of ['today', 'en/today']) {
         const label = `/${page}/`;
-        const file = join(PUB, page, 'index.html');
-        const html = readFileSync(file, 'utf8');
-        const built = (html.match(/<body data-today="([\d-]+)">/) || [])[1];
-        if (built !== TODAY) continue;              /* 기계의 시간대가 다르다 — 위 주석 */
+        const lang = page.startsWith('en') ? 'en' : 'ko';
+        const dir = lang === 'en' ? '/en' : '';
+        /* 하늘은 언어마다 시간대가 다르다 — ko 는 KST, en 은 UTC. 「오늘」 자체는
+           기계의 날짜다(dday.js 의 todayIso 가 그렇다). 둘을 섞지 않는다. */
+        const zone = lang === 'en' ? 'utc' : 'kst';
+        const atOf = (e) => (zone === 'kst' ? e.kst : e.utc);
 
         const r = boot(page);
-        await new Promise((res) => setImmediate(res));
+        if (r.errors.length) { bad(label, `스크립트가 던졌다 — ${r.errors.join(' · ')}`); continue; }
+        await tick();
 
-        const inHtml = ((html.match(/<ul class="worldwide" id="tlist">([\s\S]*?)<\/ul>/) || [])[1] || '')
-            .split('\n').map((x) => x.trim()).filter(Boolean);
-        const drawn = (r.doc.querySelector('#tlist').innerHTML || '')
-            .split(/(?<=<\/li>)/).map((x) => x.trim()).filter(Boolean);
+        const q = (sel) => r.doc.querySelector(sel);
+        const text = (sel) => (q(sel) ? q(sel).textContent : '');
 
-        if (inHtml.join('\n') !== drawn.join('\n')) {
-            const at = inHtml.findIndex((x, i) => x !== drawn[i]);
-            bad(label, '박아 둔 목록과 dday.js 가 그린 목록이 다르다'
-                + ` — ${at + 1}번째 줄\n      박은 것: ${inHtml[at] || '(없다)'}`
-                + `\n      그린 것: ${drawn[at] || '(없다)'}`);
+        const n = epochDayRef(TODAY);
+        const y = +TODAY.slice(0, 4);
+        const nth = n - epochDayRef(`${y}-01-01`) + 1;
+        const left = epochDayRef(`${y}-12-31`) - n;
+        const one = (iso) => (lang === 'en'
+            ? `${EN_SHORT[+iso.slice(5, 7) - 1]} ${+iso.slice(8)}`
+            : `${+iso.slice(5, 7)}월 ${+iso.slice(8)}일`);
+
+        /* ── 1. 오늘 쉬는 나라. 첫 화면이 받는 것과 같은 달 색인을 본다 */
+        const mFile = join(DATA, 'month', `${TODAY.slice(0, 7)}.json`);
+        const mData = existsSync(mFile) ? JSON.parse(readFileSync(mFile, 'utf8')) : null;
+        const offRows = (mData && mData.d && mData.d[TODAY]) || [];
+
+        const drawn = [...(q('#tlist').innerHTML || '').matchAll(
+            /<li><span class="who"><img class="flag" src="\/flags\/([a-z]{2})\.svg"[^>]*><a href="([^"]+)">([^<]+)<\/a><\/span>/g
+        )].map((m) => ({ cc: m[1].toUpperCase(), href: m[2], name: m[3] }));
+
+        const wantSet = offRows.map((h) => h.c).sort().join(',');
+        const gotSet = drawn.map((x) => x.cc).sort().join(',');
+        if (wantSet !== gotSet) bad(label, `오늘 쉬는 나라가 [${gotSet}] 다 — 자료는 [${wantSet}]`);
+        for (const x of drawn) {
+            const href = `${dir}/${x.cc.toLowerCase()}/`;
+            if (x.href !== href) bad(label, `${x.cc} 링크가 ${x.href} — ${href} 이어야 한다`);
+            if (x.name !== esc(shownName(x.cc, lang))) {
+                bad(label, `${x.cc} 에 적힌 이름이 "${x.name}" 다 (기대 "${esc(shownName(x.cc, lang))}")`);
+            }
         }
-        compared++;
+        if (!inShownOrder(drawn.map((x) => x.cc), lang)) {
+            bad(label, '오늘 쉬는 나라가 보이는 이름순이 아니다');
+        }
+        /* 머리 칸의 수. 목록과 갈라지면 화면이 스스로 모순된다 */
+        const capN = (text('#tcap').match(/(\d+)/) || [])[1];
+        if (offRows.length && +capN !== offRows.length) {
+            bad(label, `머리 칸이 "${text('#tcap')}" 인데 자료는 ${offRows.length}개국이다`);
+        }
+        if (!offRows.length && capN) bad(label, `쉬는 나라가 없는데 머리 칸에 수가 있다: "${text('#tcap')}"`);
+
+        /* ── 2. 음력 · 다음 절기. sky.json 을 놓고 다시 센다 */
+        const lm = (SKY.lunar || []).find((e) =>
+            n >= epochDayRef(e.s) && n < epochDayRef(e.s) + e.n);
+        const lunarDay = lm ? n - epochDayRef(lm.s) + 1 : null;
+        const nextTerm = (SKY.terms || [])
+            .filter((e) => epochDayRef(atOf(e)) > n)
+            .sort((a, b) => epochDayRef(atOf(a)) - epochDayRef(atOf(b)))[0] || null;
+        const termName = nextTerm ? (lang === 'en' ? nextTerm.e : nextTerm.n) : '';
+
+        /* ── 3. 판정 줄. 수가 목록과 같아야 한다 */
+        const verdict = text('#tverdict');
+        if (offRows.length && !verdict.includes(String(offRows.length))) {
+            bad(label, `판정 줄에 ${offRows.length} 이 없다 — "${verdict}"`);
+        }
+        if (!offRows.length && !/공휴일이 아닙니다|No country/.test(verdict)) {
+            bad(label, `쉬는 나라가 없는데 판정 줄이 "${verdict}" 다`);
+        }
+
+        /* ── 4. 카드의 줄들. 날짜에서 바로 나오는 값이라 어긋나면 산수가 틀린 것이다 */
+        const pair = q('#tpair').innerHTML || '';
+        const wantRows = [];
+        if (lm) {
+            wantRows.push(lang === 'en'
+                ? `<dt>Lunar date</dt><dd>${lm.leap ? 'Leap m' : 'M'}onth ${lm.m}, day ${lunarDay}</dd>`
+                : `<dt>음력</dt><dd>${lm.leap ? '윤' : ''}${lm.m}월 ${lunarDay}일</dd>`);
+        }
+        if (nextTerm) {
+            const dd = epochDayRef(atOf(nextTerm)) - n;
+            wantRows.push(`<dt>${lang === 'en' ? 'Next term' : '다음 절기'}</dt>`
+                + `<dd>${esc(one(atOf(nextTerm)))} ${esc(termName)} <span class="dd">D-${dd}</span></dd>`);
+        }
+        wantRows.push(lang === 'en'
+            ? `<dt>This year</dt><dd>Day ${nth} · ${left} to go</dd>`
+            : `<dt>올해</dt><dd>${nth}일째 · ${left}일 남음</dd>`);
+        /* 기준 나라의 다음 공휴일 — 한국어 화면만이다. 영어 화면에는 기준으로
+           삼을 나라가 없고, 그 자리는 #home 카드(브라우저 지역)가 맡는다. */
+        if (lang === 'ko') {
+            /* 기준 나라는 손으로 적는다 — gen-pages 의 L.ko.hereCc 와 짝이고,
+               저쪽을 가져다 쓰면 둘이 같이 틀려도 통과한다. */
+            const kr = JSON.parse(readFileSync(join(DATA, 'KR.json'), 'utf8'));
+            const nx = kr.days.slice().sort((a, b) => a.d.localeCompare(b.d)).find((x) => x.d > TODAY);
+            if (nx) {
+                const dd = epochDayRef(nx.d) - n;
+                wantRows.push(`<dt>대한민국 다음 공휴일</dt><dd>${esc(one(nx.d))} ${esc(nx.n)}`
+                    + ` <span class="dd">D-${dd}</span></dd>`);
+            }
+        }
+        for (const row of wantRows) {
+            if (!pair.includes(row)) bad(label, `카드에 이 줄이 없다 — ${row}`);
+        }
+
+        /* ── 5. 요약 문장. 숫자를 문맥에 붙여 본다 — "문장 어딘가에 있나" 로 보면
+           날짜의 21 이 나라 수 21 을 대신 물어 준다(국가 페이지에서 실제로 겪었다). */
+        const sum = text('#tsum');
+        const pats = lang === 'ko'
+            ? [[`올해 ${nth}번째 날이고 ${left}일 남았습니다`, '날짜 자리'],
+               [offRows.length ? `나라는 ${offRows.length}개국이고` : '나라는 없고', '쉬는 나라 수'],
+               ...(lm ? [[`음력으로는 ${lm.leap ? '윤' : ''}${lm.m}월 ${lunarDay}일입니다`, '음력']] : []),
+               ...(nextTerm ? [[`다음 절기는 ${one(atOf(nextTerm))} ${termName}입니다`, '다음 절기']] : [])]
+            : [[`day ${nth} of the year, with ${left} to go`, '날짜 자리'],
+               [offRows.length
+                   ? `public holiday in ${offRows.length} ${offRows.length === 1 ? 'country' : 'countries'}`
+                   : 'No country has a public holiday today', '쉬는 나라 수'],
+               ...(lm ? [[`day ${lunarDay} of ${lm.leap ? 'the leap ' : ''}lunar month ${lm.m}`, '음력']] : []),
+               ...(nextTerm ? [[`The next solar term is ${termName} on ${one(atOf(nextTerm))}`, '다음 절기']] : [])];
+        for (const [w, what] of pats) {
+            if (!sum.includes(w)) bad(label, `요약의 ${what} 가 자료와 다르다 — "${w}" 이 없다: "${sum}"`);
+        }
+
+        /* ── 6. 제목줄과 기준 줄에 오늘이 적혀 있나. 자바스크립트가 돌기 전에는
+           둘 다 날짜가 없는 틀이므로, 여기가 비어 있으면 채우는 일이 통째로
+           돌지 않은 것이다 — 그 고장은 화면에서 "뭔가 허전하다" 로만 보인다. */
+        const dayNo = String(+TODAY.slice(8));
+        for (const [sel, what] of [['#th1', '제목줄'], ['#tasof', '기준 줄']]) {
+            if (!text(sel).includes(dayNo) || !text(sel).includes(String(y))) {
+                bad(label, `${what}(${sel})에 오늘 날짜가 없다 — "${text(sel)}"`);
+            }
+        }
     }
     if (fail.length === before) {
-        console.log(`오늘 한 장 — 박은 목록과 그린 목록이 같다 (${compared}/2 · 나머지는 시간대가 달라 건너뜀)`);
+        console.log('오늘 한 장 — 화면이 채운 숫자가 자료와 같다 (ko·en · 목록 · 판정 · 카드 · 요약 · 제목줄)');
     }
 }
 
-/* ------------------------------------------ 16.7. 오늘 한 장의 어긋남 알림
-   /today/ 는 날짜를 HTML 에 박아 두는 유일한 페이지라, 방문자의 오늘과 어긋날 수
-   있다 — 다른 시간대, 캐시, 그날 만들기 실패. 그때 화면이 조용하면 사이트가
-   오늘 일이라며 어제를 말한다.
+/* ------------------------------- 16.7. 오늘 한 장 — 날이 바뀌면 다시 세나
+   날짜를 박아 두지 않으므로 「낡았습니다」 알림도 없어졌다. 대신 **낡지 않는 것**
+   자체를 봐야 한다 — 자정을 넘긴 창에서 카드가 어제에 머물면 화면은 조용하고
+   틀린 값만 남는다. 예전의 어긋남 알림이 막던 바로 그 고장이 이쪽으로 옮겨 왔다.
 
-   **화면으로 거의 못 잡는 고장이다.** 어긋난 날에, 어긋난 시간대에서 열어야
-   보인다. 그래서 하니스가 날짜를 직접 흔들어 본다.
-
-   되돌아오는 것까지 본다. hidden 을 풀기만 하고 되돌리지 않으면, 자정을 넘겨
-   다시 칠한 뒤에도 "어제 것입니다" 가 남는다 — 17번이 보는 것과 같은 종류의
-   고장이고, 이쪽이 더 조용하다. */
+   그래서 날짜를 직접 흔든다. 하루 밀면 카드의 「올해 n일째」가 하나 움직이고,
+   되돌리면 돌아와야 한다. 되돌아오는 것까지 보는 이유는 17번과 같다 — 앞의
+   칠이 남으면 몇 주씩 살아 있는 홈 화면 앱이 그 자국을 들고 다닌다. */
 {
     const before = fail.length;
     const P = '/today/';
+    const tick = () => new Promise((res) => setImmediate(res));
     const r = boot('today');
     const D = r.win.DDAY;
-    const note = r.doc.querySelector('#tdrift');
-    const card = r.doc.querySelector('#tnow');
-    const built = r.doc.body.getAttribute('data-today');
+    await tick();
+
+    const nthOf = (iso) => epochDayRef(iso) - epochDayRef(`${iso.slice(0, 4)}-01-01`) + 1;
+    const dayOf = (iso, k) =>
+        new Date((epochDayRef(iso) + k) * 86400000).toISOString().slice(0, 10);
+    const asof = () => (r.doc.querySelector('#tasof') || { textContent: '' }).textContent;
+    const pair = () => (r.doc.querySelector('#tpair') || { innerHTML: '' }).innerHTML;
 
     if (!D || !D.repaint) bad(P, 'window.DDAY.repaint 가 없다');
-    else if (!note || !card) bad(P, '#tdrift · #tnow 를 찾지 못했다');
-    else if (!built) bad(P, '<body data-today> 가 하니스로 넘어오지 않았다');
     else {
-        const day = (iso, n) => new Date((epochDayRef(iso) + n) * 86400000).toISOString().slice(0, 10);
+        /* 같은 해 안에서 흔든다 — 해를 넘기면 「올해 n일째」가 1 로 돌아가
+           "하나 움직였나" 라는 물음 자체가 서지 않는다. */
+        const ahead = dayOf(TODAY, 1);
+        const other = ahead.slice(0, 4) === TODAY.slice(0, 4) ? ahead : dayOf(TODAY, -1);
 
-        D.repaint(built);
-        if (!note.hidden) bad(P, '날짜가 맞는데 어긋남 알림이 떠 있다');
-        if (card.classList.contains('stale')) bad(P, '날짜가 맞는데 카드가 낡은 것으로 잡혔다');
-
-        D.repaint(day(built, 1));
-        if (note.hidden) bad(P, '날짜가 하루 어긋났는데 알림이 안 뜬다 — 어제를 오늘이라 말한다');
-        if (!card.classList.contains('stale')) bad(P, '어긋났는데 카드가 그대로다');
-        /* 두 날짜가 문장 안에 다 있어야 한다. "낡았습니다" 만으로는 무엇이
-           오늘인지 알 수 없고, 아래 목록이 어느 날짜로 세어졌는지도 모른다. */
-        for (const want of [String(+built.slice(8)), String(+day(built, 1).slice(8))]) {
-            if (!note.textContent.includes(want)) {
-                bad(P, `어긋남 알림에 ${want} 일이 없다 — "${note.textContent}"`);
+        for (const [iso, when] of [[TODAY, '오늘'], [other, '날이 바뀐 뒤'], [TODAY, '되돌림']]) {
+            D.repaint(iso);
+            await tick();
+            if (!asof().includes(String(+iso.slice(8)))) {
+                bad(P, `${when} — 기준 줄이 ${iso} 를 안 적는다: "${asof()}"`);
+            }
+            const want = `<dd>${nthOf(iso)}일째`;
+            if (!pair().includes(want)) {
+                bad(P, `${when} — 카드의 「올해」 줄이 ${iso} 를 따라오지 않았다 (기대 "${want}")`);
             }
         }
-
-        /* 되돌아오나 */
-        D.repaint(built);
-        if (!note.hidden) bad(P, '날짜가 돌아왔는데 알림이 남아 있다');
-        if (note.textContent) bad(P, '알림을 감추기만 하고 글자를 안 지웠다 — 보조기술은 읽는다');
-        if (card.classList.contains('stale')) bad(P, '날짜가 돌아왔는데 카드가 낡은 채다');
     }
-    if (fail.length === before) console.log('오늘 한 장 — 어긋남 알림 (맞음 → 하루 뒤 → 되돌림)');
+    if (fail.length === before) console.log('오늘 한 장 — 날이 바뀌면 다시 센다 (오늘 → 하루 뒤 → 되돌림)');
 }
 
 /* --------------------------------------------------- 17. 다시 칠하기

@@ -153,8 +153,6 @@ td.len{font-weight:500}
 /* /today/ 의 박힌 요약이 방문자의 오늘과 어긋났을 때. 여느 주석(.note)과 같은
    크기로 두되 색과 선으로 갈라 둔다 — 「이 화면의 한 부분이 오늘 것이 아니다」는
    지나가며 읽고 넘길 문장이 아니다. 어긋난 카드 자체도 함께 흐려 둔다. */
-.note.drift{color:var(--local);border-left:2px solid var(--local);padding-left:8px}
-.now.stale .asof,.now.stale .pair{opacity:.72}
 
 /* 하늘 허브의 머리글만 62ch 를 풀어 준다. "절기와 삭망, 유성우, 그리고 음력
    달력입니다. 갈래를 골라 들어가면 3년치를 날짜순으로 봅니다." 가 680px 쯤인데
